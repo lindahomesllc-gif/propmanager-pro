@@ -1,0 +1,132 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg:       #0E0E0C;
+  --bg2:      #161614;
+  --bg3:      #1E1E1B;
+  --bg4:      #262623;
+  --border:   rgba(255,255,255,0.07);
+  --border2:  rgba(255,255,255,0.12);
+  --text:     #F0EEE8;
+  --text2:    #A8A69E;
+  --text3:    #5A5A56;
+  --green:    #4ADE9A;
+  --green-dk: #22C574;
+  --green-bg: rgba(74,222,154,0.1);
+  --amber:    #FBB040;
+  --amber-bg: rgba(251,176,64,0.1);
+  --red:      #F87171;
+  --red-bg:   rgba(248,113,113,0.1);
+  --blue:     #60A5FA;
+  --blue-bg:  rgba(96,165,250,0.1);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  margin: 0;
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+
+.font-display { font-family: 'Syne', sans-serif; }
+
+/* Cards */
+.card {
+  background: var(--bg2);
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 13px;
+  border-radius: 7px;
+  border: 0.5px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--bg4); }
+.btn-primary {
+  background: var(--green);
+  color: #0E0E0C;
+  border-color: var(--green);
+  font-weight: 700;
+}
+.btn-primary:hover { background: var(--green-dk); }
+.btn-ghost {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text2);
+}
+.btn-ghost:hover { background: var(--bg3); color: var(--text); }
+
+/* Status chips */
+.chip {
+  display: inline-block;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.chip-g { background: var(--green-bg); color: var(--green); border: 0.5px solid rgba(74,222,154,0.25); }
+.chip-a { background: var(--amber-bg); color: var(--amber); border: 0.5px solid rgba(251,176,64,0.25); }
+.chip-r { background: var(--red-bg);   color: var(--red);   border: 0.5px solid rgba(248,113,113,0.25); }
+.chip-b { background: var(--blue-bg);  color: var(--blue);  border: 0.5px solid rgba(96,165,250,0.25); }
+.chip-x { background: var(--bg4);      color: var(--text2); border: 0.5px solid var(--border); }
+
+/* Tables */
+.tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.tbl th {
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  border-bottom: 0.5px solid var(--border);
+}
+.tbl td {
+  padding: 10px 12px;
+  border-bottom: 0.5px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+.tbl tr:last-child td { border-bottom: none; }
+.tbl tr:hover td { background: var(--bg3); }
+
+/* Form inputs */
+.input {
+  width: 100%;
+  padding: 8px 11px;
+  font-size: 12.5px;
+  border: 0.5px solid var(--border2);
+  border-radius: 7px;
+  background: var(--bg3);
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input:focus { border-color: var(--green); }
+.input::placeholder { color: var(--text3); }
