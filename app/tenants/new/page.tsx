@@ -1,73 +1,94 @@
 'use client'
-
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import AppShell from '@/components/AppShell'
-import { getTenants, formatDate, type Tenant } from '@/lib/supabase'
+import { supabase, USER_ID } from '@/lib/supabase'
 
-const USER_ID = 'cacb3a74-75d7-4e07-af71-6db4fdde9a92'
-
-export default function TenantsPage() {
-  const [tenants, setTenants] = useState<Tenant[]>([])
-  const [loading, setLoading] = useState(true)
+export default function NewTenantPage() {
+  const router = useRouter()
+  const [saving, setSaving] = useState(false)
+  const [properties, setProperties] = useState<any[]>([])
+  const [form, setForm] = useState({
+    property_id: '', full_name: '', email: '',
+    phone: '', move_in_date: '', notes: ''
+  })
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
   useEffect(() => {
-    getTenants(USER_ID).then(data => { setTenants(data); setLoading(false) })
+    supabase.from('properties').select('id,address')
+      .eq('user_id', USER_ID)
+      .then(({ data }) => setProperties(data || []))
   }, [])
+
+  async function save() {
+    if (!form.full_name) { alert('Name is required'); return }
+    if (!form.property_id) { alert('Please select a property'); return }
+    setSaving(true)
+    const { error } = await supabase.from('tenants').insert({
+      user_id: USER_ID,
+      property_id: form.property_id,
+      full_name: form.full_name,
+      email: form.email || null,
+      phone: form.phone || null,
+      move_in_date: form.move_in_date || null,
+      status: 'active',
+      portal_access: true,
+      notes: form.notes || null,
+    })
+    setSaving(false)
+    if (error) { alert('Error: ' + error.message); return }
+    router.push('/tenants')
+  }
+
+  const inp: any = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: '#1E1E1B', color: '#F0EEE8', fontFamily: 'Plus Jakarta Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }
+  const lbl: any = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#5A5A56', marginBottom: '4px' }
+  const card: any = { background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
+  const g2: any = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }
+  const btnP: any = { background: '#4ADE9A', color: '#0E0E0C', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }
+  const btnG: any = { background: 'transparent', color: '#A8A69E', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '8px 14px', fontSize: '12px', cursor: 'pointer' }
+  const secTtl: any = { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5A5A56', marginBottom: '12px' }
 
   return (
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: '#161614', flexShrink: 0 }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#F0EEE8' }}>Tenants</div>
-        <a href="/tenants/new" style={{ background: '#4ADE9A', color: '#0E0E0C', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }}>+ Add Tenant</a>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#F0EEE8' }}>Add New Tenant</div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button style={btnG} onClick={() => router.push('/tenants')}>Cancel</button>
+          <button style={btnP} onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Tenant'}</button>
+        </div>
       </div>
-
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#5A5A56' }}>Loading tenants…</div>
-        ) : tenants.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px', color: '#5A5A56', fontSize: '13px' }}>
-            <div style={{ fontSize: '32px', marginBottom: '12px' }}>👤</div>
-            No tenants yet. Add your first tenant to get started.
-            <div style={{ marginTop: '12px' }}>
-              <a href="/tenants/new" style={{ background: '#4ADE9A', color: '#0E0E0C', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }}>Add First Tenant</a>
-            </div>
+        <div style={card}>
+          <div style={secTtl}>Assign to Property</div>
+          <label style={lbl}>Property *</label>
+          <select style={inp} value={form.property_id} onChange={e => set('property_id', e.target.value)}>
+            <option value="">Select a property...</option>
+            {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
+          </select>
+        </div>
+        <div style={card}>
+          <div style={secTtl}>Tenant Information</div>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={lbl}>Full Name *</label>
+            <input style={inp} placeholder="John Smith" value={form.full_name} onChange={e => set('full_name', e.target.value)} />
           </div>
-        ) : (
-          <div style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
-              <thead>
-                <tr>
-                  {['Name','Email','Phone','Move In','Status','Portal'].map(h => (
-                    <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: '10px', fontWeight: 700, color: '#5A5A56', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '0.5px solid rgba(255,255,255,0.07)' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {tenants.map(t => (
-                  <tr key={t.id} style={{ borderBottom: '0.5px solid rgba(255,255,255,0.07)' }}>
-                    <td style={{ padding: '10px 12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-                        <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#1E3D2A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: '#4ADE9A', flexShrink: 0 }}>
-                          {t.full_name.split(' ').map((w: string) => w[0]).join('').slice(0, 2)}
-                        </div>
-                        <div style={{ fontWeight: 600, color: '#F0EEE8' }}>{t.full_name}</div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '10px 12px', color: '#60A5FA' }}>{t.email || '—'}</td>
-                    <td style={{ padding: '10px 12px', color: '#A8A69E' }}>{t.phone || '—'}</td>
-                    <td style={{ padding: '10px 12px', color: '#A8A69E' }}>{formatDate(t.move_in_date)}</td>
-                    <td style={{ padding: '10px 12px' }}>
-                      <span style={{ fontSize: '10px', padding: '3px 8px', borderRadius: '20px', fontWeight: 700, background: t.status === 'active' ? 'rgba(74,222,154,0.1)' : 'rgba(90,90,86,0.2)', color: t.status === 'active' ? '#4ADE9A' : '#A8A69E', border: `0.5px solid ${t.status === 'active' ? 'rgba(74,222,154,0.25)' : 'rgba(90,90,86,0.3)'}` }}>{t.status}</span>
-                    </td>
-                    <td style={{ padding: '10px 12px' }}>
-                      <span style={{ fontSize: '10px', padding: '3px 8px', borderRadius: '20px', fontWeight: 700, background: t.portal_access ? 'rgba(74,222,154,0.1)' : 'rgba(90,90,86,0.2)', color: t.portal_access ? '#4ADE9A' : '#A8A69E', border: `0.5px solid ${t.portal_access ? 'rgba(74,222,154,0.25)' : 'rgba(90,90,86,0.3)'}` }}>{t.portal_access ? 'Enabled' : 'Disabled'}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ ...g2, marginBottom: '12px' }}>
+            <div><label style={lbl}>Email</label><input style={inp} type="email" placeholder="john@email.com" value={form.email} onChange={e => set('email', e.target.value)} /></div>
+            <div><label style={lbl}>Phone</label><input style={inp} placeholder="407-555-0100" value={form.phone} onChange={e => set('phone', e.target.value)} /></div>
           </div>
-        )}
+          <div>
+            <label style={lbl}>Move In Date</label>
+            <input style={inp} type="date" value={form.move_in_date} onChange={e => set('move_in_date', e.target.value)} />
+          </div>
+        </div>
+        <div style={card}>
+          <div style={secTtl}>Notes</div>
+          <textarea style={{ ...inp, resize: 'vertical' }} rows={3} placeholder="Any notes about this tenant..." value={form.notes} onChange={e => set('notes', e.target.value)} />
+        </div>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button style={btnG} onClick={() => router.push('/tenants')}>Cancel</button>
+          <button style={btnP} onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Tenant'}</button>
+        </div>
       </div>
     </AppShell>
   )
