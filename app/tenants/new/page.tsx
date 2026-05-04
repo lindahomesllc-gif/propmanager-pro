@@ -1,30 +1,49 @@
 'use client'
+
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import AppShell from '@/components/AppShell'
-import { supabase, USER_ID } from '@/lib/supabase'
+
+const SUPABASE_URL = 'https://sugfedlfmvmbcnblhnuc.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1Z2ZlZGxmbXZtYmNuYmxobnVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzAxNDMsImV4cCI6MjA5MzE0NjE0M30.H5XZES1K9abTV2QVYYi0NG6SfGFSJEq-lfmKiva8ihw'
+const USER_ID = 'cacb3a74-75d7-4e07-af71-6db4fdde9a92'
+
+async function dbGet(table: string, filters = '') {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filters}&apikey=${SUPABASE_KEY}`, {
+    headers: { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }
+  })
+  return res.json()
+}
+
+async function dbInsert(table: string, data: any) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?apikey=${SUPABASE_KEY}`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+    body: JSON.stringify(data)
+  })
+  return res.ok
+}
 
 export default function NewTenantPage() {
-  const router = useRouter()
-  const [saving, setSaving] = useState(false)
   const [properties, setProperties] = useState<any[]>([])
+  const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     property_id: '', full_name: '', email: '',
     phone: '', move_in_date: '', notes: ''
   })
-  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
   useEffect(() => {
-    supabase.from('properties').select('id,address')
-      .eq('user_id', USER_ID)
-      .then(({ data }) => setProperties(data || []))
+    dbGet('properties', `user_id=eq.${USER_ID}&select=id,address`).then(data => {
+      if (Array.isArray(data)) setProperties(data)
+    })
   }, [])
+
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
   async function save() {
     if (!form.full_name) { alert('Name is required'); return }
     if (!form.property_id) { alert('Please select a property'); return }
     setSaving(true)
-    const { error } = await supabase.from('tenants').insert({
+    const ok = await dbInsert('tenants', {
       user_id: USER_ID,
       property_id: form.property_id,
       full_name: form.full_name,
@@ -36,8 +55,8 @@ export default function NewTenantPage() {
       notes: form.notes || null,
     })
     setSaving(false)
-    if (error) { alert('Error: ' + error.message); return }
-    router.push('/tenants')
+    if (!ok) { alert('Error saving tenant. Please try again.'); return }
+    window.location.href = '/tenants'
   }
 
   const inp: any = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: '#1E1E1B', color: '#F0EEE8', fontFamily: 'Plus Jakarta Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }
@@ -45,15 +64,15 @@ export default function NewTenantPage() {
   const card: any = { background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
   const g2: any = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }
   const btnP: any = { background: '#4ADE9A', color: '#0E0E0C', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }
-  const btnG: any = { background: 'transparent', color: '#A8A69E', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '8px 14px', fontSize: '12px', cursor: 'pointer' }
+  const btnG: any = { background: 'transparent', color: '#A8A69E', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '8px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
   const secTtl: any = { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5A5A56', marginBottom: '12px' }
 
   return (
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: '#161614', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#F0EEE8' }}>Add New Tenant</div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button style={btnG} onClick={() => router.push('/tenants')}>Cancel</button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <a href="/tenants" style={btnG}>Cancel</a>
           <button style={btnP} onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Tenant'}</button>
         </div>
       </div>
@@ -63,8 +82,9 @@ export default function NewTenantPage() {
           <label style={lbl}>Property *</label>
           <select style={inp} value={form.property_id} onChange={e => set('property_id', e.target.value)}>
             <option value="">Select a property...</option>
-            {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
+            {properties.map((p: any) => <option key={p.id} value={p.id}>{p.address}</option>)}
           </select>
+          {properties.length === 0 && <div style={{ fontSize: '11px', color: '#5A5A56', marginTop: '6px' }}>Loading properties...</div>}
         </div>
         <div style={card}>
           <div style={secTtl}>Tenant Information</div>
@@ -86,7 +106,7 @@ export default function NewTenantPage() {
           <textarea style={{ ...inp, resize: 'vertical' }} rows={3} placeholder="Any notes about this tenant..." value={form.notes} onChange={e => set('notes', e.target.value)} />
         </div>
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-          <button style={btnG} onClick={() => router.push('/tenants')}>Cancel</button>
+          <a href="/tenants" style={btnG}>Cancel</a>
           <button style={btnP} onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Tenant'}</button>
         </div>
       </div>
