@@ -17,15 +17,21 @@ async function dbGet(table: string, filters = '') {
 async function dbInsert(table: string, data: any) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?apikey=${SUPABASE_KEY}`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+    headers: { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
     body: JSON.stringify(data)
   })
-  return res.ok
+  const json = await res.json()
+  if (!res.ok) {
+    console.error('Insert error:', JSON.stringify(json))
+    throw new Error(json?.message || json?.[0]?.message || 'Insert failed')
+  }
+  return json
 }
 
 export default function NewTenantPage() {
   const [properties, setProperties] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const [form, setForm] = useState({
     property_id: '', full_name: '', email: '',
     phone: '', move_in_date: '', notes: ''
@@ -40,23 +46,27 @@ export default function NewTenantPage() {
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
   async function save() {
-    if (!form.full_name) { alert('Name is required'); return }
-    if (!form.property_id) { alert('Please select a property'); return }
+    setError('')
+    if (!form.full_name) { setError('Name is required'); return }
+    if (!form.property_id) { setError('Please select a property'); return }
     setSaving(true)
-    const ok = await dbInsert('tenants', {
-      user_id: USER_ID,
-      property_id: form.property_id,
-      full_name: form.full_name,
-      email: form.email || null,
-      phone: form.phone || null,
-      move_in_date: form.move_in_date || null,
-      status: 'active',
-      portal_access: true,
-      notes: form.notes || null,
-    })
-    setSaving(false)
-    if (!ok) { alert('Error saving tenant. Please try again.'); return }
-    window.location.href = '/tenants'
+    try {
+      await dbInsert('tenants', {
+        user_id: USER_ID,
+        property_id: form.property_id,
+        full_name: form.full_name,
+        email: form.email || null,
+        phone: form.phone || null,
+        move_in_date: form.move_in_date || null,
+        status: 'active',
+        portal_access: true,
+        notes: form.notes || null,
+      })
+      window.location.href = '/tenants'
+    } catch (e: any) {
+      setError(e.message || 'Error saving tenant. Please try again.')
+      setSaving(false)
+    }
   }
 
   const inp: any = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: '#1E1E1B', color: '#F0EEE8', fontFamily: 'Plus Jakarta Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }
@@ -77,6 +87,7 @@ export default function NewTenantPage() {
         </div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+        {error && <div style={{ background: '#3a1a1a', border: '0.5px solid #ff6b6b', borderRadius: '7px', padding: '10px 14px', marginBottom: '14px', color: '#ff6b6b', fontSize: '13px' }}>{error}</div>}
         <div style={card}>
           <div style={secTtl}>Assign to Property</div>
           <label style={lbl}>Property *</label>
