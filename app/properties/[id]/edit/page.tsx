@@ -8,15 +8,13 @@ export default function EditPropertyPage({ params }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [tab, setTab] = useState('basic')
-  
+
   useEffect(() => {
-    const hash = window.location.hash.replace('#', '')
-    if (hash) setTab(hash)
-    else {
-      const t = new URLSearchParams(window.location.search).get('tab')
-      if (t) setTab(t)
-    }
-  }, [])
+    const hash = document.location.hash.replace('#', '')
+    const search = new URLSearchParams(document.location.search).get('tab')
+    const target = hash || search
+    if (target) setTab(target)
+  }, [loading])
 
   const [form, setForm] = useState({
     address: '', city: '', state: 'FL', zip: '',
