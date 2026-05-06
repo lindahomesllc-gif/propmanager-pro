@@ -123,6 +123,28 @@ export default function PropertyDetailPage({ params }) {
                       </div>
                     ))}
                   </div>
+                {p.hoa && (
+                  <div style={{ ...card, borderTop: '3px solid var(--blue)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)' }}>HOA</div>
+                      <a href={'/properties/' + p.id + '/edit#hoa'} style={btnG}>Edit HOA</a>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                      <div style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '8px 10px' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase' }}>HOA Name</div>
+                        <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)', marginTop: '2px' }}>{p.hoa_name || '—'}</div>
+                      </div>
+                      <div style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '8px 10px' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase' }}>Monthly Fee</div>
+                        <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)', marginTop: '2px' }}>{p.hoa_fee ? '$' + p.hoa_fee + '/mo' : '—'}</div>
+                      </div>
+                      <div style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '8px 10px' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase' }}>Contact</div>
+                        <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)', marginTop: '2px' }}>{p.hoa_contact || '—'}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 </div>
                 {isDuplex && (
                   <div style={card}>
