@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, USER_ID, formatDate } from '@/lib/supabase'
 
@@ -9,6 +9,9 @@ export default function ScreeningPage() {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({ credit_score: '', criminal_check: 'clear', eviction_check: 'none_found', overall_score: '', ai_recommendation: 'approve', ai_reason: '' })
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(null)
+  const fileRef = useRef(null)
+  const [uploadTarget, setUploadTarget] = useState(null)
 
   useEffect(() => {
     supabase.from('applications')
@@ -50,13 +53,20 @@ export default function ScreeningPage() {
     }
   }
 
-  const scoreColor = (s) => {
-    if (!s) return '#5A5A56'
-    if (s >= 700) return '#4ADE9A'
-    if (s >= 600) return '#FBB040'
-    return '#F87171'
+  async function uploadReport(e, appId) {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploading(appId)
+    const path = USER_ID + '/screening/' + appId + '/' + Date.now() + '.pdf'
+    const { error: upErr } = await supabase.storage.from('lease-documents').upload(path, file, { upsert: true })
+    if (upErr) { alert('Upload failed: ' + upErr.message); setUploading(null); return }
+    const { data: urlData } = supabase.storage.from('lease-documents').getPublicUrl(path)
+    await supabase.from('applications').update({ screening_report_url: urlData.publicUrl }).eq('id', appId).eq('user_id', USER_ID)
+    setApplications(prev => prev.map(a => a.id === appId ? { ...a, screening_report_url: urlData.publicUrl } : a))
+    setUploading(null)
   }
 
+  const scoreColor = (s) => { if (!s) return '#5A5A56'; if (s >= 700) return '#4ADE9A'; if (s >= 600) return '#FBB040'; return '#F87171' }
   const recColor = (r) => ({ approve: '#4ADE9A', review: '#FBB040', decline: '#F87171' }[r] || '#A8A69E')
   const statusColor = (s) => ({ received: '#60A5FA', screening_initiated: '#A78BFA', screening_complete: '#FBB040', approved: '#4ADE9A', denied: '#F87171' }[s] || '#A8A69E')
 
@@ -67,6 +77,7 @@ export default function ScreeningPage() {
   const btnP = { background: '#4ADE9A', color: '#0E0E0C', border: 'none', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }
   const btnB = { background: '#60A5FA22', color: '#60A5FA', border: '0.5px solid #60A5FA44', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
   const btnG = { background: 'transparent', color: '#A8A69E', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', cursor: 'pointer' }
+  const btnY = { background: '#FBB04022', color: '#FBB040', border: '0.5px solid #FBB04044', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }
 
   return (
     <AppShell>
@@ -79,7 +90,7 @@ export default function ScreeningPage() {
           <div style={{ fontSize: '20px' }}>💡</div>
           <div>
             <div style={{ fontSize: '13px', fontWeight: 600, color: '#F0EEE8', marginBottom: '2px' }}>How to use Screening</div>
-            <div style={{ fontSize: '12px', color: '#5A5A56' }}>1. Click <strong style={{ color: '#60A5FA' }}>Open MyRental</strong> to run a background/credit check · 2. Get results from MyRental · 3. Click <strong style={{ color: '#4ADE9A' }}>Enter Results</strong> below to record them here</div>
+            <div style={{ fontSize: '12px', color: '#5A5A56' }}>1. Click <strong style={{ color: '#60A5FA' }}>Open MyRental</strong> to run a background/credit check · 2. Download the report PDF from MyRental · 3. Click <strong style={{ color: '#FBB040' }}>Upload Report</strong> to save it here · 4. Click <strong style={{ color: '#4ADE9A' }}>Enter Results</strong> to record the scores</div>
           </div>
         </div>
 
@@ -96,6 +107,8 @@ export default function ScreeningPage() {
             </div>
           ))}
         </div>
+
+        <input ref={fileRef} type='file' accept='application/pdf' style={{ display: 'none' }} onChange={e => uploadTarget && uploadReport(e, uploadTarget)} />
 
         {loading && <div style={{ textAlign: 'center', padding: '40px', color: '#5A5A56' }}>Loading...</div>}
         {!loading && applications.length === 0 && (
@@ -132,6 +145,13 @@ export default function ScreeningPage() {
                 ))}
               </div>
             ) : null}
+
+            {a.screening_report_url && (
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', color: '#4ADE9A' }}>✓ Screening report uploaded</span>
+                <a href={a.screening_report_url} target='_blank' style={{ fontSize: '11px', color: '#60A5FA', textDecoration: 'none' }}>View PDF →</a>
+              </div>
+            )}
 
             {a.ai_reason && <div style={{ fontSize: '12px', color: '#A8A69E', marginBottom: '10px', fontStyle: 'italic' }}>{a.ai_reason}</div>}
 
@@ -172,8 +192,9 @@ export default function ScreeningPage() {
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <a href='https://www.myrental.com' target='_blank' style={btnB}>🔍 Screen on MyRental</a>
+                <button style={btnY} onClick={() => { setUploadTarget(a.id); setTimeout(() => fileRef.current?.click(), 100) }}>{uploading === a.id ? 'Uploading...' : '⬆ Upload Report'}</button>
                 <button style={btnP} onClick={() => startEdit(a)}>Enter Results</button>
               </div>
             )}
