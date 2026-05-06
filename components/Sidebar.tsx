@@ -53,7 +53,7 @@ const navGroups = [
 const badgeStyles: Record<string, string> = {
   'nb-r': 'background:rgba(248,113,113,0.1);color:#F87171',
   'nb-a': 'background:rgba(251,176,64,0.1);color:#FBB040',
-  'nb-g': 'background:rgba(74,222,154,0.1);color:#4ADE9A',
+  'nb-g': 'background:rgba(74,222,154,0.1);color:var(--green)',
 }
 
 export default function Sidebar() {
@@ -62,27 +62,27 @@ export default function Sidebar() {
   return (
     <nav style={{
       width: '200px', minWidth: '200px',
-      background: '#161614',
-      borderRight: '0.5px solid rgba(255,255,255,0.07)',
+      background: 'var(--bg2)',
+      borderRight: '0.5px solid var(--border)',
       display: 'flex', flexDirection: 'column',
       padding: '0', overflowY: 'auto', flexShrink: 0,
     }}>
       {/* Brand */}
       <div style={{
         padding: '16px 16px 14px',
-        borderBottom: '0.5px solid rgba(255,255,255,0.07)',
+        borderBottom: '0.5px solid var(--border)',
         display: 'flex', alignItems: 'center', gap: '9px',
       }}>
         <div style={{
           width: '30px', height: '30px', borderRadius: '8px',
-          background: '#4ADE9A', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', color: '#0E0E0C',
+          background: 'var(--green)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', color: 'var(--bg)',
           fontFamily: 'Syne, sans-serif', fontSize: '14px', fontWeight: 800,
           flexShrink: 0,
         }}>P</div>
         <div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '13px', fontWeight: 700, color: '#F0EEE8', lineHeight: 1.1 }}>PropManager</div>
-          <div style={{ fontSize: '9px', color: '#5A5A56', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '1px' }}>Pro · Linda Rodriguez</div>
+          <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '13px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.1 }}>PropManager</div>
+          <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '1px' }}>Pro · Linda Rodriguez</div>
         </div>
       </div>
 
@@ -91,7 +91,7 @@ export default function Sidebar() {
         <div key={group.label} style={{ padding: '10px 0 4px' }}>
           <div style={{
             fontSize: '9px', fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.1em', color: '#5A5A56', padding: '0 16px 5px',
+            letterSpacing: '0.1em', color: 'var(--text3)', padding: '0 16px 5px',
           }}>{group.label}</div>
           {group.items.map(item => {
             const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
@@ -100,9 +100,9 @@ export default function Sidebar() {
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: '9px',
                   padding: '7px 16px', cursor: 'pointer', fontSize: '12.5px',
-                  color: isActive ? '#4ADE9A' : '#A8A69E',
-                  background: isActive ? 'rgba(74,222,154,0.06)' : 'transparent',
-                  borderLeft: isActive ? '2px solid #4ADE9A' : '2px solid transparent',
+                  color: isActive ? 'var(--green)' : 'var(--text2)',
+                  background: isActive ? 'var(--green-bg)' : 'transparent',
+                  borderLeft: isActive ? '2px solid var(--green)' : '2px solid transparent',
                   fontWeight: isActive ? 600 : 400,
                   transition: 'all 0.15s',
                 }}>
