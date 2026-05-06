@@ -8,6 +8,12 @@ export default function EditPropertyPage({ params }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [tab, setTab] = useState('basic')
+  
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('tab')
+    if (t) setTab(t)
+  }, [])
+
   const [form, setForm] = useState({
     address: '', city: '', state: 'FL', zip: '',
     type: 'single_family', bedrooms: '', bathrooms: '',
