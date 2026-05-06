@@ -1,15 +1,19 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import { supabase, USER_ID } from '@/lib/supabase'
 
 export default function EditPropertyPage({ params }) {
-  const searchParams = useSearchParams()
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [tab, setTab] = useState(searchParams.get('tab') || 'basic')
+  const [tab, setTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search)
+      return p.get('tab') || 'basic'
+    }
+    return 'basic'
+  })
   const [form, setForm] = useState({
     address: '', city: '', state: 'FL', zip: '',
     type: 'single_family', bedrooms: '', bathrooms: '',
