@@ -103,6 +103,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                   <div>
                     <div style={{ fontSize: '13px', fontWeight: 600, color: '#F0EEE8' }}>{t.full_name}</div>
                     <div style={{ fontSize: '11px', color: '#5A5A56' }}>{t.email} {t.phone ? '· ' + t.phone : ''}</div>
+                    <a href={'/tenants/' + t.id} style={{ fontSize: '11px', color: '#4ADE9A', textDecoration: 'none', marginTop: '4px', display: 'inline-block' }}>View Tenant →</a>
                   </div>
                   <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: t.status === 'active' ? '#4ADE9A22' : '#A8A69E22', color: t.status === 'active' ? '#4ADE9A' : '#A8A69E' }}>{t.status}</span>
                 </div>
