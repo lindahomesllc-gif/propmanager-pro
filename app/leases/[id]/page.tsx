@@ -1,11 +1,14 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, USER_ID, fm, formatDate } from '@/lib/supabase'
 
 export default function LeaseDetailPage({ params }) {
   const [lease, setLease] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const fileRef = useRef(null)
 
   useEffect(() => {
     supabase.from('leases').select('*, properties(address, city, state), tenants(full_name, email, phone)')
@@ -13,16 +16,37 @@ export default function LeaseDetailPage({ params }) {
       .then(({ data }) => { setLease(data); setLoading(false) })
   }, [params.id])
 
+  async function uploadPDF(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.type !== 'application/pdf') { setUploadError('Please upload a PDF file'); return }
+    setUploading(true)
+    setUploadError('')
+    const path = USER_ID + '/' + params.id + '/' + Date.now() + '.pdf'
+    const { error: upErr } = await supabase.storage.from('lease-documents').upload(path, file, { upsert: true })
+    if (upErr) { setUploadError('Upload failed: ' + upErr.message); setUploading(false); return }
+    const { data: urlData } = supabase.storage.from('lease-documents').getPublicUrl(path)
+    const { error: updateErr } = await supabase.from('leases').update({
+      pdf_url: urlData.publicUrl,
+      status: 'executed',
+    }).eq('id', params.id).eq('user_id', USER_ID)
+    if (updateErr) { setUploadError('Error saving: ' + updateErr.message); setUploading(false); return }
+    setLease(l => ({ ...l, pdf_url: urlData.publicUrl, status: 'executed' }))
+    setUploading(false)
+  }
+
   if (loading) return <AppShell><div style={{ padding: '40px', color: '#5A5A56', textAlign: 'center' }}>Loading...</div></AppShell>
   if (!lease) return <AppShell><div style={{ padding: '40px', color: '#5A5A56', textAlign: 'center' }}>Lease not found.</div></AppShell>
 
   const l = lease
-  const statusColor = { executed: '#4ADE9A', draft: '#A8A69E', sent: '#60A5FA', expired: '#F87171', terminated: '#F87171' }[l.status] || '#A8A69E'
+  const statusColor = { executed: '#4ADE9A', draft: '#A8A69E', sent: '#60A5FA', tenant_signed: '#FBB040', expired: '#F87171', terminated: '#F87171' }[l.status] || '#A8A69E'
   const card = { background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
   const secTtl = { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5A5A56', marginBottom: '12px' }
   const lbl = { fontSize: '10px', color: '#5A5A56', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }
   const val = { fontSize: '13px', fontWeight: 500, color: '#F0EEE8', marginTop: '2px' }
   const btnG = { background: 'transparent', color: '#A8A69E', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
+  const btnP = { background: '#4ADE9A', color: '#0E0E0C', border: 'none', borderRadius: '7px', padding: '8px 16px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
+  const btnB = { background: '#60A5FA22', color: '#60A5FA', border: '0.5px solid #60A5FA44', borderRadius: '7px', padding: '8px 16px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
 
   return (
     <AppShell>
@@ -33,11 +57,12 @@ export default function LeaseDetailPage({ params }) {
           <div style={{ fontSize: '12px', color: '#5A5A56' }}>{l.properties?.address}</div>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '20px', background: statusColor + '22', color: statusColor, fontWeight: 600, textTransform: 'uppercase' }}>{l.status.replace('_', ' ')}</span>
+          <span style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '20px', background: statusColor + '22', color: statusColor, fontWeight: 600, textTransform: 'uppercase' }}>{l.status.replace(/_/g, ' ')}</span>
           <a href={'/leases/' + l.id + '/edit'} style={btnG}>Edit</a>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
           {[
             { label: 'Monthly Rent', value: fm(l.rent_amount), color: '#4ADE9A' },
@@ -52,6 +77,33 @@ export default function LeaseDetailPage({ params }) {
             </div>
           ))}
         </div>
+
+        <div style={{ ...card, border: '0.5px solid rgba(96,165,250,0.3)', background: '#161620' }}>
+          <div style={secTtl}>Signed Lease Document</div>
+          {l.pdf_url ? (
+            <div>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '12px' }}>
+                <span style={{ fontSize: '13px', color: '#4ADE9A' }}>✓ Signed lease uploaded</span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <a href={l.pdf_url} target='_blank' style={btnP}>📄 View PDF</a>
+                <a href={l.pdf_url} download style={btnG}>⬇ Download</a>
+                <button onClick={() => fileRef.current?.click()} style={btnG}>↑ Replace PDF</button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={{ fontSize: '13px', color: '#5A5A56', marginBottom: '12px' }}>No signed lease uploaded yet. Complete signing in Authentisign, then upload the signed PDF here.</div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <a href='https://www.authentisign.com' target='_blank' style={btnB}>✍ Open Authentisign</a>
+                <button onClick={() => fileRef.current?.click()} style={btnP} disabled={uploading}>{uploading ? 'Uploading...' : '⬆ Upload Signed PDF'}</button>
+              </div>
+            </div>
+          )}
+          {uploadError && <div style={{ color: '#F87171', fontSize: '12px', marginTop: '8px' }}>{uploadError}</div>}
+          <input ref={fileRef} type='file' accept='application/pdf' style={{ display: 'none' }} onChange={uploadPDF} />
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
           <div style={card}>
             <div style={secTtl}>Lease Terms</div>
@@ -83,6 +135,7 @@ export default function LeaseDetailPage({ params }) {
             <div style={{ fontSize: '12px', color: '#5A5A56' }}>{l.properties?.city}, {l.properties?.state}</div>
           </div>
         </div>
+
         {l.special_clauses && (
           <div style={card}>
             <div style={secTtl}>Special Clauses</div>
