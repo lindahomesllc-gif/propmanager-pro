@@ -105,7 +105,7 @@ export default function PropertyDetailPage({ params }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
                 <div style={card}>
-                  <div style={secTtl}>Property Info</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}><div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)' }}>Property Info</div><a href={'/properties/' + p.id + '/edit#hoa'} style={btnG}>Edit HOA</a></div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     {[
                       ['Type', p.type ? p.type.replace(/_/g, ' ') : '—'],
