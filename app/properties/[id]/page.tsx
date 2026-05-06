@@ -239,7 +239,7 @@ export default function PropertyDetailPage({ params }) {
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={secTtl}>Insurance</div>
-                <a href={'/properties/' + p.id + '/edit'} style={btnG}>Edit</a>
+                <a href={'/properties/' + p.id + '/edit#insurance'} style={btnG}>Edit</a>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
                 {[
@@ -286,7 +286,7 @@ export default function PropertyDetailPage({ params }) {
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={secTtl}>Utility Companies</div>
-                <a href={'/properties/' + p.id + '/edit'} style={btnG}>Edit</a>
+                <a href={'/properties/' + p.id + '/edit#tax'} style={btnG}>Edit</a>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
                 {[
@@ -307,7 +307,7 @@ export default function PropertyDetailPage({ params }) {
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={secTtl}>Schools</div>
-                <a href={'/properties/' + p.id + '/edit'} style={btnG}>Edit</a>
+                <a href={'/properties/' + p.id + '/edit#utilities'} style={btnG}>Edit</a>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
                 {[
