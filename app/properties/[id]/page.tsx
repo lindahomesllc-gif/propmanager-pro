@@ -122,7 +122,7 @@ export default function PropertyDetailPage({ params }) {
                     ))}
                   </div>
                 {p.hoa && (
-                  <div style={{ ...card, borderTop: '3px solid var(--blue)' }}>
+                  <div style={card}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                       <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)' }}>HOA</div>
                       <a href={'/properties/' + p.id + '/edit#hoa'} style={btnG}>Edit HOA</a>
