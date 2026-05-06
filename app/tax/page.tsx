@@ -40,12 +40,12 @@ export default function TaxPage() {
     deductible: yearExp.filter(e => e.category === cat && e.is_deductible).reduce((s, e) => s + e.amount, 0),
   })).sort((a, b) => b.total - a.total)
 
-  const sel = { padding: '6px 10px', fontSize: '12px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: '#1E1E1B', color: '#F0EEE8', outline: 'none' }
+  const sel = { padding: '6px 10px', fontSize: '12px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none' }
 
   return (
     <AppShell>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: '#161614', flexShrink: 0 }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#F0EEE8' }}>Tax Reports</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)', flexShrink: 0 }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Tax Reports</div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={sel}>
             <option value='all'>All Properties</option>
@@ -57,81 +57,81 @@ export default function TaxPage() {
         </div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-        {loading && <div style={{ textAlign: 'center', padding: '40px', color: '#5A5A56' }}>Loading...</div>}
+        {loading && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading...</div>}
         {!loading && (
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))', gap: '10px', marginBottom: '20px' }}>
               {[
-                { label: 'Gross Rental Income', value: fm(totalIncome), color: '#4ADE9A' },
-                { label: 'Total Expenses', value: fm(totalExp), color: '#F87171' },
-                { label: 'Deductible Expenses', value: fm(deductible), color: '#FBB040' },
-                { label: 'Net Taxable Income', value: fm(netIncome), color: netIncome >= 0 ? '#4ADE9A' : '#F87171' },
-                { label: 'Non-Deductible', value: fm(totalExp - deductible), color: '#A8A69E' },
+                { label: 'Gross Rental Income', value: fm(totalIncome), color: 'var(--green)' },
+                { label: 'Total Expenses', value: fm(totalExp), color: 'var(--red)' },
+                { label: 'Deductible Expenses', value: fm(deductible), color: 'var(--amber)' },
+                { label: 'Net Taxable Income', value: fm(netIncome), color: netIncome >= 0 ? 'var(--green)' : 'var(--red)' },
+                { label: 'Non-Deductible', value: fm(totalExp - deductible), color: 'var(--text2)' },
               ].map(mc => (
-                <div key={mc.label} style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px' }}>
-                  <div style={{ fontSize: '10px', color: '#5A5A56', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
+                <div key={mc.label} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
                   <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: mc.color, marginTop: '5px' }}>{mc.value}</div>
                 </div>
               ))}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
-              <div style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5A5A56', marginBottom: '12px' }}>Schedule E Summary</div>
+              <div style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }}>Schedule E Summary</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
-                  <span style={{ fontSize: '13px', color: '#A8A69E' }}>Gross Rental Income</span>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#4ADE9A' }}>{fm(totalIncome)}</span>
+                  <span style={{ fontSize: '13px', color: 'var(--text2)' }}>Gross Rental Income</span>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--green)' }}>{fm(totalIncome)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
-                  <span style={{ fontSize: '13px', color: '#A8A69E' }}>Total Deductible Expenses</span>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#F87171' }}>({fm(deductible)})</span>
+                  <span style={{ fontSize: '13px', color: 'var(--text2)' }}>Total Deductible Expenses</span>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--red)' }}>({fm(deductible)})</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#F0EEE8' }}>Net Income / (Loss)</span>
-                  <span style={{ fontSize: '15px', fontWeight: 700, color: netIncome >= 0 ? '#4ADE9A' : '#F87171' }}>{fm(netIncome)}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>Net Income / (Loss)</span>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: netIncome >= 0 ? 'var(--green)' : 'var(--red)' }}>{fm(netIncome)}</span>
                 </div>
               </div>
 
-              <div style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5A5A56', marginBottom: '12px' }}>Expenses by Category</div>
+              <div style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }}>Expenses by Category</div>
                 {byCategory.length === 0 ? (
-                  <div style={{ fontSize: '13px', color: '#5A5A56' }}>No expenses for {year}.</div>
+                  <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No expenses for {year}.</div>
                 ) : byCategory.map(c => (
                   <div key={c.cat} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
                     <div>
-                      <div style={{ fontSize: '12px', color: '#F0EEE8', textTransform: 'capitalize' }}>{c.cat.replace(/_/g, ' ')}</div>
-                      <div style={{ fontSize: '10px', color: '#5A5A56' }}>{c.count} records · {fm(c.deductible)} deductible</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text)', textTransform: 'capitalize' }}>{c.cat.replace(/_/g, ' ')}</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{c.count} records · {fm(c.deductible)} deductible</div>
                     </div>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#F87171' }}>{fm(c.total)}</div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--red)' }}>{fm(c.total)}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px' }}>
+            <div style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5A5A56' }}>All Deductible Expenses {year}</div>
-                <div style={{ fontSize: '11px', color: '#5A5A56' }}>{yearExp.filter(e => e.is_deductible).length} records</div>
+                <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)' }}>All Deductible Expenses {year}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{yearExp.filter(e => e.is_deductible).length} records</div>
               </div>
               {yearExp.filter(e => e.is_deductible).length === 0 ? (
-                <div style={{ fontSize: '13px', color: '#5A5A56' }}>No deductible expenses recorded for {year}.</div>
+                <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No deductible expenses recorded for {year}.</div>
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ borderBottom: '0.5px solid rgba(255,255,255,0.07)' }}>
                       {['Date','Property','Category','Vendor','Amount'].map(h => (
-                        <th key={h} style={{ padding: '8px 10px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: '#5A5A56', textAlign: 'left' }}>{h}</th>
+                        <th key={h} style={{ padding: '8px 10px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text3)', textAlign: 'left' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {yearExp.filter(e => e.is_deductible).map(e => (
                       <tr key={e.id} style={{ borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
-                        <td style={{ padding: '8px 10px', fontSize: '12px', color: '#A8A69E' }}>{e.expense_date}</td>
-                        <td style={{ padding: '8px 10px', fontSize: '12px', color: '#F0EEE8' }}>{e.properties?.address || '—'}</td>
-                        <td style={{ padding: '8px 10px', fontSize: '12px', color: '#A8A69E', textTransform: 'capitalize' }}>{e.category?.replace(/_/g, ' ')}</td>
-                        <td style={{ padding: '8px 10px', fontSize: '12px', color: '#A8A69E' }}>{e.vendor_name || '—'}</td>
-                        <td style={{ padding: '8px 10px', fontSize: '13px', fontWeight: 600, color: '#F87171' }}>{fm(e.amount)}</td>
+                        <td style={{ padding: '8px 10px', fontSize: '12px', color: 'var(--text2)' }}>{e.expense_date}</td>
+                        <td style={{ padding: '8px 10px', fontSize: '12px', color: 'var(--text)' }}>{e.properties?.address || '—'}</td>
+                        <td style={{ padding: '8px 10px', fontSize: '12px', color: 'var(--text2)', textTransform: 'capitalize' }}>{e.category?.replace(/_/g, ' ')}</td>
+                        <td style={{ padding: '8px 10px', fontSize: '12px', color: 'var(--text2)' }}>{e.vendor_name || '—'}</td>
+                        <td style={{ padding: '8px 10px', fontSize: '13px', fontWeight: 600, color: 'var(--red)' }}>{fm(e.amount)}</td>
                       </tr>
                     ))}
                   </tbody>

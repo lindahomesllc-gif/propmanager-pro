@@ -31,10 +31,10 @@ export default function DashboardPage() {
   const totalEquity = properties.reduce((s, p) => s + (p.market_value || 0), 0)
 
   const alerts = [
-    { label: 'Rent due — all tenants', date: 'May 1', color: '#FBB040' },
-    { label: 'Lease expiring — Nguyen Family', date: 'Jun 30', color: '#F87171' },
-    { label: 'Insurance renewal — State Farm', date: 'Sep 15', color: '#FBB040' },
-    { label: 'Property Tax — All properties', date: 'Nov 1', color: '#5A5A56' },
+    { label: 'Rent due — all tenants', date: 'May 1', color: 'var(--amber)' },
+    { label: 'Lease expiring — Nguyen Family', date: 'Jun 30', color: 'var(--red)' },
+    { label: 'Insurance renewal — State Farm', date: 'Sep 15', color: 'var(--amber)' },
+    { label: 'Property Tax — All properties', date: 'Nov 1', color: 'var(--text3)' },
   ]
 
   return (
@@ -43,9 +43,9 @@ export default function DashboardPage() {
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)',
-        background: '#161614', flexShrink: 0,
+        background: 'var(--bg2)', flexShrink: 0,
       }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#F0EEE8', letterSpacing: '-0.3px' }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.3px' }}>
           Dashboard
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -57,7 +57,7 @@ export default function DashboardPage() {
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '60px', color: '#5A5A56', fontSize: '13px' }}>
+          <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)', fontSize: '13px' }}>
             Loading your properties…
           </div>
         ) : (
@@ -67,51 +67,51 @@ export default function DashboardPage() {
               {[
                 { label: 'Properties',      value: properties.length.toString(), color: '',         sub: `${occupied.length} occupied` },
                 { label: 'Portfolio Value',  value: fm(totalEquity),              color: '',         sub: '4 properties' },
-                { label: 'Payments Due',     value: fm(due.reduce((s,p)=>s+p.amount_due,0)), color: '#FBB040', sub: `${due.length} pending` },
-                { label: 'Collected YTD',    value: fm(paid.reduce((s,p)=>s+p.amount_paid,0)), color: '#4ADE9A', sub: `${paid.length} payments` },
-                { label: 'Vacant Units',     value: vacant.length.toString(),     color: vacant.length > 0 ? '#FBB040' : '#4ADE9A', sub: 'Need tenants' },
+                { label: 'Payments Due',     value: fm(due.reduce((s,p)=>s+p.amount_due,0)), color: 'var(--amber)', sub: `${due.length} pending` },
+                { label: 'Collected YTD',    value: fm(paid.reduce((s,p)=>s+p.amount_paid,0)), color: 'var(--green)', sub: `${paid.length} payments` },
+                { label: 'Vacant Units',     value: vacant.length.toString(),     color: vacant.length > 0 ? 'var(--amber)' : 'var(--green)', sub: 'Need tenants' },
               ].map(mc => (
                 <div key={mc.label} style={{
-                  background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)',
+                  background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)',
                   borderRadius: '10px', padding: '14px 16px',
-                  borderTop: `2px solid ${mc.color || 'rgba(255,255,255,0.07)'}`,
+                  borderTop: `2px solid ${mc.color || 'var(--border)'}`,
                 }}>
-                  <div style={{ fontSize: '10px', color: '#5A5A56', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color || '#F0EEE8', marginTop: '5px', lineHeight: 1 }}>{mc.value}</div>
-                  <div style={{ fontSize: '11px', color: '#5A5A56', marginTop: '4px' }}>{mc.sub}</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color || 'var(--text)', marginTop: '5px', lineHeight: 1 }}>{mc.value}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>{mc.sub}</div>
                 </div>
               ))}
             </div>
 
             {/* Properties Grid */}
             <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#A8A69E', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Your Properties</div>
-              <a href="/properties" style={{ fontSize: '12px', color: '#4ADE9A', textDecoration: 'none' }}>View all →</a>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Your Properties</div>
+              <a href="/properties" style={{ fontSize: '12px', color: 'var(--green)', textDecoration: 'none' }}>View all →</a>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '12px', marginBottom: '20px' }}>
               {properties.map(p => (
                 <a key={p.id} href={`/properties/${p.id}`} style={{ textDecoration: 'none' }}>
                   <div style={{
-                    background: '#161614',
+                    background: 'var(--bg2)',
                     border: `0.5px solid rgba(255,255,255,0.07)`,
-                    borderTop: `2px solid ${p.occupancy_status === 'occupied' ? '#4ADE9A' : '#FBB040'}`,
+                    borderTop: `2px solid ${p.occupancy_status === 'occupied' ? 'var(--green)' : 'var(--amber)'}`,
                     borderRadius: '10px', padding: '14px 16px', cursor: 'pointer',
                     transition: 'border-color 0.15s',
                   }}>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#F0EEE8', marginBottom: '2px' }}>{p.address}</div>
-                    <div style={{ fontSize: '11px', color: '#5A5A56', marginBottom: '10px' }}>{p.city} · {p.type?.replace('_', ' ')}</div>
-                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: '#4ADE9A' }}>
-                      {fm(0)}<span style={{ fontSize: '12px', fontWeight: 400, color: '#5A5A56', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>/mo</span>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '2px' }}>{p.address}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '10px' }}>{p.city} · {p.type?.replace('_', ' ')}</div>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: 'var(--green)' }}>
+                      {fm(0)}<span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text3)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>/mo</span>
                     </div>
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
-                      <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '5px', background: '#262623', color: '#A8A69E', border: '0.5px solid rgba(255,255,255,0.07)' }}>
+                      <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '5px', background: 'var(--bg4)', color: 'var(--text2)', border: '0.5px solid rgba(255,255,255,0.07)' }}>
                         {p.occupancy_status === 'occupied' ? 'Occupied' : 'Vacant'}
                       </span>
-                      <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '5px', background: '#262623', color: '#A8A69E', border: '0.5px solid rgba(255,255,255,0.07)' }}>
+                      <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '5px', background: 'var(--bg4)', color: 'var(--text2)', border: '0.5px solid rgba(255,255,255,0.07)' }}>
                         {p.bedrooms}bd / {p.bathrooms}ba
                       </span>
                       {p.market_value && (
-                        <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '5px', background: '#262623', color: '#A8A69E', border: '0.5px solid rgba(255,255,255,0.07)' }}>
+                        <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '5px', background: 'var(--bg4)', color: 'var(--text2)', border: '0.5px solid rgba(255,255,255,0.07)' }}>
                           {fm(p.market_value)} value
                         </span>
                       )}
@@ -125,24 +125,24 @@ export default function DashboardPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               {/* Upcoming Alerts */}
               <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#A8A69E', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Upcoming Obligations</div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Upcoming Obligations</div>
                 {alerts.map((a, i) => (
                   <div key={i} style={{
                     display: 'flex', alignItems: 'center', gap: '12px',
                     padding: '11px 14px', borderRadius: '7px', marginBottom: '8px',
-                    border: '0.5px solid rgba(255,255,255,0.07)', background: '#161614',
+                    border: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)',
                   }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: a.color, flexShrink: 0 }}></div>
-                    <div style={{ flex: 1, fontSize: '12.5px', color: '#F0EEE8' }}>{a.label}</div>
-                    <div style={{ fontSize: '11px', color: '#5A5A56' }}>{a.date}</div>
+                    <div style={{ flex: 1, fontSize: '12.5px', color: 'var(--text)' }}>{a.label}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{a.date}</div>
                   </div>
                 ))}
               </div>
 
               {/* Recent Activity */}
               <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#A8A69E', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Quick Actions</div>
-                <div style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', overflow: 'hidden' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Quick Actions</div>
+                <div style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', overflow: 'hidden' }}>
                   {[
                     { href: '/payments',   icon: '💳', label: 'Collect Rent',         sub: `${due.length} payments due` },
                     { href: '/messages',   icon: '💬', label: 'Messages',             sub: '2 unread' },
@@ -157,15 +157,15 @@ export default function DashboardPage() {
                         padding: '11px 14px', borderBottom: '0.5px solid rgba(255,255,255,0.07)',
                         cursor: 'pointer', transition: 'background 0.1s',
                       }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#1E1E1B')}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg3)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                       >
                         <span style={{ fontSize: '16px' }}>{item.icon}</span>
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '12.5px', fontWeight: 500, color: '#F0EEE8' }}>{item.label}</div>
-                          <div style={{ fontSize: '11px', color: '#5A5A56', marginTop: '1px' }}>{item.sub}</div>
+                          <div style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--text)' }}>{item.label}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '1px' }}>{item.sub}</div>
                         </div>
-                        <span style={{ color: '#5A5A56', fontSize: '12px' }}>→</span>
+                        <span style={{ color: 'var(--text3)', fontSize: '12px' }}>→</span>
                       </div>
                     </a>
                   ))}

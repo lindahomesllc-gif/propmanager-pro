@@ -66,43 +66,43 @@ export default function ScreeningPage() {
     setUploading(null)
   }
 
-  const scoreColor = (s) => { if (!s) return '#5A5A56'; if (s >= 700) return '#4ADE9A'; if (s >= 600) return '#FBB040'; return '#F87171' }
-  const recColor = (r) => ({ approve: '#4ADE9A', review: '#FBB040', decline: '#F87171' }[r] || '#A8A69E')
-  const statusColor = (s) => ({ received: '#60A5FA', screening_initiated: '#A78BFA', screening_complete: '#FBB040', approved: '#4ADE9A', denied: '#F87171' }[s] || '#A8A69E')
+  const scoreColor = (s) => { if (!s) return 'var(--text3)'; if (s >= 700) return 'var(--green)'; if (s >= 600) return 'var(--amber)'; return 'var(--red)' }
+  const recColor = (r) => ({ approve: 'var(--green)', review: 'var(--amber)', decline: 'var(--red)' }[r] || 'var(--text2)')
+  const statusColor = (s) => ({ received: 'var(--blue)', screening_initiated: '#A78BFA', screening_complete: 'var(--amber)', approved: 'var(--green)', denied: 'var(--red)' }[s] || 'var(--text2)')
 
-  const inp = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: '#1E1E1B', color: '#F0EEE8', fontFamily: 'Plus Jakarta Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }
-  const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#5A5A56', marginBottom: '4px' }
+  const inp = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', fontFamily: 'Plus Jakarta Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }
+  const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
   const g2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }
   const g3 = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }
-  const btnP = { background: '#4ADE9A', color: '#0E0E0C', border: 'none', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }
-  const btnB = { background: '#60A5FA22', color: '#60A5FA', border: '0.5px solid #60A5FA44', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
-  const btnG = { background: 'transparent', color: '#A8A69E', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', cursor: 'pointer' }
-  const btnY = { background: '#FBB04022', color: '#FBB040', border: '0.5px solid #FBB04044', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }
+  const btnP = { background: 'var(--green)', color: 'var(--bg)', border: 'none', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }
+  const btnB = { background: '#60A5FA22', color: 'var(--blue)', border: '0.5px solid #60A5FA44', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
+  const btnG = { background: 'transparent', color: 'var(--text2)', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', cursor: 'pointer' }
+  const btnY = { background: '#FBB04022', color: 'var(--amber)', border: '0.5px solid #FBB04044', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }
 
   return (
     <AppShell>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: '#161614', flexShrink: 0 }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#F0EEE8' }}>Tenant Screening</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)', flexShrink: 0 }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Tenant Screening</div>
         <a href='https://www.myrental.com' target='_blank' style={btnB}>🔍 Open MyRental</a>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-        <div style={{ background: '#161620', border: '0.5px solid rgba(96,165,250,0.3)', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ background: 'var(--bg3)', border: '0.5px solid rgba(96,165,250,0.3)', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ fontSize: '20px' }}>💡</div>
           <div>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: '#F0EEE8', marginBottom: '2px' }}>How to use Screening</div>
-            <div style={{ fontSize: '12px', color: '#5A5A56' }}>1. Click <strong style={{ color: '#60A5FA' }}>Open MyRental</strong> to run a background/credit check · 2. Download the report PDF from MyRental · 3. Click <strong style={{ color: '#FBB040' }}>Upload Report</strong> to save it here · 4. Click <strong style={{ color: '#4ADE9A' }}>Enter Results</strong> to record the scores</div>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '2px' }}>How to use Screening</div>
+            <div style={{ fontSize: '12px', color: 'var(--text3)' }}>1. Click <strong style={{ color: 'var(--blue)' }}>Open MyRental</strong> to run a background/credit check · 2. Download the report PDF from MyRental · 3. Click <strong style={{ color: 'var(--amber)' }}>Upload Report</strong> to save it here · 4. Click <strong style={{ color: 'var(--green)' }}>Enter Results</strong> to record the scores</div>
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px,1fr))', gap: '10px', marginBottom: '20px' }}>
           {[
-            { label: 'Total Applications', value: applications.length, color: '#F0EEE8' },
-            { label: 'Pending Screening', value: applications.filter(a => a.status === 'received' || a.status === 'screening_initiated').length, color: '#FBB040' },
+            { label: 'Total Applications', value: applications.length, color: 'var(--text)' },
+            { label: 'Pending Screening', value: applications.filter(a => a.status === 'received' || a.status === 'screening_initiated').length, color: 'var(--amber)' },
             { label: 'Screening Complete', value: applications.filter(a => a.status === 'screening_complete').length, color: '#A78BFA' },
-            { label: 'Approved', value: applications.filter(a => a.status === 'approved').length, color: '#4ADE9A' },
+            { label: 'Approved', value: applications.filter(a => a.status === 'approved').length, color: 'var(--green)' },
           ].map(mc => (
-            <div key={mc.label} style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px' }}>
-              <div style={{ fontSize: '10px', color: '#5A5A56', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
+            <div key={mc.label} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
               <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color, marginTop: '5px' }}>{mc.value}</div>
             </div>
           ))}
@@ -110,22 +110,22 @@ export default function ScreeningPage() {
 
         <input ref={fileRef} type='file' accept='application/pdf' style={{ display: 'none' }} onChange={e => uploadTarget && uploadReport(e, uploadTarget)} />
 
-        {loading && <div style={{ textAlign: 'center', padding: '40px', color: '#5A5A56' }}>Loading...</div>}
+        {loading && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading...</div>}
         {!loading && applications.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '60px', color: '#5A5A56' }}>
+          <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
             <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔍</div>
-            <div style={{ fontSize: '15px', fontWeight: 600, color: '#A8A69E', marginBottom: '6px' }}>No applications yet</div>
-            <a href='/applications/new' style={{ background: '#4ADE9A', color: '#0E0E0C', padding: '8px 18px', borderRadius: '7px', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>+ New Application</a>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text2)', marginBottom: '6px' }}>No applications yet</div>
+            <a href='/applications/new' style={{ background: 'var(--green)', color: 'var(--bg)', padding: '8px 18px', borderRadius: '7px', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>+ New Application</a>
           </div>
         )}
 
         {!loading && applications.map(a => (
-          <div key={a.id} style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderLeft: '3px solid ' + statusColor(a.status), borderRadius: '10px', padding: '16px 20px', marginBottom: '10px' }}>
+          <div key={a.id} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderLeft: '3px solid ' + statusColor(a.status), borderRadius: '10px', padding: '16px 20px', marginBottom: '10px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
               <div>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: '#F0EEE8' }}>{a.applicant_name}</div>
-                <div style={{ fontSize: '12px', color: '#5A5A56', marginTop: '2px' }}>{a.properties?.address} · Applied {formatDate(a.submitted_at)}</div>
-                <div style={{ fontSize: '11px', color: '#5A5A56', marginTop: '2px' }}>{a.email} {a.phone ? '· ' + a.phone : ''}</div>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{a.applicant_name}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>{a.properties?.address} · Applied {formatDate(a.submitted_at)}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{a.email} {a.phone ? '· ' + a.phone : ''}</div>
               </div>
               <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '20px', background: statusColor(a.status) + '22', color: statusColor(a.status), fontWeight: 600, textTransform: 'uppercase' }}>{a.status?.replace(/_/g, ' ')}</span>
             </div>
@@ -134,12 +134,12 @@ export default function ScreeningPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '8px', marginBottom: '10px' }}>
                 {[
                   ['Credit Score', a.credit_score || '—', scoreColor(a.credit_score)],
-                  ['Criminal', a.criminal_check || 'pending', a.criminal_check === 'clear' ? '#4ADE9A' : '#F87171'],
-                  ['Eviction', a.eviction_check || 'pending', a.eviction_check === 'none_found' ? '#4ADE9A' : '#F87171'],
+                  ['Criminal', a.criminal_check || 'pending', a.criminal_check === 'clear' ? 'var(--green)' : 'var(--red)'],
+                  ['Eviction', a.eviction_check || 'pending', a.eviction_check === 'none_found' ? 'var(--green)' : 'var(--red)'],
                   ['Recommendation', a.ai_recommendation || '—', recColor(a.ai_recommendation)],
                 ].map(([k, v, c]) => (
-                  <div key={k} style={{ background: '#1E1E1B', borderRadius: '6px', padding: '8px 10px' }}>
-                    <div style={{ fontSize: '9px', color: '#5A5A56', textTransform: 'uppercase' }}>{k}</div>
+                  <div key={k} style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '8px 10px' }}>
+                    <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase' }}>{k}</div>
                     <div style={{ fontSize: '12px', fontWeight: 600, color: c, marginTop: '2px', textTransform: 'capitalize' }}>{v}</div>
                   </div>
                 ))}
@@ -148,16 +148,16 @@ export default function ScreeningPage() {
 
             {a.screening_report_url && (
               <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', alignItems: 'center' }}>
-                <span style={{ fontSize: '12px', color: '#4ADE9A' }}>✓ Screening report uploaded</span>
-                <a href={a.screening_report_url} target='_blank' style={{ fontSize: '11px', color: '#60A5FA', textDecoration: 'none' }}>View PDF →</a>
+                <span style={{ fontSize: '12px', color: 'var(--green)' }}>✓ Screening report uploaded</span>
+                <a href={a.screening_report_url} target='_blank' style={{ fontSize: '11px', color: 'var(--blue)', textDecoration: 'none' }}>View PDF →</a>
               </div>
             )}
 
-            {a.ai_reason && <div style={{ fontSize: '12px', color: '#A8A69E', marginBottom: '10px', fontStyle: 'italic' }}>{a.ai_reason}</div>}
+            {a.ai_reason && <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '10px', fontStyle: 'italic' }}>{a.ai_reason}</div>}
 
             {editing === a.id ? (
-              <div style={{ background: '#1E1E1B', borderRadius: '8px', padding: '14px', marginTop: '10px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#5A5A56', marginBottom: '12px' }}>Enter Screening Results</div>
+              <div style={{ background: 'var(--bg3)', borderRadius: '8px', padding: '14px', marginTop: '10px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text3)', marginBottom: '12px' }}>Enter Screening Results</div>
                 <div style={{ ...g3, marginBottom: '12px' }}>
                   <div><label style={lbl}>Credit Score</label><input style={inp} type='number' placeholder='700' value={form.credit_score} onChange={e => setForm(f => ({ ...f, credit_score: e.target.value }))} /></div>
                   <div><label style={lbl}>Criminal Check</label>

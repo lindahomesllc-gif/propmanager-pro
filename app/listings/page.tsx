@@ -55,31 +55,31 @@ export default function ListingsPage() {
   const active = listings.filter(l => l.is_active)
   const inactive = listings.filter(l => !l.is_active)
 
-  const inp = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: '#1E1E1B', color: '#F0EEE8', fontFamily: 'Plus Jakarta Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }
-  const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#5A5A56', marginBottom: '4px' }
-  const card = { background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
+  const inp = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', fontFamily: 'Plus Jakarta Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }
+  const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
+  const card = { background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
   const g2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }
   const g3 = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }
-  const btnP = { background: '#4ADE9A', color: '#0E0E0C', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }
-  const btnG = { background: 'transparent', color: '#A8A69E', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '8px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
-  const secTtl = { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5A5A56', marginBottom: '12px' }
+  const btnP = { background: 'var(--green)', color: 'var(--bg)', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }
+  const btnG = { background: 'transparent', color: 'var(--text2)', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '8px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
+  const secTtl = { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }
 
   return (
     <AppShell>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: '#161614', flexShrink: 0 }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#F0EEE8' }}>Listings</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)', flexShrink: 0 }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Listings</div>
         <button style={btnP} onClick={() => setShowAdd(!showAdd)}>{showAdd ? 'Cancel' : '+ New Listing'}</button>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
           {[
-            { label: 'Active Listings', value: active.length, color: '#4ADE9A' },
-            { label: 'Inactive', value: inactive.length, color: '#A8A69E' },
-            { label: 'Vacant Properties', value: properties.length, color: '#FBB040' },
-            { label: 'Avg Rent', value: active.length ? fm(active.reduce((s,l) => s + l.rent_amount, 0) / active.length) : '—', color: '#60A5FA' },
+            { label: 'Active Listings', value: active.length, color: 'var(--green)' },
+            { label: 'Inactive', value: inactive.length, color: 'var(--text2)' },
+            { label: 'Vacant Properties', value: properties.length, color: 'var(--amber)' },
+            { label: 'Avg Rent', value: active.length ? fm(active.reduce((s,l) => s + l.rent_amount, 0) / active.length) : '—', color: 'var(--blue)' },
           ].map(mc => (
-            <div key={mc.label} style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px' }}>
-              <div style={{ fontSize: '10px', color: '#5A5A56', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
+            <div key={mc.label} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
               <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color, marginTop: '5px' }}>{mc.value}</div>
             </div>
           ))}
@@ -95,7 +95,7 @@ export default function ListingsPage() {
                   <option value=''>Select vacant property...</option>
                   {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
                 </select>
-                {properties.length === 0 && <div style={{ fontSize: '11px', color: '#FBB040', marginTop: '4px' }}>No vacant properties found.</div>}
+                {properties.length === 0 && <div style={{ fontSize: '11px', color: 'var(--amber)', marginTop: '4px' }}>No vacant properties found.</div>}
               </div>
               <div><label style={lbl}>Monthly Rent *</label><input style={inp} type='number' placeholder='1500' value={form.rent_amount} onChange={e => set('rent_amount', e.target.value)} /></div>
             </div>
@@ -124,12 +124,12 @@ export default function ListingsPage() {
           </div>
         )}
 
-        {loading && <div style={{ textAlign: 'center', padding: '40px', color: '#5A5A56' }}>Loading...</div>}
+        {loading && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading...</div>}
 
         {!loading && active.length === 0 && !showAdd && (
-          <div style={{ textAlign: 'center', padding: '60px', color: '#5A5A56' }}>
+          <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
             <div style={{ fontSize: '32px', marginBottom: '12px' }}>🏠</div>
-            <div style={{ fontSize: '15px', fontWeight: 600, color: '#A8A69E', marginBottom: '6px' }}>No active listings</div>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text2)', marginBottom: '6px' }}>No active listings</div>
             <div style={{ fontSize: '13px', marginBottom: '20px' }}>Create a listing for your vacant properties.</div>
             <button style={btnP} onClick={() => setShowAdd(true)}>+ New Listing</button>
           </div>
@@ -137,16 +137,16 @@ export default function ListingsPage() {
 
         {!loading && active.length > 0 && (
           <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: '#A8A69E', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Active Listings</div>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Active Listings</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))', gap: '12px' }}>
               {active.map(l => (
-                <div key={l.id} style={{ background: '#161614', border: '0.5px solid rgba(74,222,154,0.2)', borderTop: '2px solid #4ADE9A', borderRadius: '10px', padding: '16px' }}>
+                <div key={l.id} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(74,222,154,0.2)', borderTop: '2px solid #4ADE9A', borderRadius: '10px', padding: '16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#F0EEE8' }}>{l.title || l.properties?.address}</div>
-                      <div style={{ fontSize: '11px', color: '#5A5A56', marginTop: '2px' }}>{l.properties?.address}</div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{l.title || l.properties?.address}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{l.properties?.address}</div>
                     </div>
-                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: '#4ADE9A' }}>{fm(l.rent_amount)}<span style={{ fontSize: '10px', color: '#5A5A56', fontFamily: 'Plus Jakarta Sans' }}>/mo</span></div>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--green)' }}>{fm(l.rent_amount)}<span style={{ fontSize: '10px', color: 'var(--text3)', fontFamily: 'Plus Jakarta Sans' }}>/mo</span></div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '10px' }}>
                     {[
@@ -155,13 +155,13 @@ export default function ListingsPage() {
                       ['Pets', l.pets_allowed ? 'Allowed' : 'No Pets'],
                       ['Leads', l.total_leads || '0'],
                     ].map(([k, v]) => (
-                      <div key={k} style={{ background: '#1E1E1B', borderRadius: '6px', padding: '6px 8px' }}>
-                        <div style={{ fontSize: '9px', color: '#5A5A56', textTransform: 'uppercase' }}>{k}</div>
-                        <div style={{ fontSize: '12px', color: '#F0EEE8', marginTop: '1px' }}>{v}</div>
+                      <div key={k} style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '6px 8px' }}>
+                        <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase' }}>{k}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text)', marginTop: '1px' }}>{v}</div>
                       </div>
                     ))}
                   </div>
-                  {l.description && <div style={{ fontSize: '11px', color: '#5A5A56', marginBottom: '10px', lineHeight: '1.5' }}>{l.description.substring(0, 100)}{l.description.length > 100 ? '...' : ''}</div>}
+                  {l.description && <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '10px', lineHeight: '1.5' }}>{l.description.substring(0, 100)}{l.description.length > 100 ? '...' : ''}</div>}
                   <div style={{ display: 'flex', gap: '6px' }}>
                     <a href={'/applications/new?listing=' + l.id} style={{ ...btnG, fontSize: '11px', flex: 1, textAlign: 'center' }}>+ Application</a>
                   </div>
@@ -173,14 +173,14 @@ export default function ListingsPage() {
 
         {!loading && inactive.length > 0 && (
           <div>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: '#A8A69E', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Inactive Listings</div>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Inactive Listings</div>
             {inactive.map(l => (
-              <div key={l.id} style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.6 }}>
+              <div key={l.id} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.6 }}>
                 <div>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#F0EEE8' }}>{l.title || l.properties?.address}</div>
-                  <div style={{ fontSize: '11px', color: '#5A5A56' }}>{l.properties?.address}</div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{l.title || l.properties?.address}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{l.properties?.address}</div>
                 </div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#A8A69E' }}>{fm(l.rent_amount)}/mo</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text2)' }}>{fm(l.rent_amount)}/mo</div>
               </div>
             ))}
           </div>

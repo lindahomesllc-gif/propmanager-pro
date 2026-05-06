@@ -64,32 +64,32 @@ export default function MortgagePage() {
   const totalOriginal = mortgages.reduce((s, m) => s + (m.original_amount || 0), 0)
   const totalPaidDown = totalOriginal - totalBalance
 
-  const inp = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: '#1E1E1B', color: '#F0EEE8', fontFamily: 'Plus Jakarta Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }
-  const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#5A5A56', marginBottom: '4px' }
-  const card = { background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
+  const inp = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', fontFamily: 'Plus Jakarta Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }
+  const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
+  const card = { background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
   const g2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }
   const g3 = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }
-  const btnP = { background: '#4ADE9A', color: '#0E0E0C', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }
-  const btnG = { background: 'transparent', color: '#A8A69E', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '8px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
-  const secTtl = { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5A5A56', marginBottom: '12px' }
+  const btnP = { background: 'var(--green)', color: 'var(--bg)', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }
+  const btnG = { background: 'transparent', color: 'var(--text2)', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '8px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
+  const secTtl = { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }
 
   return (
     <AppShell>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: '#161614', flexShrink: 0 }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#F0EEE8' }}>Mortgages</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)', flexShrink: 0 }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Mortgages</div>
         <button style={btnP} onClick={() => setShowAdd(!showAdd)}>{showAdd ? 'Cancel' : '+ Add Mortgage'}</button>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))', gap: '10px', marginBottom: '20px' }}>
           {[
-            { label: 'Total Balance', value: fm(totalBalance), color: '#F87171' },
-            { label: 'Monthly Payments', value: fm(totalPayment), color: '#FBB040' },
-            { label: 'Original Loans', value: fm(totalOriginal), color: '#F0EEE8' },
-            { label: 'Paid Down', value: fm(totalPaidDown), color: '#4ADE9A' },
-            { label: 'Active Mortgages', value: mortgages.filter(m => !m.is_paid_off).length, color: '#60A5FA' },
+            { label: 'Total Balance', value: fm(totalBalance), color: 'var(--red)' },
+            { label: 'Monthly Payments', value: fm(totalPayment), color: 'var(--amber)' },
+            { label: 'Original Loans', value: fm(totalOriginal), color: 'var(--text)' },
+            { label: 'Paid Down', value: fm(totalPaidDown), color: 'var(--green)' },
+            { label: 'Active Mortgages', value: mortgages.filter(m => !m.is_paid_off).length, color: 'var(--blue)' },
           ].map(mc => (
-            <div key={mc.label} style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px' }}>
-              <div style={{ fontSize: '10px', color: '#5A5A56', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
+            <div key={mc.label} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
               <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color, marginTop: '5px' }}>{mc.value}</div>
             </div>
           ))}
@@ -137,11 +137,11 @@ export default function MortgagePage() {
           </div>
         )}
 
-        {loading && <div style={{ textAlign: 'center', padding: '40px', color: '#5A5A56' }}>Loading...</div>}
+        {loading && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading...</div>}
         {!loading && mortgages.length === 0 && !showAdd && (
-          <div style={{ textAlign: 'center', padding: '60px', color: '#5A5A56' }}>
+          <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
             <div style={{ fontSize: '32px', marginBottom: '12px' }}>🏦</div>
-            <div style={{ fontSize: '15px', fontWeight: 600, color: '#A8A69E', marginBottom: '6px' }}>No mortgages yet</div>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text2)', marginBottom: '6px' }}>No mortgages yet</div>
             <button style={btnP} onClick={() => setShowAdd(true)}>+ Add Mortgage</button>
           </div>
         )}
@@ -149,14 +149,14 @@ export default function MortgagePage() {
           <div key={m.id} style={{ ...card, borderLeft: m.is_paid_off ? '3px solid #4ADE9A' : '3px solid #60A5FA' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
               <div>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: '#F0EEE8' }}>{m.properties?.address}</div>
-                <div style={{ fontSize: '12px', color: '#5A5A56', marginTop: '2px' }}>{m.lender_name || 'No lender'} {m.loan_number ? '· #' + m.loan_number : ''}</div>
-                <div style={{ fontSize: '11px', color: '#5A5A56', marginTop: '2px', textTransform: 'capitalize' }}>{m.loan_type} · {m.term_years}yr · {m.interest_rate}%</div>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{m.properties?.address}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>{m.lender_name || 'No lender'} {m.loan_number ? '· #' + m.loan_number : ''}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px', textTransform: 'capitalize' }}>{m.loan_type} · {m.term_years}yr · {m.interest_rate}%</div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: m.is_paid_off ? '#4ADE9A' : '#F87171' }}>{fm(m.current_balance)}</div>
-                <div style={{ fontSize: '11px', color: '#5A5A56' }}>current balance</div>
-                {m.is_paid_off && <span style={{ fontSize: '11px', color: '#4ADE9A', fontWeight: 600 }}>✓ PAID OFF</span>}
+                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: m.is_paid_off ? 'var(--green)' : 'var(--red)' }}>{fm(m.current_balance)}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text3)' }}>current balance</div>
+                {m.is_paid_off && <span style={{ fontSize: '11px', color: 'var(--green)', fontWeight: 600 }}>✓ PAID OFF</span>}
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
@@ -166,9 +166,9 @@ export default function MortgagePage() {
                 ['Paid Down', fm(m.original_amount - m.current_balance)],
                 ['Started', formatDate(m.start_date)],
               ].map(([k, v]) => (
-                <div key={k} style={{ background: '#1E1E1B', borderRadius: '6px', padding: '8px 10px' }}>
-                  <div style={{ fontSize: '10px', color: '#5A5A56', textTransform: 'uppercase' }}>{k}</div>
-                  <div style={{ fontSize: '12px', fontWeight: 500, color: '#F0EEE8', marginTop: '2px' }}>{v}</div>
+                <div key={k} style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '8px 10px' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase' }}>{k}</div>
+                  <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text)', marginTop: '2px' }}>{v}</div>
                 </div>
               ))}
             </div>

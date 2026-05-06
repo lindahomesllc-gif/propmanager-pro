@@ -44,30 +44,30 @@ export default function IncomePage() {
 
   return (
     <AppShell>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: '#161614', flexShrink: 0 }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#F0EEE8' }}>Income & P&L</div>
-        <select value={year} onChange={e => setYear(parseInt(e.target.value))} style={{ padding: '6px 10px', fontSize: '12px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: '#1E1E1B', color: '#F0EEE8', outline: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)', flexShrink: 0 }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Income & P&L</div>
+        <select value={year} onChange={e => setYear(parseInt(e.target.value))} style={{ padding: '6px 10px', fontSize: '12px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none' }}>
           {[2023, 2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
         </select>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))', gap: '10px', marginBottom: '20px' }}>
           {[
-            { label: 'Gross Income', value: fm(totalIncome), color: '#4ADE9A' },
-            { label: 'Total Expenses', value: fm(totalExpenses), color: '#F87171' },
-            { label: 'Net Income', value: fm(netIncome), color: netIncome >= 0 ? '#4ADE9A' : '#F87171' },
-            { label: 'Monthly Rent Roll', value: fm(monthlyRent), color: '#60A5FA' },
-            { label: 'Active Leases', value: leases.length, color: '#F0EEE8' },
+            { label: 'Gross Income', value: fm(totalIncome), color: 'var(--green)' },
+            { label: 'Total Expenses', value: fm(totalExpenses), color: 'var(--red)' },
+            { label: 'Net Income', value: fm(netIncome), color: netIncome >= 0 ? 'var(--green)' : 'var(--red)' },
+            { label: 'Monthly Rent Roll', value: fm(monthlyRent), color: 'var(--blue)' },
+            { label: 'Active Leases', value: leases.length, color: 'var(--text)' },
           ].map(mc => (
-            <div key={mc.label} style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px' }}>
-              <div style={{ fontSize: '10px', color: '#5A5A56', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
+            <div key={mc.label} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
               <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color, marginTop: '5px' }}>{mc.value}</div>
             </div>
           ))}
         </div>
 
-        <div style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5A5A56', marginBottom: '16px' }}>Monthly Overview {year}</div>
+        <div style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '16px' }}>Monthly Overview {year}</div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '120px', marginBottom: '8px' }}>
             {monthlyData.map(m => (
               <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', height: '100%', justifyContent: 'flex-end' }}>
@@ -80,81 +80,81 @@ export default function IncomePage() {
           </div>
           <div style={{ display: 'flex', gap: '6px' }}>
             {monthlyData.map(m => (
-              <div key={m.month} style={{ flex: 1, fontSize: '9px', color: '#5A5A56', textAlign: 'center' }}>{m.month}</div>
+              <div key={m.month} style={{ flex: 1, fontSize: '9px', color: 'var(--text3)', textAlign: 'center' }}>{m.month}</div>
             ))}
           </div>
           <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#4ADE9A44', border: '1px solid #4ADE9A' }} /><span style={{ fontSize: '11px', color: '#5A5A56' }}>Income</span></div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#F8717144', border: '1px solid #F87171' }} /><span style={{ fontSize: '11px', color: '#5A5A56' }}>Expenses</span></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#4ADE9A44', border: '1px solid #4ADE9A' }} /><span style={{ fontSize: '11px', color: 'var(--text3)' }}>Income</span></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#F8717144', border: '1px solid #F87171' }} /><span style={{ fontSize: '11px', color: 'var(--text3)' }}>Expenses</span></div>
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
-          <div style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5A5A56', marginBottom: '12px' }}>Monthly Breakdown</div>
+          <div style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }}>Monthly Breakdown</div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '0.5px solid rgba(255,255,255,0.07)' }}>
                   {['Month', 'Income', 'Expenses', 'Net'].map(h => (
-                    <th key={h} style={{ padding: '6px 8px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: '#5A5A56', textAlign: 'left' }}>{h}</th>
+                    <th key={h} style={{ padding: '6px 8px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text3)', textAlign: 'left' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {monthlyData.map(m => (
                   <tr key={m.month} style={{ borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
-                    <td style={{ padding: '6px 8px', fontSize: '12px', color: '#A8A69E' }}>{m.month}</td>
-                    <td style={{ padding: '6px 8px', fontSize: '12px', color: '#4ADE9A', fontWeight: m.income > 0 ? 600 : 400 }}>{m.income > 0 ? fm(m.income) : '—'}</td>
-                    <td style={{ padding: '6px 8px', fontSize: '12px', color: '#F87171', fontWeight: m.expenses > 0 ? 600 : 400 }}>{m.expenses > 0 ? fm(m.expenses) : '—'}</td>
-                    <td style={{ padding: '6px 8px', fontSize: '12px', color: m.net >= 0 ? '#4ADE9A' : '#F87171', fontWeight: 600 }}>{m.income > 0 || m.expenses > 0 ? fm(m.net) : '—'}</td>
+                    <td style={{ padding: '6px 8px', fontSize: '12px', color: 'var(--text2)' }}>{m.month}</td>
+                    <td style={{ padding: '6px 8px', fontSize: '12px', color: 'var(--green)', fontWeight: m.income > 0 ? 600 : 400 }}>{m.income > 0 ? fm(m.income) : '—'}</td>
+                    <td style={{ padding: '6px 8px', fontSize: '12px', color: 'var(--red)', fontWeight: m.expenses > 0 ? 600 : 400 }}>{m.expenses > 0 ? fm(m.expenses) : '—'}</td>
+                    <td style={{ padding: '6px 8px', fontSize: '12px', color: m.net >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>{m.income > 0 || m.expenses > 0 ? fm(m.net) : '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5A5A56', marginBottom: '12px' }}>Active Rent Roll</div>
+          <div style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }}>Active Rent Roll</div>
             {leases.length === 0 ? (
-              <div style={{ fontSize: '13px', color: '#5A5A56' }}>No active leases.</div>
+              <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No active leases.</div>
             ) : leases.map(l => (
               <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
                 <div>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#F0EEE8' }}>{l.tenants?.full_name}</div>
-                  <div style={{ fontSize: '11px', color: '#5A5A56' }}>{l.properties?.address}</div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{l.tenants?.full_name}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{l.properties?.address}</div>
                 </div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#4ADE9A' }}>{fm(l.rent_amount)}</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--green)' }}>{fm(l.rent_amount)}</div>
               </div>
             ))}
             {leases.length > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0 0', marginTop: '4px', borderTop: '0.5px solid rgba(255,255,255,0.07)' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, color: '#5A5A56', textTransform: 'uppercase' }}>Total Monthly</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: '#4ADE9A' }}>{fm(monthlyRent)}</div>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase' }}>Total Monthly</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--green)' }}>{fm(monthlyRent)}</div>
               </div>
             )}
           </div>
         </div>
 
-        <div style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5A5A56', marginBottom: '12px' }}>Recent Payments {year}</div>
+        <div style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }}>Recent Payments {year}</div>
           {yearPayments.length === 0 ? (
-            <div style={{ fontSize: '13px', color: '#5A5A56' }}>No payments recorded for {year}.</div>
+            <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No payments recorded for {year}.</div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '0.5px solid rgba(255,255,255,0.07)' }}>
                   {['Date', 'Tenant', 'Property', 'Amount', 'Method'].map(h => (
-                    <th key={h} style={{ padding: '8px 10px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: '#5A5A56', textAlign: 'left' }}>{h}</th>
+                    <th key={h} style={{ padding: '8px 10px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text3)', textAlign: 'left' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {yearPayments.map(p => (
                   <tr key={p.id} style={{ borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
-                    <td style={{ padding: '8px 10px', fontSize: '12px', color: '#A8A69E' }}>{formatDate(p.paid_date)}</td>
-                    <td style={{ padding: '8px 10px', fontSize: '12px', color: '#F0EEE8' }}>{p.tenants?.full_name || '—'}</td>
-                    <td style={{ padding: '8px 10px', fontSize: '12px', color: '#A8A69E' }}>{p.properties?.address || '—'}</td>
-                    <td style={{ padding: '8px 10px', fontSize: '13px', fontWeight: 600, color: '#4ADE9A' }}>{fm(p.amount_paid)}</td>
-                    <td style={{ padding: '8px 10px', fontSize: '12px', color: '#A8A69E', textTransform: 'capitalize' }}>{p.payment_method || '—'}</td>
+                    <td style={{ padding: '8px 10px', fontSize: '12px', color: 'var(--text2)' }}>{formatDate(p.paid_date)}</td>
+                    <td style={{ padding: '8px 10px', fontSize: '12px', color: 'var(--text)' }}>{p.tenants?.full_name || '—'}</td>
+                    <td style={{ padding: '8px 10px', fontSize: '12px', color: 'var(--text2)' }}>{p.properties?.address || '—'}</td>
+                    <td style={{ padding: '8px 10px', fontSize: '13px', fontWeight: 600, color: 'var(--green)' }}>{fm(p.amount_paid)}</td>
+                    <td style={{ padding: '8px 10px', fontSize: '12px', color: 'var(--text2)', textTransform: 'capitalize' }}>{p.payment_method || '—'}</td>
                   </tr>
                 ))}
               </tbody>

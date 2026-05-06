@@ -1,107 +1,140 @@
 'use client'
-
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import AppShell from '@/components/AppShell'
-import { getPayments, fm, formatDate, type Payment } from '@/lib/supabase'
+import { supabase, USER_ID } from '@/lib/supabase'
 
-const USER_ID = 'cacb3a74-75d7-4e07-af71-6db4fdde9a92'
-
-export default function PaymentsPage() {
-  const [payments, setPayments] = useState<Payment[]>([])
-  const [loading, setLoading] = useState(true)
+export default function RecordPaymentPage() {
+  const [tenants, setTenants] = useState<any[]>([])
+  const [leases, setLeases] = useState<any[]>([])
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [form, setForm] = useState({
+    tenant_id: '', lease_id: '', property_id: '',
+    amount_due: '', amount_paid: '', due_date: '',
+    paid_date: new Date().toISOString().split('T')[0],
+    payment_method: 'check', status: 'paid', notes: ''
+  })
 
   useEffect(() => {
-    getPayments(USER_ID).then(data => { setPayments(data); setLoading(false) })
+    supabase.from('tenants').select('id, full_name, property_id, properties(address)')
+      .eq('user_id', USER_ID).eq('status', 'active')
+      .then(({ data }) => setTenants(data || []))
   }, [])
 
-  const due  = payments.filter(p => p.status === 'due' || p.status === 'upcoming')
-  const paid = payments.filter(p => p.status === 'paid')
-  const late = payments.filter(p => p.status === 'late')
+  useEffect(() => {
+    if (!form.tenant_id) return
+    supabase.from('leases').select('id, rent_amount, start_date, end_date, due_day')
+      .eq('user_id', USER_ID).eq('tenant_id', form.tenant_id).eq('status', 'executed')
+      .then(({ data }) => {
+        setLeases(data || [])
+        if (data && data.length > 0) {
+          const l = data[0]
+          const t = tenants.find(x => x.id === form.tenant_id)
+          setForm(f => ({ ...f, lease_id: l.id, property_id: t?.property_id || '', amount_due: l.rent_amount.toString(), amount_paid: l.rent_amount.toString() }))
+        }
+      })
+  }, [form.tenant_id])
 
-  const statusChip = (s: string) => {
-    if (s === 'paid')    return <span className="chip chip-g">Paid</span>
-    if (s === 'due')     return <span className="chip chip-a">Due</span>
-    if (s === 'late')    return <span className="chip chip-r">Late</span>
-    if (s === 'partial') return <span className="chip chip-b">Partial</span>
-    return <span className="chip chip-x">{s}</span>
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+
+  async function save() {
+    setError('')
+    if (!form.tenant_id) { setError('Please select a tenant'); return }
+    if (!form.amount_due) { setError('Amount due is required'); return }
+    if (!form.due_date) { setError('Due date is required'); return }
+    setSaving(true)
+    const { error: err } = await supabase.from('payments').insert({
+      user_id: USER_ID,
+      tenant_id: form.tenant_id,
+      lease_id: form.lease_id || null,
+      property_id: form.property_id || null,
+      amount_due: parseFloat(form.amount_due),
+      amount_paid: parseFloat(form.amount_paid) || 0,
+      due_date: form.due_date,
+      paid_date: form.status === 'paid' ? form.paid_date : null,
+      payment_method: form.status === 'paid' ? form.payment_method : null,
+      status: form.status,
+      notes: form.notes || null,
+    })
+    setSaving(false)
+    if (err) { setError('Error: ' + err.message); return }
+    window.location.href = '/payments'
   }
+
+  const inp: any = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', fontFamily: 'Plus Jakarta Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }
+  const lbl: any = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
+  const card: any = { background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
+  const g2: any = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }
+  const btnP: any = { background: 'var(--green)', color: 'var(--bg)', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }
+  const btnG: any = { background: 'transparent', color: 'var(--text2)', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '8px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
+  const secTtl: any = { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }
 
   return (
     <AppShell>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: '#161614', flexShrink: 0 }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#F0EEE8' }}>Rent Payments</div>
-        <a href="/payments/new" className="btn btn-primary" style={{ fontSize: '11px' }}>+ Record Payment</a>
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
-          {[
-            { label: 'Outstanding',     value: fm(due.reduce((s,p)=>s+p.amount_due,0)),  color: '#FBB040' },
-            { label: 'Collected YTD',   value: fm(paid.reduce((s,p)=>s+p.amount_paid,0)), color: '#4ADE9A' },
-            { label: 'Payments Due',    value: due.length.toString(),                     color: '#FBB040' },
-            { label: 'Late Payments',   value: late.length.toString(),                    color: late.length>0?'#F87171':'#4ADE9A' },
-            { label: 'Collection Rate', value: payments.length > 0 ? Math.round(paid.length/Math.max(paid.length+due.length,1)*100)+'%' : '—', color: '#4ADE9A' },
-          ].map(mc => (
-            <div key={mc.label} style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px', borderTop: `2px solid ${mc.color}` }}>
-              <div style={{ fontSize: '10px', color: '#5A5A56', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color, marginTop: '5px' }}>{mc.value}</div>
-            </div>
-          ))}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)', flexShrink: 0 }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Record Payment</div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <a href="/payments" style={btnG}>Cancel</a>
+          <button style={btnP} onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Payment'}</button>
         </div>
-
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#5A5A56' }}>Loading payments…</div>
-        ) : payments.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px', color: '#5A5A56', fontSize: '13px' }}>
-            <div style={{ fontSize: '32px', marginBottom: '12px' }}>💳</div>
-            No payments recorded yet.
-            <div style={{ marginTop: '12px' }}>
-              <a href="/payments/new" className="btn btn-primary">Record First Payment</a>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+        {error && <div style={{ background: '#3a1a1a', border: '0.5px solid #ff6b6b', borderRadius: '7px', padding: '10px 14px', marginBottom: '14px', color: '#ff6b6b', fontSize: '13px' }}>{error}</div>}
+        <div style={card}>
+          <div style={secTtl}>Tenant</div>
+          <label style={lbl}>Select Tenant *</label>
+          <select style={inp} value={form.tenant_id} onChange={e => set('tenant_id', e.target.value)}>
+            <option value="">Select a tenant...</option>
+            {tenants.map(t => <option key={t.id} value={t.id}>{t.full_name} — {t.properties?.address}</option>)}
+          </select>
+          {form.tenant_id && leases.length === 0 && (
+            <div style={{ fontSize: '11px', color: 'var(--amber)', marginTop: '6px' }}>⚠️ No active lease found. You can still record a payment manually.</div>
+          )}
+        </div>
+        <div style={card}>
+          <div style={secTtl}>Payment Details</div>
+          <div style={{ ...g2, marginBottom: '12px' }}>
+            <div><label style={lbl}>Amount Due *</label><input style={inp} type="number" placeholder="0.00" value={form.amount_due} onChange={e => set('amount_due', e.target.value)} /></div>
+            <div><label style={lbl}>Amount Paid</label><input style={inp} type="number" placeholder="0.00" value={form.amount_paid} onChange={e => set('amount_paid', e.target.value)} /></div>
+          </div>
+          <div style={{ ...g2, marginBottom: '12px' }}>
+            <div><label style={lbl}>Due Date *</label><input style={inp} type="date" value={form.due_date} onChange={e => set('due_date', e.target.value)} /></div>
+            <div><label style={lbl}>Date Paid</label><input style={inp} type="date" value={form.paid_date} onChange={e => set('paid_date', e.target.value)} /></div>
+          </div>
+          <div style={g2}>
+            <div>
+              <label style={lbl}>Payment Method</label>
+              <select style={inp} value={form.payment_method} onChange={e => set('payment_method', e.target.value)}>
+                <option value="check">Check</option>
+                <option value="cash">Cash</option>
+                <option value="zelle">Zelle</option>
+                <option value="ach">ACH / Bank Transfer</option>
+                <option value="card">Credit/Debit Card</option>
+                <option value="money_order">Money Order</option>
+                <option value="autopay">Autopay</option>
+              </select>
+            </div>
+            <div>
+              <label style={lbl}>Status</label>
+              <select style={inp} value={form.status} onChange={e => set('status', e.target.value)}>
+                <option value="paid">Paid</option>
+                <option value="partial">Partial</option>
+                <option value="late">Late</option>
+                <option value="due">Due</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="waived">Waived</option>
+              </select>
             </div>
           </div>
-        ) : (
-          <>
-            {due.length > 0 && (
-              <>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#A8A69E', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Due Now</div>
-                {due.map(p => (
-                  <div key={p.id} style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderLeft: '3px solid #FBB040', borderRadius: '10px', padding: '14px 16px', marginBottom: '10px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#F0EEE8' }}>Rent Payment</div>
-                        <div style={{ fontSize: '11px', color: '#5A5A56', marginTop: '2px' }}>Due {formatDate(p.due_date)}</div>
-                      </div>
-                      <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: '#FBB040' }}>{fm(p.amount_due)}</div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="btn btn-primary" style={{ fontSize: '11px' }} onClick={() => alert('Payment collection — connect Stripe to process real payments!')}>💳 Collect Payment</button>
-                      <button className="btn btn-ghost"   style={{ fontSize: '11px' }}>📨 Send Reminder</button>
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-
-            <div style={{ fontSize: '12px', fontWeight: 700, color: '#A8A69E', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px', marginTop: '16px' }}>Payment History</div>
-            <div className="card">
-              <table className="tbl">
-                <thead><tr><th>Date</th><th>Due Date</th><th>Amount Due</th><th>Amount Paid</th><th>Method</th><th>Status</th></tr></thead>
-                <tbody>
-                  {paid.map(p => (
-                    <tr key={p.id}>
-                      <td>{formatDate(p.paid_date)}</td>
-                      <td>{formatDate(p.due_date)}</td>
-                      <td>{fm(p.amount_due)}</td>
-                      <td style={{ color: '#4ADE9A', fontWeight: 600 }}>{fm(p.amount_paid)}</td>
-                      <td><span className="chip chip-x">{p.payment_method || '—'}</span></td>
-                      <td>{statusChip(p.status)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
+        </div>
+        <div style={card}>
+          <div style={secTtl}>Notes</div>
+          <textarea style={{ ...inp, resize: 'vertical' }} rows={3} placeholder="Any notes about this payment..." value={form.notes} onChange={e => set('notes', e.target.value)} />
+        </div>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <a href="/payments" style={btnG}>Cancel</a>
+          <button style={btnP} onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Payment'}</button>
+        </div>
       </div>
     </AppShell>
   )

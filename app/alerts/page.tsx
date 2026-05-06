@@ -46,16 +46,16 @@ export default function AlertsPage() {
   }
 
   const urgencyColor = (days) => {
-    if (days < 0) return '#F87171'
-    if (days <= 7) return '#F87171'
-    if (days <= 30) return '#FBB040'
-    return '#60A5FA'
+    if (days < 0) return 'var(--red)'
+    if (days <= 7) return 'var(--red)'
+    if (days <= 30) return 'var(--amber)'
+    return 'var(--blue)'
   }
 
   const Section = ({ title, count, color, children }) => (
     <div style={{ marginBottom: '24px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-        <div style={{ fontSize: '12px', fontWeight: 700, color: '#A8A69E', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{title}</div>
+        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{title}</div>
         {count > 0 && <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', background: color + '22', color: color, fontWeight: 700 }}>{count}</span>}
       </div>
       {children}
@@ -64,26 +64,26 @@ export default function AlertsPage() {
 
   return (
     <AppShell>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: '#161614', flexShrink: 0 }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#F0EEE8' }}>Due Dates & Alerts</div>
-        <div style={{ fontSize: '12px', color: '#5A5A56' }}>{today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)', flexShrink: 0 }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Due Dates & Alerts</div>
+        <div style={{ fontSize: '12px', color: 'var(--text3)' }}>{today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-        {loading && <div style={{ textAlign: 'center', padding: '40px', color: '#5A5A56' }}>Loading...</div>}
+        {loading && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading...</div>}
         {!loading && (
           <>
             {latePayments.length > 0 && (
-              <Section title='Late Payments' count={latePayments.length} color='#F87171'>
+              <Section title='Late Payments' count={latePayments.length} color='var(--red)'>
                 {latePayments.map(p => (
-                  <div key={p.id} style={{ background: '#161614', border: '0.5px solid rgba(248,113,113,0.3)', borderLeft: '3px solid #F87171', borderRadius: '10px', padding: '14px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div key={p.id} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(248,113,113,0.3)', borderLeft: '3px solid #F87171', borderRadius: '10px', padding: '14px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#F0EEE8' }}>{p.tenants?.full_name}</div>
-                      <div style={{ fontSize: '11px', color: '#5A5A56', marginTop: '2px' }}>{p.properties?.address}</div>
-                      <div style={{ fontSize: '11px', color: '#F87171', marginTop: '2px' }}>Was due {formatDate(p.due_date)} · {Math.abs(daysUntil(p.due_date))} days overdue</div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{p.tenants?.full_name}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{p.properties?.address}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--red)', marginTop: '2px' }}>Was due {formatDate(p.due_date)} · {Math.abs(daysUntil(p.due_date))} days overdue</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: '#F87171' }}>{fm(p.amount_due)}</div>
-                      <a href='/payments/new' style={{ fontSize: '11px', color: '#4ADE9A', textDecoration: 'none' }}>Record Payment →</a>
+                      <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: 'var(--red)' }}>{fm(p.amount_due)}</div>
+                      <a href='/payments/new' style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none' }}>Record Payment →</a>
                     </div>
                   </div>
                 ))}
@@ -91,35 +91,35 @@ export default function AlertsPage() {
             )}
 
             {duePayments.length > 0 && (
-              <Section title='Upcoming Payments' count={duePayments.length} color='#FBB040'>
+              <Section title='Upcoming Payments' count={duePayments.length} color='var(--amber)'>
                 {duePayments.map(p => (
-                  <div key={p.id} style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderLeft: '3px solid #FBB040', borderRadius: '10px', padding: '14px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div key={p.id} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderLeft: '3px solid #FBB040', borderRadius: '10px', padding: '14px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#F0EEE8' }}>{p.tenants?.full_name}</div>
-                      <div style={{ fontSize: '11px', color: '#5A5A56', marginTop: '2px' }}>{p.properties?.address}</div>
-                      <div style={{ fontSize: '11px', color: '#FBB040', marginTop: '2px' }}>Due {formatDate(p.due_date)}</div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{p.tenants?.full_name}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{p.properties?.address}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--amber)', marginTop: '2px' }}>Due {formatDate(p.due_date)}</div>
                     </div>
-                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: '#FBB040' }}>{fm(p.amount_due)}</div>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: 'var(--amber)' }}>{fm(p.amount_due)}</div>
                   </div>
                 ))}
               </Section>
             )}
 
             {expiringLeases.length > 0 && (
-              <Section title='Expiring Leases (Next 90 Days)' count={expiringLeases.length} color='#60A5FA'>
+              <Section title='Expiring Leases (Next 90 Days)' count={expiringLeases.length} color='var(--blue)'>
                 {expiringLeases.map(l => {
                   const days = daysUntil(l.end_date)
                   const color = urgencyColor(days)
                   return (
-                    <div key={l.id} style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderLeft: '3px solid ' + color, borderRadius: '10px', padding: '14px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div key={l.id} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderLeft: '3px solid ' + color, borderRadius: '10px', padding: '14px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#F0EEE8' }}>{l.tenants?.full_name}</div>
-                        <div style={{ fontSize: '11px', color: '#5A5A56', marginTop: '2px' }}>{l.properties?.address}</div>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{l.tenants?.full_name}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{l.properties?.address}</div>
                         <div style={{ fontSize: '11px', color: color, marginTop: '2px' }}>Expires {formatDate(l.end_date)} · {days > 0 ? days + ' days left' : 'Expired'}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: '#4ADE9A' }}>{fm(l.rent_amount)}<span style={{ fontSize: '11px', color: '#5A5A56', fontFamily: 'Plus Jakarta Sans' }}>/mo</span></div>
-                        <a href={'/leases/' + l.id} style={{ fontSize: '11px', color: '#60A5FA', textDecoration: 'none' }}>View Lease →</a>
+                        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: 'var(--green)' }}>{fm(l.rent_amount)}<span style={{ fontSize: '11px', color: 'var(--text3)', fontFamily: 'Plus Jakarta Sans' }}>/mo</span></div>
+                        <a href={'/leases/' + l.id} style={{ fontSize: '11px', color: 'var(--blue)', textDecoration: 'none' }}>View Lease →</a>
                       </div>
                     </div>
                   )
@@ -128,30 +128,30 @@ export default function AlertsPage() {
             )}
 
             {emergencyMaint.length > 0 && (
-              <Section title='High Priority Maintenance' count={emergencyMaint.length} color='#F87171'>
+              <Section title='High Priority Maintenance' count={emergencyMaint.length} color='var(--red)'>
                 {emergencyMaint.map(m => (
-                  <div key={m.id} style={{ background: '#161614', border: '0.5px solid rgba(248,113,113,0.2)', borderLeft: '3px solid #F87171', borderRadius: '10px', padding: '14px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div key={m.id} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(248,113,113,0.2)', borderLeft: '3px solid #F87171', borderRadius: '10px', padding: '14px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#F0EEE8' }}>{m.title}</div>
-                      <div style={{ fontSize: '11px', color: '#5A5A56', marginTop: '2px' }}>{m.properties?.address}</div>
-                      <div style={{ fontSize: '11px', color: '#F87171', marginTop: '2px', textTransform: 'capitalize' }}>{m.priority} priority · {m.status?.replace('_', ' ')}</div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{m.title}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{m.properties?.address}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--red)', marginTop: '2px', textTransform: 'capitalize' }}>{m.priority} priority · {m.status?.replace('_', ' ')}</div>
                     </div>
-                    <a href={'/maintenance/' + m.id} style={{ fontSize: '11px', color: '#4ADE9A', textDecoration: 'none' }}>View →</a>
+                    <a href={'/maintenance/' + m.id} style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none' }}>View →</a>
                   </div>
                 ))}
               </Section>
             )}
 
             {mortgages.length > 0 && (
-              <Section title='Monthly Mortgage Payments' count={mortgages.length} color='#60A5FA'>
+              <Section title='Monthly Mortgage Payments' count={mortgages.length} color='var(--blue)'>
                 {mortgages.map(m => (
-                  <div key={m.id} style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderLeft: '3px solid #60A5FA', borderRadius: '10px', padding: '14px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div key={m.id} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderLeft: '3px solid #60A5FA', borderRadius: '10px', padding: '14px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#F0EEE8' }}>{m.properties?.address}</div>
-                      <div style={{ fontSize: '11px', color: '#5A5A56', marginTop: '2px' }}>{m.lender_name || 'No lender'} · Due day {m.due_day}</div>
-                      <div style={{ fontSize: '11px', color: '#5A5A56', marginTop: '2px' }}>Balance: {fm(m.current_balance)}</div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{m.properties?.address}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{m.lender_name || 'No lender'} · Due day {m.due_day}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Balance: {fm(m.current_balance)}</div>
                     </div>
-                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: '#60A5FA' }}>{fm(m.monthly_payment)}</div>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: 'var(--blue)' }}>{fm(m.monthly_payment)}</div>
                   </div>
                 ))}
               </Section>
@@ -160,22 +160,22 @@ export default function AlertsPage() {
             {openMaint.length > 0 && (
               <Section title='Open Maintenance' count={openMaint.length} color='#A78BFA'>
                 {openMaint.map(m => (
-                  <div key={m.id} style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderLeft: '3px solid #A78BFA', borderRadius: '10px', padding: '14px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div key={m.id} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderLeft: '3px solid #A78BFA', borderRadius: '10px', padding: '14px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#F0EEE8' }}>{m.title}</div>
-                      <div style={{ fontSize: '11px', color: '#5A5A56', marginTop: '2px' }}>{m.properties?.address}</div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{m.title}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{m.properties?.address}</div>
                       <div style={{ fontSize: '11px', color: '#A78BFA', marginTop: '2px', textTransform: 'capitalize' }}>{m.priority} priority · {m.status?.replace('_', ' ')}</div>
                     </div>
-                    <a href={'/maintenance/' + m.id} style={{ fontSize: '11px', color: '#4ADE9A', textDecoration: 'none' }}>View →</a>
+                    <a href={'/maintenance/' + m.id} style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none' }}>View →</a>
                   </div>
                 ))}
               </Section>
             )}
 
             {latePayments.length === 0 && duePayments.length === 0 && expiringLeases.length === 0 && emergencyMaint.length === 0 && openMaint.length === 0 && mortgages.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '60px', color: '#5A5A56' }}>
+              <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
                 <div style={{ fontSize: '40px', marginBottom: '12px' }}>✅</div>
-                <div style={{ fontSize: '15px', fontWeight: 600, color: '#4ADE9A', marginBottom: '6px' }}>All clear!</div>
+                <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--green)', marginBottom: '6px' }}>All clear!</div>
                 <div style={{ fontSize: '13px' }}>No outstanding alerts or due dates.</div>
               </div>
             )}

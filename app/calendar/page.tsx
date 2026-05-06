@@ -20,8 +20,8 @@ export default function CalendarPage() {
       const m = currentDate.getMonth() + 1
       const pad = n => String(n).padStart(2, '0')
 
-      pay.data?.forEach(p => ev.push({ date: p.due_date, label: (p.tenants?.full_name || 'Tenant') + ' — Rent Due', amount: p.amount_due, color: p.status === 'late' ? '#F87171' : '#FBB040', type: 'payment', link: '/payments' }))
-      lea.data?.forEach(l => { ev.push({ date: l.end_date, label: (l.tenants?.full_name || 'Tenant') + ' — Lease Expires', amount: l.rent_amount, color: '#60A5FA', type: 'lease', link: '/leases/' + l.id }) })
+      pay.data?.forEach(p => ev.push({ date: p.due_date, label: (p.tenants?.full_name || 'Tenant') + ' — Rent Due', amount: p.amount_due, color: p.status === 'late' ? 'var(--red)' : 'var(--amber)', type: 'payment', link: '/payments' }))
+      lea.data?.forEach(l => { ev.push({ date: l.end_date, label: (l.tenants?.full_name || 'Tenant') + ' — Lease Expires', amount: l.rent_amount, color: 'var(--blue)', type: 'lease', link: '/leases/' + l.id }) })
       mai.data?.forEach(m => ev.push({ date: m.scheduled_date, label: m.title + ' — ' + (m.properties?.address || ''), color: '#A78BFA', type: 'maintenance', link: '/maintenance/' + m.id }))
       mor.data?.forEach(mo => {
         const date = y + '-' + pad(m) + '-' + pad(mo.due_day)
@@ -57,51 +57,51 @@ export default function CalendarPage() {
 
   return (
     <AppShell>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: '#161614', flexShrink: 0 }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#F0EEE8' }}>Calendar</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)', flexShrink: 0 }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Calendar</div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button onClick={prevMonth} style={{ background: 'transparent', color: '#A8A69E', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' }}>←</button>
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#F0EEE8', minWidth: '140px', textAlign: 'center' }}>{monthName}</span>
-          <button onClick={nextMonth} style={{ background: 'transparent', color: '#A8A69E', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' }}>→</button>
+          <button onClick={prevMonth} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' }}>←</button>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', minWidth: '140px', textAlign: 'center' }}>{monthName}</span>
+          <button onClick={nextMonth} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' }}>→</button>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'grid', gridTemplateColumns: '1fr 280px', gap: '20px' }}>
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginBottom: '2px' }}>
             {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
-              <div key={d} style={{ padding: '8px 4px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: '#5A5A56', textAlign: 'center' }}>{d}</div>
+              <div key={d} style={{ padding: '8px 4px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text3)', textAlign: 'center' }}>{d}</div>
             ))}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
             {Array.from({ length: firstDay }).map((_, i) => (
-              <div key={'empty-' + i} style={{ minHeight: '80px', background: '#0E0E0C', borderRadius: '6px' }} />
+              <div key={'empty-' + i} style={{ minHeight: '80px', background: 'var(--bg)', borderRadius: '6px' }} />
             ))}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1
               const dayEvents = getEventsForDay(day)
               return (
-                <div key={day} style={{ minHeight: '80px', background: isToday(day) ? '#1E3D2A' : '#161614', border: isToday(day) ? '0.5px solid #4ADE9A' : '0.5px solid rgba(255,255,255,0.05)', borderRadius: '6px', padding: '6px' }}>
-                  <div style={{ fontSize: '12px', fontWeight: isToday(day) ? 700 : 400, color: isToday(day) ? '#4ADE9A' : '#A8A69E', marginBottom: '4px' }}>{day}</div>
+                <div key={day} style={{ minHeight: '80px', background: isToday(day) ? '#1E3D2A' : 'var(--bg2)', border: isToday(day) ? '0.5px solid #4ADE9A' : '0.5px solid rgba(255,255,255,0.05)', borderRadius: '6px', padding: '6px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: isToday(day) ? 700 : 400, color: isToday(day) ? 'var(--green)' : 'var(--text2)', marginBottom: '4px' }}>{day}</div>
                   {dayEvents.slice(0, 2).map((ev, idx) => (
                     <a key={idx} href={ev.link} style={{ display: 'block', fontSize: '9px', padding: '2px 4px', borderRadius: '3px', marginBottom: '2px', background: ev.color + '22', color: ev.color, textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {ev.label}
                     </a>
                   ))}
-                  {dayEvents.length > 2 && <div style={{ fontSize: '9px', color: '#5A5A56' }}>+{dayEvents.length - 2} more</div>}
+                  {dayEvents.length > 2 && <div style={{ fontSize: '9px', color: 'var(--text3)' }}>+{dayEvents.length - 2} more</div>}
                 </div>
               )
             })}
           </div>
         </div>
         <div>
-          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5A5A56', marginBottom: '12px' }}>Upcoming Events</div>
-          {loading && <div style={{ color: '#5A5A56', fontSize: '12px' }}>Loading...</div>}
-          {!loading && upcomingEvents.length === 0 && <div style={{ color: '#5A5A56', fontSize: '12px' }}>No upcoming events.</div>}
+          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }}>Upcoming Events</div>
+          {loading && <div style={{ color: 'var(--text3)', fontSize: '12px' }}>Loading...</div>}
+          {!loading && upcomingEvents.length === 0 && <div style={{ color: 'var(--text3)', fontSize: '12px' }}>No upcoming events.</div>}
           {upcomingEvents.map((ev, i) => (
-            <a key={i} href={ev.link} style={{ display: 'block', background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderLeft: '3px solid ' + ev.color, borderRadius: '8px', padding: '10px 12px', marginBottom: '8px', textDecoration: 'none' }}>
+            <a key={i} href={ev.link} style={{ display: 'block', background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderLeft: '3px solid ' + ev.color, borderRadius: '8px', padding: '10px 12px', marginBottom: '8px', textDecoration: 'none' }}>
               <div style={{ fontSize: '10px', color: ev.color, fontWeight: 600, marginBottom: '2px' }}>{ev.date}</div>
-              <div style={{ fontSize: '12px', color: '#F0EEE8', fontWeight: 500 }}>{ev.label}</div>
-              {ev.amount && <div style={{ fontSize: '11px', color: '#5A5A56', marginTop: '2px' }}>{fm(ev.amount)}</div>}
+              <div style={{ fontSize: '12px', color: 'var(--text)', fontWeight: 500 }}>{ev.label}</div>
+              {ev.amount && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{fm(ev.amount)}</div>}
             </a>
           ))}
         </div>

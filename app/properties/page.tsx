@@ -17,8 +17,8 @@ export default function PropertiesPage() {
 
   return (
     <AppShell>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: '#161614', flexShrink: 0 }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#F0EEE8' }}>Properties</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)', flexShrink: 0 }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Properties</div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={() => setView(v => v === 'cards' ? 'table' : 'cards')} className="btn btn-ghost" style={{ fontSize: '11px' }}>
             {view === 'cards' ? '☰ Table' : '⊞ Cards'}
@@ -32,32 +32,32 @@ export default function PropertiesPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
           {[
             { label: 'Total Properties', value: properties.length },
-            { label: 'Occupied',         value: properties.filter(p=>p.occupancy_status==='occupied').length, color: '#4ADE9A' },
-            { label: 'Vacant',           value: properties.filter(p=>p.occupancy_status==='vacant').length,   color: '#FBB040' },
+            { label: 'Occupied',         value: properties.filter(p=>p.occupancy_status==='occupied').length, color: 'var(--green)' },
+            { label: 'Vacant',           value: properties.filter(p=>p.occupancy_status==='vacant').length,   color: 'var(--amber)' },
             { label: 'Portfolio Value',  value: fm(properties.reduce((s,p)=>s+(p.market_value||0),0)) },
             { label: 'Total Purchased',  value: fm(properties.reduce((s,p)=>s+(p.purchase_price||0),0)) },
           ].map(mc => (
-            <div key={mc.label} style={{ background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px' }}>
-              <div style={{ fontSize: '10px', color: '#5A5A56', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: (mc as any).color || '#F0EEE8', marginTop: '5px' }}>{mc.value}</div>
+            <div key={mc.label} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: (mc as any).color || 'var(--text)', marginTop: '5px' }}>{mc.value}</div>
             </div>
           ))}
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#5A5A56' }}>Loading properties…</div>
+          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading properties…</div>
         ) : view === 'cards' ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))', gap: '12px' }}>
             {properties.map(p => (
               <div key={p.id} style={{
-                background: '#161614', border: '0.5px solid rgba(255,255,255,0.07)',
-                borderTop: `2px solid ${p.occupancy_status==='occupied'?'#4ADE9A':'#FBB040'}`,
+                background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)',
+                borderTop: `2px solid ${p.occupancy_status==='occupied'?'var(--green)':'var(--amber)'}`,
                 borderRadius: '10px', padding: '16px',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                   <div>
-                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#F0EEE8' }}>{p.address}</div>
-                    <div style={{ fontSize: '11px', color: '#5A5A56', marginTop: '2px' }}>{p.city}, {p.state} {p.zip}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{p.address}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{p.city}, {p.state} {p.zip}</div>
                   </div>
                   <span className={`chip ${p.occupancy_status==='occupied'?'chip-g':'chip-a'}`}>
                     {p.occupancy_status === 'occupied' ? 'Occupied' : 'Vacant'}
@@ -72,9 +72,9 @@ export default function PropertiesPage() {
                     ['Purchased',  fm(p.purchase_price)],
                     ['Market Val', fm(p.market_value)],
                   ].map(([k,v]) => (
-                    <div key={k} style={{ background: '#1E1E1B', borderRadius: '6px', padding: '8px 10px' }}>
-                      <div style={{ fontSize: '10px', color: '#5A5A56' }}>{k}</div>
-                      <div style={{ fontSize: '12.5px', fontWeight: 500, color: '#F0EEE8', marginTop: '2px', textTransform: 'capitalize' }}>{v}</div>
+                    <div key={k} style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '8px 10px' }}>
+                      <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{k}</div>
+                      <div style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--text)', marginTop: '2px', textTransform: 'capitalize' }}>{v}</div>
                     </div>
                   ))}
                 </div>
@@ -98,13 +98,13 @@ export default function PropertiesPage() {
                 {properties.map(p => (
                   <tr key={p.id}>
                     <td>
-                      <div style={{ fontWeight: 600, color: '#F0EEE8' }}>{p.address}</div>
-                      <div style={{ fontSize: '11px', color: '#5A5A56' }}>{p.city}, {p.state}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{p.address}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{p.city}, {p.state}</div>
                     </td>
                     <td style={{ textTransform: 'capitalize' }}>{p.type?.replace('_',' ') || '—'}</td>
                     <td>{p.owner_entity || 'Self'}</td>
-                    <td style={{ color: '#F0EEE8' }}>{fm(p.purchase_price)}</td>
-                    <td style={{ color: '#4ADE9A', fontFamily: 'Syne, sans-serif', fontWeight: 600 }}>{fm(p.market_value)}</td>
+                    <td style={{ color: 'var(--text)' }}>{fm(p.purchase_price)}</td>
+                    <td style={{ color: 'var(--green)', fontFamily: 'Syne, sans-serif', fontWeight: 600 }}>{fm(p.market_value)}</td>
                     <td><span className={`chip ${p.occupancy_status==='occupied'?'chip-g':'chip-a'}`}>{p.occupancy_status}</span></td>
                   </tr>
                 ))}
