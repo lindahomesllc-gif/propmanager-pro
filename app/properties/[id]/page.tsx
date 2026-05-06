@@ -105,7 +105,7 @@ export default function PropertyDetailPage({ params }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
                 <div style={card}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}><div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)' }}>Property Info</div><a href={'/properties/' + p.id + '/edit#hoa'} style={btnG}>Edit HOA</a></div>
+                  <div style={secTtl}>Property Info</div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     {[
                       ['Type', p.type ? p.type.replace(/_/g, ' ') : '—'],
@@ -114,8 +114,6 @@ export default function PropertyDetailPage({ params }) {
                       ['Sq Ft', p.sqft ? p.sqft.toLocaleString() : '—'],
                       ['Year Built', p.year_built || '—'],
                       ['Ownership', p.owner_entity || 'Self'],
-                      ['HOA', p.hoa ? 'Yes - ' + (p.hoa_name || '') : 'No'],
-                      ['HOA Fee', p.hoa && p.hoa_fee ? '$' + p.hoa_fee + '/mo' : '—'],
                     ].map(([k, v]) => (
                       <div key={k} style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '8px 10px' }}>
                         <div style={lbl}>{k}</div>
