@@ -114,6 +114,8 @@ export default function PropertyDetailPage({ params }) {
                       ['Sq Ft', p.sqft ? p.sqft.toLocaleString() : '—'],
                       ['Year Built', p.year_built || '—'],
                       ['Ownership', p.owner_entity || 'Self'],
+                      ['HOA', p.hoa ? 'Yes - ' + (p.hoa_name || '') : 'No'],
+                      ['HOA Fee', p.hoa && p.hoa_fee ? '$' + p.hoa_fee + '/mo' : '—'],
                     ].map(([k, v]) => (
                       <div key={k} style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '8px 10px' }}>
                         <div style={lbl}>{k}</div>
@@ -286,7 +288,7 @@ export default function PropertyDetailPage({ params }) {
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={secTtl}>Utility Companies</div>
-                <a href={'/properties/' + p.id + '/edit#tax'} style={btnG}>Edit</a>
+                <a href={'/properties/' + p.id + '/edit#utilities'} style={btnG}>Edit</a>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
                 {[
