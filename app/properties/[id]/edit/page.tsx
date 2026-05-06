@@ -31,8 +31,6 @@ export default function EditPropertyPage({ params }) {
   })
 
   useEffect(() => {
-    const urlTab = new URLSearchParams(window.location.search).get('tab')
-    if (urlTab) setTab(urlTab)
     supabase.from('properties').select('*').eq('id', params.id).eq('user_id', USER_ID).single()
       .then(({ data }) => {
         if (data) setForm({
