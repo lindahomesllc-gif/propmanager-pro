@@ -10,8 +10,12 @@ export default function EditPropertyPage({ params }) {
   const [tab, setTab] = useState('basic')
   
   useEffect(() => {
-    const t = new URLSearchParams(window.location.search).get('tab')
-    if (t) setTab(t)
+    const hash = window.location.hash.replace('#', '')
+    if (hash) setTab(hash)
+    else {
+      const t = new URLSearchParams(window.location.search).get('tab')
+      if (t) setTab(t)
+    }
   }, [])
 
   const [form, setForm] = useState({

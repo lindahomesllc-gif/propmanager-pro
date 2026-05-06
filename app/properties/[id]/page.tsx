@@ -260,7 +260,7 @@ export default function PropertyDetailPage({ params }) {
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={secTtl}>Property Tax</div>
-                <a href={'/properties/' + p.id + '/edit?tab=tax'} style={btnG}>Edit</a>
+                <a href={'/properties/' + p.id + '/edit#tax'} style={btnG}>Edit</a>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
                 {[
