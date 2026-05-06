@@ -4,24 +4,24 @@
 @tailwind utilities;
 
 :root {
-  --bg:       #0E0E0C;
-  --bg2:      #161614;
-  --bg3:      #1E1E1B;
-  --bg4:      #262623;
-  --border:   rgba(255,255,255,0.07);
-  --border2:  rgba(255,255,255,0.12);
-  --text:     #F0EEE8;
-  --text2:    #A8A69E;
-  --text3:    #5A5A56;
-  --green:    #4ADE9A;
-  --green-dk: #22C574;
-  --green-bg: rgba(74,222,154,0.1);
-  --amber:    #FBB040;
-  --amber-bg: rgba(251,176,64,0.1);
-  --red:      #F87171;
-  --red-bg:   rgba(248,113,113,0.1);
-  --blue:     #60A5FA;
-  --blue-bg:  rgba(96,165,250,0.1);
+  --bg:       #F5F5F2;
+  --bg2:      #FFFFFF;
+  --bg3:      #EFEFEC;
+  --bg4:      #E4E4E0;
+  --border:   rgba(0,0,0,0.08);
+  --border2:  rgba(0,0,0,0.15);
+  --text:     #1A1A18;
+  --text2:    #5A5A56;
+  --text3:    #9A9A96;
+  --green:    #16A34A;
+  --green-dk: #15803D;
+  --green-bg: rgba(22,163,74,0.1);
+  --amber:    #D97706;
+  --amber-bg: rgba(217,119,6,0.1);
+  --red:      #DC2626;
+  --red-bg:   rgba(220,38,38,0.1);
+  --blue:     #2563EB;
+  --blue-bg:  rgba(37,99,235,0.1);
 }
 
 * { box-sizing: border-box; }
