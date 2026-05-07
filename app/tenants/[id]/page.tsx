@@ -43,7 +43,7 @@ export default function TenantDetailPage({ params }) {
         <div>
           <a href='/tenants' style={{ fontSize: '11px', color: 'var(--text3)', textDecoration: 'none' }}>← Tenants</a>
           <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginTop: '2px' }}>{t.full_name}</div>
-          <div style={{ fontSize: '12px', color: 'var(--text3)' }}>{t.properties?.address}</div>
+          <div style={{ fontSize: '12px', color: 'var(--text3)' }}>{t.properties?.address}{t.unit ? ' · ' + t.unit : ''}</div>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <span style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '20px', background: statusColor + '22', color: statusColor, fontWeight: 600, textTransform: 'uppercase' }}>{t.status}</span>
