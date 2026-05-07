@@ -8,7 +8,7 @@ export default function EditTenantPage({ params }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
-    full_name: '', email: '', phone: '',
+    unit_address: '', full_name: '', email: '', phone: '',
     move_in_date: '', move_out_date: '',
     status: 'active', portal_access: true,
     emergency_contact_name: '', emergency_contact_phone: '',
@@ -19,6 +19,7 @@ export default function EditTenantPage({ params }) {
     supabase.from('tenants').select('*').eq('id', params.id).eq('user_id', USER_ID).single()
       .then(({ data }) => {
         if (data) setForm({
+          unit_address: data.unit_address || '',
           full_name: data.full_name || '',
           email: data.email || '',
           phone: data.phone || '',
@@ -41,6 +42,7 @@ export default function EditTenantPage({ params }) {
     if (!form.full_name) { setError('Name is required'); return }
     setSaving(true)
     const { error: err } = await supabase.from('tenants').update({
+      unit_address: form.unit_address || null,
       full_name: form.full_name,
       email: form.email || null,
       phone: form.phone || null,
@@ -84,8 +86,15 @@ export default function EditTenantPage({ params }) {
         <div style={card}>
           <div style={secTtl}>Tenant Information</div>
           <div style={{ marginBottom: '12px' }}>
-            <label style={lbl}>Full Name *</label>
-            <input style={inp} value={form.full_name} onChange={e => set('full_name', e.target.value)} />
+          <div style={{ ...g2, marginBottom: '12px' }}>
+            <div>
+              <label style={lbl}>Full Name *</label>
+              <input style={inp} value={form.full_name} onChange={e => set('full_name', e.target.value)} />
+            </div>
+            <div>
+              <label style={lbl}>Unit Address</label>
+              <input style={inp} placeholder='e.g. 2515 Ridgewood Ave' value={form.unit_address} onChange={e => set('unit_address', e.target.value)} />
+            </div>
           </div>
           <div style={{ ...g2, marginBottom: '12px' }}>
             <div><label style={lbl}>Email</label><input style={inp} type='email' value={form.email} onChange={e => set('email', e.target.value)} /></div>
