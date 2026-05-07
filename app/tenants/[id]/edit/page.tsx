@@ -90,11 +90,6 @@ export default function EditTenantPage({ params }) {
           <div style={{ ...g2, marginBottom: '12px' }}>
             <div><label style={lbl}>Full Name *</label><input style={inp} value={form.full_name} onChange={e => set('full_name', e.target.value)} /></div>
             <div><label style={lbl}>Unit Address</label><input style={inp} placeholder='e.g. 2515 Ridgewood Ave' value={form.unit_address} onChange={e => set('unit_address', e.target.value)} /></div>
-            </div>
-            <div>
-              <label style={lbl}>Unit Address</label>
-              <input style={inp} placeholder='e.g. 2515 Ridgewood Ave' value={form.unit_address} onChange={e => set('unit_address', e.target.value)} />
-            </div>
           </div>
           <div style={{ ...g2, marginBottom: '12px' }}>
             <div><label style={lbl}>Email</label><input style={inp} type='email' value={form.email} onChange={e => set('email', e.target.value)} /></div>
