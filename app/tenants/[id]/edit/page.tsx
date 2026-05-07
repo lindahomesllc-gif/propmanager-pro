@@ -20,6 +20,7 @@ export default function EditTenantPage({ params }) {
       .then(({ data }) => {
         if (data) setForm({
           unit_address: data.unit_address || '',
+          unit_address: data.unit_address || '',
           full_name: data.full_name || '',
           email: data.email || '',
           phone: data.phone || '',
@@ -42,6 +43,7 @@ export default function EditTenantPage({ params }) {
     if (!form.full_name) { setError('Name is required'); return }
     setSaving(true)
     const { error: err } = await supabase.from('tenants').update({
+      unit_address: form.unit_address || null,
       unit_address: form.unit_address || null,
       full_name: form.full_name,
       email: form.email || null,
@@ -85,11 +87,9 @@ export default function EditTenantPage({ params }) {
         {error && <div style={{ background: '#3a1a1a', border: '0.5px solid #ff6b6b', borderRadius: '7px', padding: '10px 14px', marginBottom: '14px', color: '#ff6b6b', fontSize: '13px' }}>{error}</div>}
         <div style={card}>
           <div style={secTtl}>Tenant Information</div>
-          <div style={{ marginBottom: '12px' }}>
           <div style={{ ...g2, marginBottom: '12px' }}>
-            <div>
-              <label style={lbl}>Full Name *</label>
-              <input style={inp} value={form.full_name} onChange={e => set('full_name', e.target.value)} />
+            <div><label style={lbl}>Full Name *</label><input style={inp} value={form.full_name} onChange={e => set('full_name', e.target.value)} /></div>
+            <div><label style={lbl}>Unit Address</label><input style={inp} placeholder='e.g. 2515 Ridgewood Ave' value={form.unit_address} onChange={e => set('unit_address', e.target.value)} /></div>
             </div>
             <div>
               <label style={lbl}>Unit Address</label>
