@@ -365,7 +365,7 @@ export default function PropertyDetailPage({ params }) {
               <div style={{ display: 'grid', gap: '8px' }}>
                 {p.photo_urls.map((url, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg3)', borderRadius: '8px', border: '0.5px solid var(--border)' }}>
-                    <div style={{ fontSize: '13px', color: 'var(--text)' }}>📄 {url.split('/').pop().split('_').slice(1).join('_') || 'Document ' + (i + 1)}</div>
+                    <div style={{ fontSize: '13px', color: 'var(--text)' }}>📄 {decodeURIComponent(url.split('/').pop().split('_').slice(1).join('_')) || 'Document ' + (i + 1)}</div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <a href={url} target='_blank' style={btnG}>View</a>
                       <a href={url} download style={btnG}>Download</a>
