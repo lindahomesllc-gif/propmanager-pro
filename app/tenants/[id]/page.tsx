@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, USER_ID, fm, formatDate } from '@/lib/supabase'
 
@@ -8,6 +8,8 @@ export default function TenantDetailPage({ params }) {
   const [leases, setLeases] = useState([])
   const [payments, setPayments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef(null)
 
   useEffect(() => {
     Promise.all([
@@ -21,6 +23,20 @@ export default function TenantDetailPage({ params }) {
       setLoading(false)
     })
   }, [params.id])
+
+  async function uploadDoc(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploading(true)
+    const path = USER_ID + '/tenants/' + params.id + '/' + Date.now() + '_' + file.name
+    const { error: upErr } = await supabase.storage.from('lease-documents').upload(path, file, { upsert: true })
+    if (upErr) { alert('Upload failed: ' + upErr.message); setUploading(false); return }
+    const { data: urlData } = supabase.storage.from('lease-documents').getPublicUrl(path)
+    const existingDocs = t.documents || []
+    await supabase.from('tenants').update({ documents: [...existingDocs, urlData.publicUrl] }).eq('id', params.id).eq('user_id', USER_ID)
+    setTenant(prev => ({ ...prev, documents: [...(prev.documents || []), urlData.publicUrl] }))
+    setUploading(false)
+  }
 
   if (loading) return <AppShell><div style={{ padding: '40px', color: 'var(--text3)', textAlign: 'center' }}>Loading...</div></AppShell>
   if (!tenant) return <AppShell><div style={{ padding: '40px', color: 'var(--text3)', textAlign: 'center' }}>Tenant not found.</div></AppShell>
@@ -134,6 +150,32 @@ export default function TenantDetailPage({ params }) {
               </div>
             </div>
           </div>
+        </div>
+
+        <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginTop: '14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)' }}>Documents</div>
+            <button style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }} onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? 'Uploading...' : '⬆ Upload Document'}</button>
+          </div>
+          <input ref={fileRef} type='file' accept='.pdf,.jpg,.jpeg,.png,.doc,.docx' style={{ display: 'none' }} onChange={uploadDoc} />
+          {(!t.documents || t.documents.length === 0) ? (
+            <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text3)', fontSize: '13px' }}>
+              <div style={{ fontSize: '28px', marginBottom: '8px' }}>📄</div>
+              No documents uploaded yet. Upload signed leases, IDs, applications, etc.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: '8px' }}>
+              {t.documents.map((url, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg3)', borderRadius: '8px', border: '0.5px solid var(--border)' }}>
+                  <div style={{ fontSize: '13px', color: 'var(--text)' }}>📄 {decodeURIComponent(url.split('/').pop().split('_').slice(1).join('_')) || 'Document ' + (i + 1)}</div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <a href={url} target='_blank' style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '4px 10px', fontSize: '12px', textDecoration: 'none' }}>View</a>
+                    <a href={url} download style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '4px 10px', fontSize: '12px', textDecoration: 'none' }}>Download</a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </AppShell>
