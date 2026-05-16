@@ -13,6 +13,12 @@ export default function MaintenanceDetailPage({ params }) {
       .then(({ data }) => { setTicket(data); setLoading(false) })
   }, [params.id])
 
+  async function deleteTicket() {
+    if (!confirm('Are you sure you want to delete this maintenance request?')) return
+    await supabase.from('maintenance').delete().eq('id', params.id).eq('user_id', USER_ID)
+    window.location.href = '/maintenance'
+  }
+
   if (loading) return <AppShell><div style={{ padding: '40px', color: 'var(--text3)', textAlign: 'center' }}>Loading...</div></AppShell>
   if (!ticket) return <AppShell><div style={{ padding: '40px', color: 'var(--text3)', textAlign: 'center' }}>Not found.</div></AppShell>
 
@@ -37,6 +43,7 @@ export default function MaintenanceDetailPage({ params }) {
           <span style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '20px', background: priorityColor + '22', color: priorityColor, fontWeight: 600, textTransform: 'uppercase' }}>{t.priority}</span>
           <span style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '20px', background: statusColor + '22', color: statusColor, fontWeight: 600, textTransform: 'uppercase' }}>{t.status?.replace('_', ' ')}</span>
           <a href={'/maintenance/' + t.id + '/edit'} style={btnG}>Edit</a>
+          <button onClick={deleteTicket} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>Delete</button>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
