@@ -17,7 +17,7 @@ export default function EditPropertyPage({ params }) {
   }, [loading])
 
   const [form, setForm] = useState({
-    address: '', city: '', state: 'FL', zip: '',
+    address: '', city: '', state: 'FL', zip: '', num_units: '1',
     type: 'single_family', bedrooms: '', bathrooms: '',
     sqft: '', year_built: '', owner_entity: 'Self',
     purchase_price: '', purchase_date: '', market_value: '',
@@ -49,6 +49,7 @@ export default function EditPropertyPage({ params }) {
           purchase_price: data.purchase_price ? String(data.purchase_price) : '',
           purchase_date: data.purchase_date || '',
           market_value: data.market_value ? String(data.market_value) : '',
+          num_units: data.num_units ? String(data.num_units) : '1',
           occupancy_status: data.occupancy_status || 'vacant',
           notes: data.notes || '',
           county: data.county || '',
@@ -102,6 +103,7 @@ export default function EditPropertyPage({ params }) {
       purchase_price: form.purchase_price ? parseFloat(form.purchase_price) : null,
       purchase_date: form.purchase_date || null,
       market_value: form.market_value ? parseFloat(form.market_value) : null,
+      num_units: parseInt(form.num_units) || 1,
       occupancy_status: form.occupancy_status,
       notes: form.notes || null,
       county: form.county || null,
@@ -186,8 +188,10 @@ export default function EditPropertyPage({ params }) {
               <div style={secTtl}>Property Details</div>
               <div style={{ ...g2, marginBottom: '12px' }}>
                 <div><label style={lbl}>Type</label>
-                  <select style={inp} value={form.type} onChange={e => set('type', e.target.value)}>
+                  <select style={inp} value={form.type} onChange={e => { const t = e.target.value; set('type', t); if (t === 'single_family' || t === 'condo') set('num_units', '1'); else if (t === 'duplex') set('num_units', '2'); else if (t === 'triplex') set('num_units', '3'); else if (t === 'quadplex') set('num_units', '4'); else if (t === 'multi_family') set('num_units', '4'); }}>
                     <option value='single_family'>Single Family</option>
+                    <option value='triplex'>Triplex</option>
+                    <option value='quadplex'>Quadplex</option>
                     <option value='condo'>Condo</option>
                     <option value='duplex'>Duplex</option>
                     <option value='multi_family'>Multi Family</option>
@@ -210,6 +214,7 @@ export default function EditPropertyPage({ params }) {
               </div>
               <div style={{ ...g3, marginBottom: '12px' }}>
                 <div><label style={lbl}>Year Built</label><input style={inp} type='number' value={form.year_built} onChange={e => set('year_built', e.target.value)} /></div>
+                <div><label style={lbl}>Number of Units</label><input style={inp} type='number' min='1' max='20' value={form.num_units} onChange={e => set('num_units', e.target.value)} /></div>
                 <div><label style={lbl}>Occupancy</label>
                   <select style={inp} value={form.occupancy_status} onChange={e => set('occupancy_status', e.target.value)}>
                     <option value='vacant'>Vacant</option>
