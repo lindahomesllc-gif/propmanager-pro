@@ -14,7 +14,7 @@ export default function TenantDetailPage({ params }) {
   useEffect(() => {
     Promise.all([
       supabase.from('tenants').select('*, properties(address, city, state)').eq('id', params.id).eq('user_id', USER_ID).single(),
-      supabase.from('leases').select('*').eq('tenant_id', params.id).eq('user_id', USER_ID).order('created_at', { ascending: false }),
+      supabase.from('leases').select('id, rent_amount, start_date, end_date, status, pdf_url').eq('tenant_id', params.id).eq('user_id', USER_ID).order('created_at', { ascending: false }),
       supabase.from('payments').select('*').eq('tenant_id', params.id).eq('user_id', USER_ID).order('due_date', { ascending: false }).limit(10),
     ]).then(([t, l, p]) => {
       setTenant(t.data)
@@ -158,6 +158,18 @@ export default function TenantDetailPage({ params }) {
             <button style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }} onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? 'Uploading...' : '⬆ Upload Document'}</button>
           </div>
           <input ref={fileRef} type='file' accept='.pdf,.jpg,.jpeg,.png,.doc,.docx' style={{ display: 'none' }} onChange={uploadDoc} />
+          {leases.filter(l => l.pdf_url).map((l, i) => (
+            <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg3)', borderRadius: '8px', border: '0.5px solid var(--border)', marginBottom: '8px' }}>
+              <div>
+                <div style={{ fontSize: '13px', color: 'var(--text)' }}>📋 Signed Lease — {l.status}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{formatDate(l.start_date)} → {formatDate(l.end_date)}</div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <a href={l.pdf_url} target='_blank' style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '4px 10px', fontSize: '12px', textDecoration: 'none' }}>View</a>
+                <a href={l.pdf_url} download style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '4px 10px', fontSize: '12px', textDecoration: 'none' }}>Download</a>
+              </div>
+            </div>
+          ))}
           {(!t.documents || t.documents.length === 0) ? (
             <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text3)', fontSize: '13px' }}>
               <div style={{ fontSize: '28px', marginBottom: '8px' }}>📄</div>
