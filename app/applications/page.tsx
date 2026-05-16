@@ -38,6 +38,24 @@ export default function ApplicationsPage() {
     setApplications(prev => prev.map(a => a.id === id ? { ...a, status } : a))
   }
 
+  async function convertToTenant(a) {
+    if (!confirm('Convert ' + a.applicant_name + ' to an active tenant?')) return
+    const { error } = await supabase.from('tenants').insert({
+      user_id: USER_ID,
+      property_id: a.property_id,
+      full_name: a.applicant_name,
+      email: a.email || null,
+      phone: a.phone || null,
+      move_in_date: a.desired_move_in || null,
+      status: 'active',
+      portal_access: false,
+    })
+    if (error) { alert('Error: ' + error.message); return }
+    await supabase.from('applications').update({ status: 'approved' }).eq('id', a.id).eq('user_id', USER_ID)
+    setApplications(prev => prev.map(x => x.id === a.id ? { ...x, status: 'approved' } : x))
+    alert(a.applicant_name + ' has been added as a tenant! Go to Tenants to view.')
+  }
+
   const sel = { padding: '6px 10px', fontSize: '12px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none' }
 
   return (
@@ -107,6 +125,11 @@ export default function ApplicationsPage() {
                 </div>
               ))}
             </div>
+            {a.status === 'approved' && (
+              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                <button onClick={() => convertToTenant(a)} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>👤 Convert to Tenant</button>
+              </div>
+            )}
             {a.status === 'received' || a.status === 'screening_complete' ? (
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={() => updateStatus(a.id, 'approved')} style={{ background: '#4ADE9A22', color: 'var(--green)', border: '0.5px solid #4ADE9A44', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>✓ Approve</button>

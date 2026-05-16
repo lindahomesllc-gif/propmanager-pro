@@ -12,7 +12,9 @@ export default function EditTenantPage({ params }) {
     move_in_date: '', move_out_date: '',
     status: 'active', portal_access: true,
     emergency_contact_name: '', emergency_contact_phone: '',
-    notes: ''
+    notes: '',
+    co_tenant_name: '', co_tenant_email: '', co_tenant_phone: '',
+    minor_names: ''
   })
 
   useEffect(() => {
@@ -31,6 +33,10 @@ export default function EditTenantPage({ params }) {
           emergency_contact_name: data.emergency_contact_name || '',
           emergency_contact_phone: data.emergency_contact_phone || '',
           notes: data.notes || '',
+          co_tenant_name: data.co_tenant_name || '',
+          co_tenant_email: data.co_tenant_email || '',
+          co_tenant_phone: data.co_tenant_phone || '',
+          minor_names: data.minor_names || '',
         })
         setLoading(false)
       })
@@ -55,6 +61,10 @@ export default function EditTenantPage({ params }) {
       emergency_contact_name: form.emergency_contact_name || null,
       emergency_contact_phone: form.emergency_contact_phone || null,
       notes: form.notes || null,
+      co_tenant_name: form.co_tenant_name || null,
+      co_tenant_email: form.co_tenant_email || null,
+      co_tenant_phone: form.co_tenant_phone || null,
+      minor_names: form.minor_names || null,
     }).eq('id', params.id).eq('user_id', USER_ID)
     setSaving(false)
     if (err) { setError('Error: ' + err.message); return }
@@ -121,6 +131,15 @@ export default function EditTenantPage({ params }) {
             <div><label style={lbl}>Name</label><input style={inp} value={form.emergency_contact_name} onChange={e => set('emergency_contact_name', e.target.value)} /></div>
             <div><label style={lbl}>Phone</label><input style={inp} value={form.emergency_contact_phone} onChange={e => set('emergency_contact_phone', e.target.value)} /></div>
           </div>
+        </div>
+        <div style={card}>
+          <div style={secTtl}>Co-Tenant / Occupants</div>
+          <div style={{ ...g2, marginBottom: '12px' }}>
+            <div><label style={lbl}>Co-Tenant Name</label><input style={inp} placeholder='Full name' value={form.co_tenant_name} onChange={e => set('co_tenant_name', e.target.value)} /></div>
+            <div><label style={lbl}>Co-Tenant Phone</label><input style={inp} placeholder='Phone' value={form.co_tenant_phone} onChange={e => set('co_tenant_phone', e.target.value)} /></div>
+          </div>
+          <div style={{ marginBottom: '12px' }}><label style={lbl}>Co-Tenant Email</label><input style={inp} placeholder='Email' value={form.co_tenant_email} onChange={e => set('co_tenant_email', e.target.value)} /></div>
+          <div><label style={lbl}>Minors / Other Occupants</label><input style={inp} placeholder='e.g. John Jr. (age 8), Sarah (age 5)' value={form.minor_names} onChange={e => set('minor_names', e.target.value)} /></div>
         </div>
         <div style={card}>
           <div style={secTtl}>Notes</div>

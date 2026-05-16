@@ -94,6 +94,9 @@ export default function TenantDetailPage({ params }) {
                   ['Portal Access', t.portal_access ? 'Yes' : 'No'],
                   ['Emergency Contact', t.emergency_contact_name || '—'],
                   ['Emergency Phone', t.emergency_contact_phone || '—'],
+                  ['Co-Tenant', t.co_tenant_name || '—'],
+                  ['Co-Tenant Phone', t.co_tenant_phone || '—'],
+                  ['Minors/Occupants', t.minor_names || '—'],
                 ].map(([k, v]) => (
                   <div key={k} style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '8px 10px' }}>
                     <div style={lbl}>{k}</div>
