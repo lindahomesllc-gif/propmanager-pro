@@ -32,6 +32,12 @@ export default function MaintenancePage() {
   const completed = tickets.filter(t => t.status === 'completed').length
   const totalCost = tickets.filter(t => t.actual_cost).reduce((s, t) => s + (t.actual_cost || 0), 0)
 
+  async function deleteTicket(id) {
+    if (!confirm('Delete this maintenance request?')) return
+    await supabase.from('maintenance').delete().eq('id', id).eq('user_id', USER_ID)
+    setTickets(prev => prev.filter(t => t.id !== id))
+  }
+
   const priorityColor = (p) => ({ emergency: 'var(--red)', high: 'var(--amber)', medium: 'var(--blue)', low: 'var(--green)' }[p] || 'var(--text2)')
   const statusColor = (s) => ({ open: 'var(--amber)', scheduled: 'var(--blue)', in_progress: '#A78BFA', completed: 'var(--green)', cancelled: 'var(--text2)' }[s] || 'var(--text2)')
 
