@@ -148,23 +148,16 @@ export default function PropertyDetailPage({ params }) {
                   <div style={card}>
                     <div style={secTtl}>Units</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                      {['A', 'B'].map(unit => {
-                        const t = tenants.find(t => t.unit === unit || tenants.indexOf(t) === (unit === 'A' ? 0 : 1))
-                        return (
-                          <div key={unit} style={{ background: 'var(--bg3)', borderRadius: '8px', padding: '10px 12px', border: '0.5px solid var(--border)' }}>
-                            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>Unit {unit}</div>
-                            {t ? (
-                              <>
-                                <div style={{ fontSize: '12px', color: 'var(--text2)' }}>{t.full_name}</div>
-                                <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{t.email}</div>
-                                <a href={'/tenants/' + t.id} style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none', marginTop: '4px', display: 'inline-block' }}>View Tenant →</a>
-                              </>
-                            ) : (
-                              <div style={{ fontSize: '12px', color: 'var(--text3)' }}>Vacant</div>
-                            )}
-                          </div>
-                        )
-                      })}
+                      {tenants.length === 0 ? (
+                        <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No tenants assigned.</div>
+                      ) : tenants.map(t => (
+                        <div key={t.id} style={{ background: 'var(--bg3)', borderRadius: '8px', padding: '10px 12px', border: '0.5px solid var(--border)' }}>
+                          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>{t.unit_address || t.properties?.address}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text2)' }}>{t.full_name}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{t.email}</div>
+                          <a href={'/tenants/' + t.id} style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none', marginTop: '4px', display: 'inline-block' }}>View Tenant →</a>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
