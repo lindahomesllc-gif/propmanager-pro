@@ -17,7 +17,7 @@ export default function PropertyDetailPage({ params }) {
     const id = params.id
     Promise.all([
       supabase.from('properties').select('*').eq('id', id).eq('user_id', USER_ID).single(),
-      supabase.from('tenants').select('*').eq('property_id', id).eq('user_id', USER_ID),
+      supabase.from('tenants').select('*').eq('property_id', id).eq('user_id', USER_ID).order('unit_address', { ascending: true }),
       supabase.from('payments').select('*').eq('property_id', id).eq('user_id', USER_ID).order('due_date', { ascending: false }).limit(10),
       supabase.from('expenses').select('*').eq('property_id', id).eq('user_id', USER_ID).order('expense_date', { ascending: false }).limit(10),
     ]).then(([p, t, pay, exp]) => {
