@@ -119,7 +119,7 @@ export default function AlertsPage() {
                       <div>
                         <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{l.tenants?.full_name}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{l.properties?.address}</div>
-                        <div style={{ fontSize: '11px', color: color, marginTop: '2px' }}>Expires {formatDate(l.end_date)} · {days > 0 ? days + ' days left' : 'Expired'}</div>
+                        <div style={{ fontSize: '11px', color: color, marginTop: '2px' }}>Expires {formatDate(l.end_date)} · {days > 0 ? days + ' days left' : 'Expired'} · {days <= 30 ? '🔴 Urgent' : days <= 60 ? '🟡 Soon' : '🔵 Upcoming'}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: 'var(--green)' }}>{fm(l.rent_amount)}<span style={{ fontSize: '11px', color: 'var(--text3)', fontFamily: 'Plus Jakarta Sans' }}>/mo</span></div>
