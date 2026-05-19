@@ -60,9 +60,18 @@ export default function CalendarPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Calendar</div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button onClick={prevMonth} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' }}>←</button>
-          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', minWidth: '140px', textAlign: 'center' }}>{monthName}</span>
-          <button onClick={nextMonth} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' }}>→</button>
+          <button onClick={prevMonth} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' }}>←</button>
+          <select value={month} onChange={e => setCurrentDate(new Date(year, parseInt(e.target.value), 1))} style={{ padding: '6px 10px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', fontWeight: 600 }}>
+            {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => (
+              <option key={i} value={i}>{m}</option>
+            ))}
+          </select>
+          <select value={year} onChange={e => setCurrentDate(new Date(parseInt(e.target.value), month, 1))} style={{ padding: '6px 10px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', fontWeight: 600 }}>
+            {[2023,2024,2025,2026,2027,2028,2029,2030].map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+          <button onClick={nextMonth} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' }}>→</button>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'grid', gridTemplateColumns: '1fr 280px', gap: '20px' }}>
