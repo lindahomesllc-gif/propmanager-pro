@@ -8,6 +8,7 @@ export default function AlertsPage() {
   const [leases, setLeases] = useState([])
   const [maintenance, setMaintenance] = useState([])
   const [mortgages, setMortgages] = useState([])
+  const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -16,11 +17,13 @@ export default function AlertsPage() {
       supabase.from('leases').select('*, properties(address), tenants(full_name)').eq('user_id', USER_ID).eq('status', 'executed'),
       supabase.from('maintenance').select('*, properties(address)').eq('user_id', USER_ID).in('status', ['open', 'scheduled']).order('created_at', { ascending: false }),
       supabase.from('mortgages').select('*, properties(address)').eq('user_id', USER_ID).eq('is_paid_off', false),
-    ]).then(([p, l, m, mo]) => {
+      supabase.from('properties').select('id, address, insurance_expires, insurance_company, insurance_premium, annual_tax, tax_due_date, county').eq('user_id', USER_ID),
+    ]).then(([p, l, m, mo, props]) => {
       setPayments(p.data || [])
       setLeases(l.data || [])
       setMaintenance(m.data || [])
       setMortgages(mo.data || [])
+      setProperties(props.data || [])
       setLoading(false)
     })
   }, [])
@@ -31,8 +34,9 @@ export default function AlertsPage() {
   const in90 = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000)
 
   const expiringLeases = leases.filter(l => {
+    if (!l.end_date) return false
     const end = new Date(l.end_date)
-    return end <= in90
+    return end <= in90 && end >= today
   }).sort((a, b) => new Date(a.end_date) - new Date(b.end_date))
 
   const latePayments = payments.filter(p => p.status === 'late')
@@ -171,6 +175,48 @@ export default function AlertsPage() {
                 ))}
               </Section>
             )}
+
+            {properties.filter(p => {
+              if (!p.insurance_expires) return false
+              const exp = new Date(p.insurance_expires)
+              const daysLeft = Math.ceil((exp - today) / (1000 * 60 * 60 * 24))
+              return daysLeft <= 30 && daysLeft >= 0
+            }).map(p => {
+              const exp = new Date(p.insurance_expires)
+              const daysLeft = Math.ceil((exp - today) / (1000 * 60 * 60 * 24))
+              return (
+                <a key={p.id} href={'/properties/' + p.id + '/edit#insurance'} style={{ textDecoration: 'none' }}>
+                  <div style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderLeft: '3px solid var(--amber)', borderRadius: '10px', padding: '14px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>Insurance Expiring — {p.address}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--amber)', marginTop: '2px' }}>{p.insurance_company || 'Insurance'} expires in {daysLeft} days · {formatDate(p.insurance_expires)}</div>
+                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--amber)' }}>{daysLeft}d</div>
+                  </div>
+                </a>
+              )
+            })}
+
+            {properties.filter(p => {
+              if (!p.tax_due_date) return false
+              const due = new Date(p.tax_due_date)
+              const daysLeft = Math.ceil((due - today) / (1000 * 60 * 60 * 24))
+              return daysLeft <= 30 && daysLeft >= 0
+            }).map(p => {
+              const due = new Date(p.tax_due_date)
+              const daysLeft = Math.ceil((due - today) / (1000 * 60 * 60 * 24))
+              return (
+                <a key={p.id + 'tax'} href={'/properties/' + p.id + '/edit#tax'} style={{ textDecoration: 'none' }}>
+                  <div style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderLeft: '3px solid var(--red)', borderRadius: '10px', padding: '14px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>Property Tax Due — {p.address}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--red)', marginTop: '2px' }}>{p.county ? p.county + ' County · ' : ''}Due in {daysLeft} days · {formatDate(p.tax_due_date)}</div>
+                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--red)' }}>{daysLeft}d</div>
+                  </div>
+                </a>
+              )
+            })}
 
             {latePayments.length === 0 && duePayments.length === 0 && expiringLeases.length === 0 && emergencyMaint.length === 0 && openMaint.length === 0 && mortgages.length === 0 && (
               <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
