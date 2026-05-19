@@ -46,6 +46,7 @@ export default function TenantsPage() {
                   </div>
                 </div>
                 <a href={`/tenants/${t.id}`} style={{ color: 'var(--text2)', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '6px 12px', fontSize: '12px', textDecoration: 'none' }}>View</a>
+                  <button onClick={() => deleteTenant(t.id, t.full_name)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '6px 12px', fontSize: '12px', cursor: 'pointer' }}>Delete</button>
               </div>
             ))}
           </div>
