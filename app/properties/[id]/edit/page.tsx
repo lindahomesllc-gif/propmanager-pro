@@ -23,7 +23,7 @@ export default function EditPropertyPage({ params }) {
     purchase_price: '', purchase_date: '', market_value: '',
     occupancy_status: 'vacant', notes: '',
     county: '', parcel_id: '', alt_key: '', prop_description: '',
-    assessed_value: '', annual_tax: '',
+    assessed_value: '', annual_tax: '', tax_due_date: '',
     insurance_company: '', insurance_policy: '', insurance_premium: '',
     insurance_start: '', insurance_expires: '', insurance_agent: '',
     utility_electric: '', utility_water: '', utility_gas: '',
@@ -58,6 +58,7 @@ export default function EditPropertyPage({ params }) {
           prop_description: data.prop_description || '',
           assessed_value: data.assessed_value ? String(data.assessed_value) : '',
           annual_tax: data.annual_tax ? String(data.annual_tax) : '',
+          tax_due_date: data.tax_due_date || '',
           insurance_company: data.insurance_company || '',
           insurance_policy: data.insurance_policy || '',
           insurance_premium: data.insurance_premium ? String(data.insurance_premium) : '',
@@ -112,6 +113,7 @@ export default function EditPropertyPage({ params }) {
       prop_description: form.prop_description || null,
       assessed_value: form.assessed_value ? parseFloat(form.assessed_value) : null,
       annual_tax: form.annual_tax ? parseFloat(form.annual_tax) : null,
+      tax_due_date: form.tax_due_date || null,
       insurance_company: form.insurance_company || null,
       insurance_policy: form.insurance_policy || null,
       insurance_premium: form.insurance_premium ? parseFloat(form.insurance_premium) : null,
@@ -247,6 +249,7 @@ export default function EditPropertyPage({ params }) {
             <div style={g3}>
               <div><label style={lbl}>Assessed Value</label><input style={inp} type='number' value={form.assessed_value} onChange={e => set('assessed_value', e.target.value)} /></div>
               <div><label style={lbl}>Annual Tax</label><input style={inp} type='number' value={form.annual_tax} onChange={e => set('annual_tax', e.target.value)} /></div>
+              <div><label style={lbl}>Tax Due Date</label><input style={inp} type='date' value={form.tax_due_date} onChange={e => set('tax_due_date', e.target.value)} /></div>
             </div>
           </div>
         )}
