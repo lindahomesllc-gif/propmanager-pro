@@ -5,6 +5,8 @@ import { supabase, USER_ID, fm, formatDate } from '@/lib/supabase'
 
 export default function ApplicationsPage() {
   const [applications, setApplications] = useState([])
+  const [tenants, setTenants] = useState([])
+  const [showCoTenant, setShowCoTenant] = useState(null)
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -13,9 +15,11 @@ export default function ApplicationsPage() {
     Promise.all([
       supabase.from('applications').select('*, properties(address)').eq('user_id', USER_ID).order('submitted_at', { ascending: false }),
       supabase.from('properties').select('id, address').eq('user_id', USER_ID),
-    ]).then(([a, p]) => {
+      supabase.from('tenants').select('id, full_name, property_id').eq('user_id', USER_ID).eq('status', 'active'),
+    ]).then(([a, p, t]) => {
       setApplications(a.data || [])
       setProperties(p.data || [])
+      setTenants(t.data || [])
       setLoading(false)
     })
   }, [])
@@ -36,6 +40,20 @@ export default function ApplicationsPage() {
   async function updateStatus(id, status) {
     await supabase.from('applications').update({ status, decided_at: new Date().toISOString() }).eq('id', id).eq('user_id', USER_ID)
     setApplications(prev => prev.map(a => a.id === id ? { ...a, status } : a))
+  }
+
+  async function addAsCoTenant(a, tenantId) {
+    const tenant = tenants.find(t => t.id === tenantId)
+    if (!tenant) return
+    const { error } = await supabase.from('tenants').update({
+      co_tenant_name: a.applicant_name,
+      co_tenant_email: a.email || null,
+      co_tenant_phone: a.phone || null,
+    }).eq('id', tenantId).eq('user_id', USER_ID)
+    if (error) { alert('Error: ' + error.message); return }
+    await supabase.from('applications').update({ status: 'approved' }).eq('id', a.id)
+    setShowCoTenant(null)
+    alert(a.applicant_name + ' added as co-tenant to ' + tenant.full_name + '!')
   }
 
   async function convertToTenant(a) {
@@ -128,6 +146,15 @@ export default function ApplicationsPage() {
             {a.status === 'approved' && (
               <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                 <button onClick={() => convertToTenant(a)} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>👤 Convert to Tenant</button>
+                <button onClick={() => setShowCoTenant(showCoTenant === a.id ? null : a.id)} style={{ background: 'var(--blue-bg)', color: 'var(--blue)', border: '0.5px solid var(--blue)', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>👥 Add as Co-Tenant</button>
+                {showCoTenant === a.id && (
+                  <div style={{ marginTop: '8px', background: 'var(--bg3)', borderRadius: '8px', padding: '12px', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text2)' }}>Add to:</span>
+                    {tenants.map(t => (
+                      <button key={t.id} onClick={() => addAsCoTenant(a, t.id)} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '5px 12px', fontSize: '12px', cursor: 'pointer' }}>{t.full_name}</button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             {a.status === 'received' || a.status === 'screening_complete' ? (
