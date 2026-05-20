@@ -7,6 +7,7 @@ export default function CalendarPage() {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(null)
+  const [viewDate, setViewDate] = useState(null)
   const [newTitle, setNewTitle] = useState('')
   const [reminders, setReminders] = useState([])
   useEffect(() => { supabase.from('reminders').select('*').eq('user_id', USER_ID).then(({ data }) => setReminders(data || [])) }, [])
@@ -95,7 +96,7 @@ export default function CalendarPage() {
               const day = i + 1
               const dayEvents = getEventsForDay(day)
               return (
-                <div key={day} onClick={() => { const d = year + '-' + pad(month+1) + '-' + pad(day); setShowAdd(d) }} style={{ minHeight: '80px', cursor: 'pointer', background: isToday(day) ? 'var(--green-bg)' : 'var(--bg2)', border: isToday(day) ? '1.5px solid var(--green)' : '0.5px solid var(--border)', borderRadius: '6px', padding: '6px' }}>
+                <div key={day} onClick={() => setViewDate(year + '-' + pad(month+1) + '-' + pad(day))} style={{ minHeight: '80px', cursor: 'pointer', background: isToday(day) ? 'var(--green-bg)' : 'var(--bg2)', border: isToday(day) ? '1.5px solid var(--green)' : '0.5px solid var(--border)', borderRadius: '6px', padding: '6px' }}>
                   <div style={{ fontSize: '12px', fontWeight: isToday(day) ? 700 : 400, color: isToday(day) ? 'var(--green)' : 'var(--text2)', marginBottom: '4px' }}>{day}</div>
                   {dayEvents.slice(0, 2).map((ev, idx) => (
                     <a key={idx} href={ev.link} style={{ display: 'block', fontSize: '9px', padding: '2px 4px', borderRadius: '3px', marginBottom: '2px', background: ev.color + '22', color: ev.color, textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -121,19 +122,44 @@ export default function CalendarPage() {
           ))}
         </div>
       </div>
+      {viewDate && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setViewDate(null)}>
+          <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '24px', width: '360px', maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>{new Date(viewDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</div>
+              </div>
+              <button onClick={() => setViewDate(null)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--text2)' }}>×</button>
+            </div>
+            {[...events.filter(e => e.date === viewDate), ...reminders.filter(r => r.date === viewDate)].length === 0 ? (
+              <div style={{ fontSize: '13px', color: 'var(--text3)', marginBottom: '16px' }}>No events on this day.</div>
+            ) : (
+              <div style={{ marginBottom: '16px' }}>
+                {events.filter(e => e.date === viewDate).map((ev, i) => (
+                  <a key={i} href={ev.link || '#'} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'var(--bg3)', borderRadius: '8px', marginBottom: '6px', textDecoration: 'none', border: '0.5px solid var(--border)' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: ev.color, flexShrink: 0 }} />
+                    <div style={{ fontSize: '13px', color: 'var(--text)', fontWeight: 500 }}>{ev.label}</div>
+                  </a>
+                ))}
+                {reminders.filter(r => r.date === viewDate).map(r => (
+                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'var(--bg3)', borderRadius: '8px', marginBottom: '6px', border: '0.5px solid var(--border)' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#A78BFA', flexShrink: 0 }} />
+                    <div style={{ fontSize: '13px', color: 'var(--text)', flex: 1 }}>{r.title}</div>
+                    <button onClick={() => { supabase.from('reminders').delete().eq('id', r.id); setReminders(prev => prev.filter(x => x.id !== r.id)) }} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: 'none', borderRadius: '5px', padding: '2px 8px', fontSize: '11px', cursor: 'pointer' }}>Delete</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button onClick={() => { setShowAdd(viewDate); setViewDate(null) }} style={{ width: '100%', background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '9px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>+ Add Reminder</button>
+          </div>
+        </div>
+      )}
       {showAdd && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowAdd(null)}>
           <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '24px', width: '340px' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' }}>{reminders.filter(r => r.date === showAdd).length > 0 ? 'Reminders' : 'Add Reminder'}</div>
-            <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '12px' }}>{showAdd}</div>
-            {reminders.filter(r => r.date === showAdd).map(r => (
-              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg3)', borderRadius: '6px', marginBottom: '6px', border: '0.5px solid var(--border)' }}>
-                <span style={{ fontSize: '13px', color: 'var(--text)' }}>{r.title}</span>
-                <button onClick={() => { supabase.from('reminders').delete().eq('id', r.id); setReminders(prev => prev.filter(x => x.id !== r.id)) }} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: 'none', borderRadius: '5px', padding: '2px 8px', fontSize: '11px', cursor: 'pointer' }}>Delete</button>
-              </div>
-            ))}
-            <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '8px', marginTop: '8px' }}>Add new reminder:</div>
-                onKeyDown={e => { if (e.key === 'Enter' && newTitle.trim()) { supabase.from('reminders').insert({ user_id: USER_ID, date: showAdd, title: newTitle, color: '#A78BFA' }).select().single().then(({ data }) => { if (data) setReminders(prev => [...prev, data]); setShowAdd(null); setNewTitle('') }) } }} />
+            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' }}>Add Reminder</div>
+            <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '16px' }}>{showAdd}</div>
+            <input autoFocus style={{ width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box', marginBottom: '16px' }} placeholder='e.g. Call insurance agent, inspection...' value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && newTitle.trim()) { supabase.from('reminders').insert({ user_id: USER_ID, date: showAdd, title: newTitle, color: '#A78BFA' }).select().single().then(({ data }) => { if (data) setReminders(prev => [...prev, data]); setShowAdd(null); setNewTitle('') }) } }} />
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowAdd(null)} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
               <button onClick={() => { if (!newTitle.trim()) return; supabase.from('reminders').insert({ user_id: USER_ID, date: showAdd, title: newTitle, color: '#A78BFA' }).select().single().then(({ data }) => { if (data) setReminders(prev => [...prev, data]); setShowAdd(null); setNewTitle('') }) }} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Save</button>
