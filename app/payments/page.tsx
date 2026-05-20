@@ -26,7 +26,10 @@ export default function PaymentsPage() {
       supabase.from('tenants').select('id, full_name, property_id, properties(address)').eq('user_id', USER_ID).eq('status', 'active'),
     ]).then(([p, t]) => { const tid = new URLSearchParams(window.location.search).get('tenant_id');
       setPayments(p.data || [])
-      setTenants(t.data || [])
+      const tdata = t.data || []
+      setTenants(tdata)
+      const tid = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tenant_id') : null
+      if (tid) { setForm(f => ({ ...f, tenant_id: tid })); setShowForm(true) }
       if (tid) { setTimeout(() => { setForm(f => ({ ...f, tenant_id: tid })); setShowForm(true) }, 100) }
       setLoading(false)
     })
