@@ -58,7 +58,8 @@ export default function ApplicationsPage() {
 
   async function convertToTenant(a) {
     if (!confirm('Convert ' + a.applicant_name + ' to an active tenant?')) return
-    const { error } = await supabase.from('tenants').insert({
+    const docs = a.screening_report_url ? [a.screening_report_url] : []
+    const { data: tenant, error } = await supabase.from('tenants').insert({
       user_id: USER_ID,
       property_id: a.property_id,
       full_name: a.applicant_name,
@@ -67,11 +68,12 @@ export default function ApplicationsPage() {
       move_in_date: a.desired_move_in || null,
       status: 'active',
       portal_access: false,
-    })
+      documents: docs,
+    }).select().single()
     if (error) { alert('Error: ' + error.message); return }
-    await supabase.from('applications').update({ status: 'approved' }).eq('id', a.id).eq('user_id', USER_ID)
-    setApplications(prev => prev.map(x => x.id === a.id ? { ...x, status: 'approved' } : x))
-    alert(a.applicant_name + ' has been added as a tenant! Go to Tenants to view.')
+    await supabase.from('applications').update({ status: 'converted', tenant_id: tenant.id }).eq('id', a.id).eq('user_id', USER_ID)
+    setApplications(prev => prev.map(x => x.id === a.id ? { ...x, status: 'converted', tenant_id: tenant.id } : x))
+    alert(a.applicant_name + ' has been added as a tenant! Screening report copied to their documents.')
   }
 
   const sel = { padding: '6px 10px', fontSize: '12px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none' }
@@ -143,10 +145,11 @@ export default function ApplicationsPage() {
                 </div>
               ))}
             </div>
-            {a.status === 'approved' && (
+            {(a.status === 'approved' || a.status === 'converted') && (
               <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                <button onClick={() => convertToTenant(a)} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>👤 Convert to Tenant</button>
+                {a.status === 'approved' && <button onClick={() => convertToTenant(a)} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>👤 Convert to Tenant</button>}
                 <button onClick={() => setShowCoTenant(showCoTenant === a.id ? null : a.id)} style={{ background: 'var(--blue-bg)', color: 'var(--blue)', border: '0.5px solid var(--blue)', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>👥 Add as Co-Tenant</button>
+                {a.status === 'converted' && a.tenant_id && <a href={'/tenants/' + a.tenant_id} style={{ background: 'transparent', color: 'var(--green)', border: '0.5px solid var(--green)', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, textDecoration: 'none' }}>View Tenant →</a>}
                 {showCoTenant === a.id && (
                   <div style={{ marginTop: '8px', background: 'var(--bg3)', borderRadius: '8px', padding: '12px', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '12px', color: 'var(--text2)' }}>Add to:</span>
