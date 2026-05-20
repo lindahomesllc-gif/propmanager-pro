@@ -9,7 +9,7 @@ export default function CalendarPage() {
   const [showAdd, setShowAdd] = useState(null)
   const [newTitle, setNewTitle] = useState('')
   const [reminders, setReminders] = useState([])
-  useEffect(() => { try { setReminders(JSON.parse(localStorage.getItem('cal_reminders') || '[]')) } catch {} }, [])
+  useEffect(() => { supabase.from('reminders').select('*').eq('user_id', USER_ID).then(({ data }) => setReminders(data || [])) }, [])
   const [currentDate, setCurrentDate] = useState(new Date())
 
   useEffect(() => {
@@ -129,14 +129,14 @@ export default function CalendarPage() {
             {reminders.filter(r => r.date === showAdd).map(r => (
               <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg3)', borderRadius: '6px', marginBottom: '6px', border: '0.5px solid var(--border)' }}>
                 <span style={{ fontSize: '13px', color: 'var(--text)' }}>{r.title}</span>
-                <button onClick={() => { const updated = reminders.filter(x => x.id !== r.id); setReminders(updated); localStorage.setItem('cal_reminders', JSON.stringify(updated)) }} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: 'none', borderRadius: '5px', padding: '2px 8px', fontSize: '11px', cursor: 'pointer' }}>Delete</button>
+                <button onClick={() => { supabase.from('reminders').delete().eq('id', r.id); setReminders(prev => prev.filter(x => x.id !== r.id)) }} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: 'none', borderRadius: '5px', padding: '2px 8px', fontSize: '11px', cursor: 'pointer' }}>Delete</button>
               </div>
             ))}
             <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '8px', marginTop: '8px' }}>Add new reminder:</div>
-            <input autoFocus style={{ width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box', marginBottom: '16px' }} placeholder='e.g. Call insurance agent, inspection...' value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { const r = [...reminders, { id: Date.now(), date: showAdd, title: newTitle, color: '#A78BFA' }]; setReminders(r); localStorage.setItem('cal_reminders', JSON.stringify(r)); setShowAdd(null); setNewTitle('') } }} />
+                onKeyDown={e => { if (e.key === 'Enter' && newTitle.trim()) { supabase.from('reminders').insert({ user_id: USER_ID, date: showAdd, title: newTitle, color: '#A78BFA' }).select().single().then(({ data }) => { if (data) setReminders(prev => [...prev, data]); setShowAdd(null); setNewTitle('') }) } }} />
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowAdd(null)} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={() => { if (!newTitle.trim()) return; const r = [...reminders, { id: Date.now(), date: showAdd, title: newTitle, color: '#A78BFA' }]; setReminders(r); localStorage.setItem('cal_reminders', JSON.stringify(r)); setShowAdd(null); setNewTitle('') }} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Save</button>
+              <button onClick={() => { if (!newTitle.trim()) return; supabase.from('reminders').insert({ user_id: USER_ID, date: showAdd, title: newTitle, color: '#A78BFA' }).select().single().then(({ data }) => { if (data) setReminders(prev => [...prev, data]); setShowAdd(null); setNewTitle('') }) }} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Save</button>
             </div>
           </div>
         </div>
