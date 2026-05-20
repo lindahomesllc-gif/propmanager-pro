@@ -47,11 +47,16 @@ export default function PaymentsPage() {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  function openAdd() {
+  function openAdd(prefillTenantId = '') {
     setEditId(null)
-    setForm({ tenant_id: '', lease_id: '', property_id: '', amount_due: '', amount_paid: '', due_date: '', paid_date: new Date().toISOString().split('T')[0], payment_method: 'check', status: 'paid', notes: '' })
+    setForm({ tenant_id: prefillTenantId || '', lease_id: '', property_id: '', amount_due: '', amount_paid: '', due_date: '', paid_date: new Date().toISOString().split('T')[0], payment_method: 'check', status: 'paid', notes: '' })
     setShowForm(true)
   }
+
+  useEffect(() => {
+    const tid = new URLSearchParams(window.location.search).get('tenant_id')
+    if (tid) openAdd(tid)
+  }, [tenants])
 
   function openEdit(p) {
     setEditId(p.id)
