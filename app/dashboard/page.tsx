@@ -101,9 +101,9 @@ export default function DashboardPage() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '20px' }}>
-                <div style={{ display: 'grid', gap: '8px' }}>
-                  {properties.map(p => (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Properties</div>
                     <a key={p.id} href={'/properties/' + p.id} style={{ textDecoration: 'none' }}>
                       <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + (p.occupancy_status === 'occupied' ? 'var(--green)' : 'var(--amber)'), borderRadius: '8px', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
