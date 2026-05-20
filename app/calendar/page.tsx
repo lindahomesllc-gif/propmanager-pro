@@ -94,7 +94,7 @@ export default function CalendarPage() {
               const day = i + 1
               const dayEvents = getEventsForDay(day)
               return (
-                <div key={day} onClick={() => setShowAdd(year + '-' + pad(month+1) + '-' + pad(day))} style={{ minHeight: '80px', cursor: 'pointer', background: isToday(day) ? '#1E3D2A' : 'var(--bg2)', border: isToday(day) ? '0.5px solid #4ADE9A' : '0.5px solid rgba(255,255,255,0.05)', borderRadius: '6px', padding: '6px' }}>
+                <div key={day} onClick={() => setShowAdd(year + '-' + pad(month+1) + '-' + pad(day))} style={{ minHeight: '80px', cursor: 'pointer', background: isToday(day) ? 'var(--green-bg)' : 'var(--bg2)', border: isToday(day) ? '1.5px solid var(--green)' : '0.5px solid var(--border)', borderRadius: '6px', padding: '6px' }}>
                   <div style={{ fontSize: '12px', fontWeight: isToday(day) ? 700 : 400, color: isToday(day) ? 'var(--green)' : 'var(--text2)', marginBottom: '4px' }}>{day}</div>
                   {dayEvents.slice(0, 2).map((ev, idx) => (
                     <a key={idx} href={ev.link} style={{ display: 'block', fontSize: '9px', padding: '2px 4px', borderRadius: '3px', marginBottom: '2px', background: ev.color + '22', color: ev.color, textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
