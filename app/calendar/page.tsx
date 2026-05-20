@@ -98,8 +98,8 @@ export default function CalendarPage() {
                   <div style={{ fontSize: '12px', fontWeight: isToday(day) ? 700 : 400, color: isToday(day) ? 'var(--green)' : 'var(--text2)', marginBottom: '4px' }}>{day}</div>
                   {dayEvents.slice(0, 2).map((ev, idx) => (
                     <a key={idx} href={ev.link} style={{ display: 'block', fontSize: '9px', padding: '2px 4px', borderRadius: '3px', marginBottom: '2px', background: ev.color + '22', color: ev.color, textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {ev.label}
-                    </a>
+                    <a key={idx} href={ev.link || '#'} onClick={!ev.link ? e => e.preventDefault() : undefined} style={{ display: 'block', fontSize: '9px', padding: '2px 4px', borderRadius: '3px', marginBottom: '2px', background: (ev.color || '#A78BFA') + '22', color: ev.color || '#A78BFA', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {ev.label || ev.title}
                   ))}
                   {dayEvents.length > 2 && <div style={{ fontSize: '9px', color: 'var(--text3)' }}>+{dayEvents.length - 2} more</div>}
                 </div>
