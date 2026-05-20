@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, USER_ID, fm, formatDate } from '@/lib/supabase'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 
 export default function DashboardPage() {
   const [data, setData] = useState({ properties: [], tenants: [], payments: [], expenses: [], leases: [], maintenance: [], mortgages: [] })
@@ -23,6 +24,17 @@ export default function DashboardPage() {
   }, [])
 
   const { properties, tenants, payments, expenses, leases, maintenance, mortgages } = data
+
+  // Build monthly chart data for current year
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const chartData = monthNames.map((month, i) => {
+    const monthStr = String(i + 1).padStart(2, '0')
+    const yearStr = new Date().getFullYear().toString()
+    const monthPayments = payments.filter(p => p.paid_date?.startsWith(yearStr + '-' + monthStr))
+    const collected = monthPayments.filter(p => p.status === 'paid').reduce((s, p) => s + (p.amount_paid || 0), 0)
+    const due = leases.reduce((s, l) => s + (l.rent_amount || 0), 0)
+    return { month, collected, due }
+  })
   const occupied = properties.filter(p => p.occupancy_status === 'occupied')
   const vacant = properties.filter(p => p.occupancy_status === 'vacant')
   const thisYear = new Date().getFullYear().toString()
