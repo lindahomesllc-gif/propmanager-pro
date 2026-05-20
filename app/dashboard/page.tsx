@@ -82,6 +82,25 @@ export default function DashboardPage() {
               ))}
             </div>
 
+            <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Rent Collection {new Date().getFullYear()}</div>
+                <div style={{ display: 'flex', gap: '16px', fontSize: '11px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--green)', display: 'inline-block' }} />Collected</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--border2)', display: 'inline-block' }} />Rent Roll</span>
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={chartData} barGap={4} barCategoryGap="30%">
+                  <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? '$' + (v/1000).toFixed(0) + 'k' : '$' + v} width={40} />
+                  <Tooltip formatter={(value, name) => [fm(value), name === 'collected' ? 'Collected' : 'Rent Roll']} contentStyle={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '8px', fontSize: '12px' }} />
+                  <Bar dataKey="due" fill="var(--border2)" radius={[3,3,0,0]} />
+                  <Bar dataKey="collected" fill="var(--green)" radius={[3,3,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Properties</div>
