@@ -24,20 +24,10 @@ export default function DashboardPage() {
   }, [])
 
   const { properties, tenants, payments, expenses, leases, maintenance, mortgages } = data
-
-  // Build monthly chart data for current year
-  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-  const chartData = monthNames.map((month, i) => {
-    const monthStr = String(i + 1).padStart(2, '0')
-    const yearStr = new Date().getFullYear().toString()
-    const monthPayments = payments.filter(p => p.paid_date?.startsWith(yearStr + '-' + monthStr))
-    const collected = monthPayments.filter(p => p.status === 'paid').reduce((s, p) => s + (p.amount_paid || 0), 0)
-    const due = leases.reduce((s, l) => s + (l.rent_amount || 0), 0)
-    return { month, collected, due }
-  })
   const occupied = properties.filter(p => p.occupancy_status === 'occupied')
   const vacant = properties.filter(p => p.occupancy_status === 'vacant')
   const thisYear = new Date().getFullYear().toString()
+  const currentYear = new Date().getFullYear()
   const paidYTD = payments.filter(p => p.status === 'paid' && p.paid_date?.startsWith(thisYear))
   const latePayments = payments.filter(p => p.status === 'late')
   const duePayments = payments.filter(p => p.status === 'due' || p.status === 'upcoming')
@@ -46,12 +36,18 @@ export default function DashboardPage() {
   const totalCollectedYTD = paidYTD.reduce((s, p) => s + p.amount_paid, 0)
   const portfolioValue = properties.reduce((s, p) => s + (p.market_value || 0), 0)
   const totalEquity = properties.reduce((s, p) => s + ((p.market_value || 0) - (p.purchase_price || 0)), 0)
-
   const today = new Date()
   const in90 = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000)
   const expiringLeases = leases.filter(l => l.end_date && new Date(l.end_date) <= in90).sort((a, b) => new Date(a.end_date) - new Date(b.end_date))
-
   const recentPayments = payments.filter(p => p.status === 'paid').slice(0, 5)
+
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const chartData = monthNames.map((month, i) => {
+    const monthStr = String(i + 1).padStart(2, '0')
+    const monthPayments = payments.filter(p => p.paid_date?.startsWith(thisYear + '-' + monthStr))
+    const collected = monthPayments.filter(p => p.status === 'paid').reduce((s, p) => s + (p.amount_paid || 0), 0)
+    return { month, collected, due: totalRentRoll }
+  })
 
   return (
     <AppShell>
@@ -84,26 +80,29 @@ export default function DashboardPage() {
 
             <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Rent Collection {new Date().getFullYear()}</div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Rent Collection {currentYear}</div>
                 <div style={{ display: 'flex', gap: '16px', fontSize: '11px' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--green)', display: 'inline-block' }} />Collected</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--border2)', display: 'inline-block' }} />Rent Roll</span>
                 </div>
               </div>
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={chartData} barGap={4} barCategoryGap="30%">
-                  <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
+              <ResponsiveContainer width='100%' height={180}>
+                <BarChart data={chartData} barGap={4} barCategoryGap='30%'>
+                  <CartesianGrid vertical={false} stroke='var(--border)' strokeDasharray='3 3' />
+                  <XAxis dataKey='month' tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? '$' + (v/1000).toFixed(0) + 'k' : '$' + v} width={40} />
-                  <Tooltip formatter={(value, name) => [fm(value), name === 'collected' ? 'Collected' : 'Rent Roll']} contentStyle={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '8px', fontSize: '12px' }} />
-                  <Bar dataKey="due" fill="var(--border2)" radius={[3,3,0,0]} />
-                  <Bar dataKey="collected" fill="var(--green)" radius={[3,3,0,0]} />
+                  <Tooltip contentStyle={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '8px', fontSize: '12px' }} />
+                  <Bar dataKey='due' fill='var(--border2)' radius={[3,3,0,0]} />
+                  <Bar dataKey='collected' fill='var(--green)' radius={[3,3,0,0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Properties</div>
+                <div style={{ display: 'grid', gap: '8px' }}>
+                  {properties.map(p => (
                     <a key={p.id} href={'/properties/' + p.id} style={{ textDecoration: 'none' }}>
                       <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + (p.occupancy_status === 'occupied' ? 'var(--green)' : 'var(--amber)'), borderRadius: '8px', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
@@ -116,7 +115,6 @@ export default function DashboardPage() {
                   ))}
                 </div>
               </div>
-
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Active Tenants & Rent Roll</div>
                 <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
@@ -151,11 +149,10 @@ export default function DashboardPage() {
                   <a href='/payments' style={{ display: 'block', padding: '10px 14px', fontSize: '12px', color: 'var(--green)', textDecoration: 'none' }}>View all payments →</a>
                 </div>
               </div>
-
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Alerts</div>
                 <div style={{ display: 'grid', gap: '8px' }}>
-                  {latePayments.length > 0 && latePayments.map(p => (
+                  {latePayments.map(p => (
                     <a key={p.id} href='/payments' style={{ textDecoration: 'none' }}>
                       <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid var(--red)', borderRadius: '8px', padding: '10px 14px' }}>
                         <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>Late Payment — {p.tenants?.full_name}</div>
@@ -212,14 +209,13 @@ export default function DashboardPage() {
                   <a href='/maintenance' style={{ display: 'block', padding: '10px 14px', fontSize: '12px', color: 'var(--green)', textDecoration: 'none' }}>View all →</a>
                 </div>
               </div>
-
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Quick Actions</div>
                 <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
                   {[
-                    { href: '/payments/new', icon: '💳', label: 'Record Payment', sub: duePayments.length + ' payments due' },
+                    { href: '/payments', icon: '💳', label: 'Record Payment', sub: duePayments.length + ' payments due' },
                     { href: '/tenants/new', icon: '👤', label: 'Add Tenant', sub: vacant.length + ' vacant units' },
-                    { href: '/maintenance/new', icon: '🔧', label: 'New Maintenance Request', sub: maintenance.length + ' open requests' },
+                    { href: '/maintenance/new', icon: '🔧', label: 'New Maintenance Request', sub: maintenance.length + ' open' },
                     { href: '/expenses/new', icon: '💰', label: 'Add Expense', sub: 'Track property costs' },
                     { href: '/leases/new', icon: '📋', label: 'Create Lease', sub: 'E-sign ready' },
                     { href: '/tax', icon: '🧮', label: 'Tax Reports', sub: 'Schedule E ready' },
