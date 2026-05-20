@@ -55,7 +55,7 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     const tid = new URLSearchParams(window.location.search).get('tenant_id')
-    if (tid) openAdd(tid)
+    if (tid && tenants.length > 0) { openAdd(tid) }
   }, [tenants])
 
   function openEdit(p) {
