@@ -64,17 +64,31 @@ export default function PropertyDetailPage({ params }) {
 
   return (
     <AppShell>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
-        <div>
-          <a href='/properties' style={{ fontSize: '11px', color: 'var(--text3)', textDecoration: 'none' }}>← Properties</a>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginTop: '2px' }}>{p.address}</div>
-          <div style={{ fontSize: '12px', color: 'var(--text3)' }}>{p.city}, {p.state} {p.zip}</div>
+      <div style={{ background: 'var(--bg2)', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
+        <div style={{ padding: '10px 20px 0', fontSize: '11px', color: 'var(--text3)' }}>
+          <a href='/properties' style={{ color: 'var(--text3)', textDecoration: 'none' }}>← Properties</a>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <a href={'/properties/' + p.id + '/edit'} style={btnG}>Edit</a>
-          <span style={{ padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: 600, background: p.occupancy_status === 'occupied' ? 'var(--green-bg)' : 'var(--amber-bg)', color: p.occupancy_status === 'occupied' ? 'var(--green)' : 'var(--amber)', border: '0.5px solid ' + (p.occupancy_status === 'occupied' ? 'var(--green)' : 'var(--amber)') }}>
-            {p.occupancy_status === 'occupied' ? 'Occupied' : 'Vacant'}
-          </span>
+        <div style={{ padding: '14px 20px 0', display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+          <div style={{ width: '52px', height: '52px', borderRadius: '12px', background: p.occupancy_status === 'occupied' ? 'var(--green-bg)' : 'var(--amber-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', flexShrink: 0 }}>
+            {({'single_family':'🏠','condo':'🏢','duplex':'🏘','triplex':'🏘','quadplex':'🏘','multi_family':'🏗','commercial':'🏬'})[p.type] || '🏠'}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: 'var(--text)' }}>{p.address}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '3px' }}>{p.city}, {p.state} {p.zip} · {(p.type || '').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+            <a href={'/properties/' + p.id + '/edit'} style={btnG}>Edit</a>
+            <span style={{ padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: 600, background: p.occupancy_status === 'occupied' ? 'var(--green-bg)' : 'var(--amber-bg)', color: p.occupancy_status === 'occupied' ? 'var(--green)' : 'var(--amber)', border: '0.5px solid ' + (p.occupancy_status === 'occupied' ? 'var(--green)' : 'var(--amber)') }}>
+              {p.occupancy_status === 'occupied' ? 'Occupied' : 'Vacant'}
+            </span>
+          </div>
+        </div>
+        <div style={{ padding: '12px 20px 16px', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+          <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Market Value</div><div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--green)' }}>{fm(p.market_value)}</div></div>
+          <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Equity</div><div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--green)' }}>{fm(equity)}</div></div>
+          <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Purchased</div><div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', marginTop: '4px' }}>{fm(p.purchase_price)}</div></div>
+          {p.bedrooms && <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Beds/Baths</div><div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', marginTop: '4px' }}>{p.bedrooms}bd / {p.bathrooms}ba</div></div>}
+          {p.sqft && <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Sq Ft</div><div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', marginTop: '4px' }}>{p.sqft.toLocaleString()}</div></div>}
         </div>
       </div>
 
