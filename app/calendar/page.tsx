@@ -94,11 +94,11 @@ export default function CalendarPage() {
               const day = i + 1
               const dayEvents = getEventsForDay(day)
               return (
-                <div key={day} onClick={() => setShowAdd(year + '-' + pad(month+1) + '-' + pad(day))} style={{ minHeight: '80px', cursor: 'pointer', background: isToday(day) ? 'var(--green-bg)' : 'var(--bg2)', border: isToday(day) ? '1.5px solid var(--green)' : '0.5px solid var(--border)', borderRadius: '6px', padding: '6px' }}>
+                <div key={day} onClick={() => { const d = year + '-' + pad(month+1) + '-' + pad(day); setShowAdd(d) }} style={{ minHeight: '80px', cursor: 'pointer', background: isToday(day) ? 'var(--green-bg)' : 'var(--bg2)', border: isToday(day) ? '1.5px solid var(--green)' : '0.5px solid var(--border)', borderRadius: '6px', padding: '6px' }}>
                   <div style={{ fontSize: '12px', fontWeight: isToday(day) ? 700 : 400, color: isToday(day) ? 'var(--green)' : 'var(--text2)', marginBottom: '4px' }}>{day}</div>
                   {dayEvents.slice(0, 2).map((ev, idx) => (
                     <a key={idx} href={ev.link} style={{ display: 'block', fontSize: '9px', padding: '2px 4px', borderRadius: '3px', marginBottom: '2px', background: ev.color + '22', color: ev.color, textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    <a key={idx} href={ev.link || '#'} onClick={!ev.link ? e => e.preventDefault() : undefined} style={{ display: 'block', fontSize: '9px', padding: '2px 4px', borderRadius: '3px', marginBottom: '2px', background: (ev.color || '#A78BFA') + '22', color: ev.color || '#A78BFA', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <a key={idx} href={ev.link || '#'} onClick={!ev.link ? e => e.preventDefault() : undefined} style={{ display: 'block', fontSize: '9px', padding: '2px 4px', borderRadius: '3px', marginBottom: '2px', background: (ev.color || '#A78BFA') + '33', color: ev.color || '#7C3AED', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
                       {ev.label || ev.title}
                   ))}
                   {dayEvents.length > 2 && <div style={{ fontSize: '9px', color: 'var(--text3)' }}>+{dayEvents.length - 2} more</div>}
@@ -123,8 +123,15 @@ export default function CalendarPage() {
       {showAdd && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowAdd(null)}>
           <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '24px', width: '340px' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' }}>Add Reminder</div>
-            <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '16px' }}>{showAdd}</div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' }}>{reminders.filter(r => r.date === showAdd).length > 0 ? 'Reminders' : 'Add Reminder'}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '12px' }}>{showAdd}</div>
+            {reminders.filter(r => r.date === showAdd).map(r => (
+              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg3)', borderRadius: '6px', marginBottom: '6px', border: '0.5px solid var(--border)' }}>
+                <span style={{ fontSize: '13px', color: 'var(--text)' }}>{r.title}</span>
+                <button onClick={() => { const updated = reminders.filter(x => x.id !== r.id); setReminders(updated); localStorage.setItem('cal_reminders', JSON.stringify(updated)) }} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: 'none', borderRadius: '5px', padding: '2px 8px', fontSize: '11px', cursor: 'pointer' }}>Delete</button>
+              </div>
+            ))}
+            <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '8px', marginTop: '8px' }}>Add new reminder:</div>
             <input autoFocus style={{ width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box', marginBottom: '16px' }} placeholder='e.g. Call insurance agent, inspection...' value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { const r = [...reminders, { id: Date.now(), date: showAdd, title: newTitle, color: '#A78BFA' }]; setReminders(r); localStorage.setItem('cal_reminders', JSON.stringify(r)); setShowAdd(null); setNewTitle('') } }} />
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowAdd(null)} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
