@@ -8,7 +8,8 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(null)
   const [newTitle, setNewTitle] = useState('')
-  const [reminders, setReminders] = useState(() => { try { return JSON.parse(localStorage.getItem('cal_reminders') || '[]') } catch { return [] } })
+  const [reminders, setReminders] = useState([])
+  useEffect(() => { try { setReminders(JSON.parse(localStorage.getItem('cal_reminders') || '[]')) } catch {} }, [])
   const [currentDate, setCurrentDate] = useState(new Date())
 
   useEffect(() => {
