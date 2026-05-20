@@ -102,32 +102,33 @@ export default function PropertyDetailPage({ params }) {
 
         {tab === 'overview' && (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
-              {[
-                { label: 'Purchase Price', value: fm(p.purchase_price), color: 'var(--text)' },
-                { label: 'Market Value', value: fm(p.market_value), color: 'var(--green)' },
-                { label: 'Equity', value: fm(equity), color: equity >= 0 ? 'var(--green)' : 'var(--red)' },
-                { label: 'Rent Collected', value: fm(totalRent), color: 'var(--green)' },
-                { label: 'Expenses', value: fm(totalExp), color: 'var(--amber)' },
-              ].map(mc => (
-                <div key={mc.label} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px' }}>
-                  <div style={lbl}>{mc.label}</div>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: mc.color, marginTop: '5px' }}>{mc.value}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
+              <div style={{ background: 'var(--green-bg)', border: '0.5px solid var(--green)', borderRadius: '12px', padding: '18px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: 'var(--green)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Rent Collected</div>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '28px', fontWeight: 700, color: 'var(--green)', marginTop: '4px' }}>{fm(totalRent)}</div>
                 </div>
-              ))}
+                <div style={{ fontSize: '32px', opacity: 0.4 }}>💰</div>
+              </div>
+              <div style={{ background: totalExp > 0 ? 'var(--amber-bg)' : 'var(--bg2)', border: '0.5px solid ' + (totalExp > 0 ? 'var(--amber)' : 'var(--border)'), borderRadius: '12px', padding: '18px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: 'var(--amber)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Expenses</div>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '28px', fontWeight: 700, color: totalExp > 0 ? 'var(--amber)' : 'var(--text3)', marginTop: '4px' }}>{fm(totalExp)}</div>
+                </div>
+                <div style={{ fontSize: '32px', opacity: 0.4 }}>📋</div>
+              </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
                 <div style={card}>
                   <div style={secTtl}>Property Info</div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     {[
-                      ['Type', p.type ? p.type.replace(/_/g, ' ') : '—'],
-                      ['Bedrooms', p.bedrooms || '—'],
-                      ['Bathrooms', p.bathrooms || '—'],
-                      ['Sq Ft', p.sqft ? p.sqft.toLocaleString() : '—'],
-                      ['Year Built', p.year_built || '—'],
-                      ['Ownership', p.owner_entity || 'Self'],
+                      ['🏠 Type', p.type ? p.type.replace(/_/g, ' ') : '—'],
+                      ['🛏 Bedrooms', p.bedrooms || '—'],
+                      ['🚿 Bathrooms', p.bathrooms || '—'],
+                      ['📐 Sq Ft', p.sqft ? p.sqft.toLocaleString() : '—'],
+                      ['🏗 Year Built', p.year_built || '—'],
+                      ['🏢 Ownership', p.owner_entity || 'Self'],
                     ].map(([k, v]) => (
                       <div key={k} style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '8px 10px' }}>
                         <div style={lbl}>{k}</div>
@@ -165,11 +166,16 @@ export default function PropertyDetailPage({ params }) {
                       {tenants.length === 0 ? (
                         <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No tenants assigned.</div>
                       ) : tenants.map(t => (
-                        <div key={t.id} style={{ background: 'var(--bg3)', borderRadius: '8px', padding: '10px 12px', border: '0.5px solid var(--border)' }}>
-                          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>{t.unit_address || t.properties?.address}</div>
-                          <div style={{ fontSize: '12px', color: 'var(--text2)' }}>{t.full_name}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{t.email}</div>
-                          <a href={'/tenants/' + t.id} style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none', marginTop: '4px', display: 'inline-block' }}>View Tenant →</a>
+                        <div key={t.id} style={{ background: 'var(--bg3)', borderRadius: '10px', padding: '14px', border: '0.5px solid var(--border)' }}>
+                          <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>{t.unit_address || 'Unit'}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--green-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, color: 'var(--green)', flexShrink: 0 }}>{t.full_name?.charAt(0)}</div>
+                            <div>
+                              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{t.full_name}</div>
+                              <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{t.email}</div>
+                            </div>
+                          </div>
+                          <a href={'/tenants/' + t.id} style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none', background: 'var(--green-bg)', padding: '4px 10px', borderRadius: '6px', display: 'inline-block' }}>View Tenant →</a>
                         </div>
                       ))}
                     </div>
@@ -181,13 +187,16 @@ export default function PropertyDetailPage({ params }) {
                     {tenants.length === 0 ? (
                       <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No tenants assigned.</div>
                     ) : tenants.map(t => (
-                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '0.5px solid var(--border)' }}>
-                        <div>
+                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '0.5px solid var(--border)' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--green-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: 700, color: 'var(--green)', flexShrink: 0 }}>{t.full_name?.charAt(0)}</div>
+                        <div style={{ flex: 1 }}>
                           <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{t.full_name}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{t.email} {t.phone ? '· ' + t.phone : ''}</div>
-                          <a href={'/tenants/' + t.id} style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none', marginTop: '4px', display: 'inline-block' }}>View Tenant →</a>
+                          <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{t.email}{t.phone ? ' · ' + t.phone : ''}</div>
                         </div>
-                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: t.status === 'active' ? 'var(--green-bg)' : 'var(--bg3)', color: t.status === 'active' ? 'var(--green)' : 'var(--text3)' }}>{t.status}</span>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: t.status === 'active' ? 'var(--green-bg)' : 'var(--bg3)', color: t.status === 'active' ? 'var(--green)' : 'var(--text3)' }}>{t.status}</span>
+                          <a href={'/tenants/' + t.id} style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none' }}>View →</a>
+                        </div>
                       </div>
                     ))}
                     <div style={{ marginTop: '12px' }}><a href={'/tenants/new?property=' + p.id} style={btnG}>+ Add Tenant</a></div>
