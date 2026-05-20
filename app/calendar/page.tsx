@@ -6,6 +6,9 @@ import { supabase, USER_ID, fm } from '@/lib/supabase'
 export default function CalendarPage() {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showAdd, setShowAdd] = useState(null)
+  const [newTitle, setNewTitle] = useState('')
+  const [reminders, setReminders] = useState(() => { try { return JSON.parse(localStorage.getItem('cal_reminders') || '[]') } catch { return [] } })
   const [currentDate, setCurrentDate] = useState(new Date())
 
   useEffect(() => {
@@ -41,7 +44,9 @@ export default function CalendarPage() {
   const pad = n => String(n).padStart(2, '0')
   const getEventsForDay = (day) => {
     const dateStr = year + '-' + pad(month + 1) + '-' + pad(day)
-    return events.filter(e => e.date === dateStr)
+    const evs = events.filter(e => e.date === dateStr)
+    const rems = reminders.filter(r => r.date === dateStr)
+    return [...evs, ...rems]
   }
 
   const today = new Date()
@@ -115,6 +120,19 @@ export default function CalendarPage() {
           ))}
         </div>
       </div>
+      {showAdd && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowAdd(null)}>
+          <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '24px', width: '340px' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' }}>Add Reminder</div>
+            <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '16px' }}>{showAdd}</div>
+            <input autoFocus style={{ width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box', marginBottom: '16px' }} placeholder='e.g. Call insurance agent, inspection...' value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { const r = [...reminders, { id: Date.now(), date: showAdd, title: newTitle, color: '#A78BFA' }]; setReminders(r); localStorage.setItem('cal_reminders', JSON.stringify(r)); setShowAdd(null); setNewTitle('') } }} />
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowAdd(null)} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => { if (!newTitle.trim()) return; const r = [...reminders, { id: Date.now(), date: showAdd, title: newTitle, color: '#A78BFA' }]; setReminders(r); localStorage.setItem('cal_reminders', JSON.stringify(r)); setShowAdd(null); setNewTitle('') }} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   )
 }
