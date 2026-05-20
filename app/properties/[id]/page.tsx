@@ -118,6 +118,7 @@ export default function PropertyDetailPage({ params }) {
                 <div style={{ fontSize: '32px', opacity: 0.4 }}>📋</div>
               </div>
             </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
                 <div style={card}>
                   <div style={secTtl}>Property Info</div>
