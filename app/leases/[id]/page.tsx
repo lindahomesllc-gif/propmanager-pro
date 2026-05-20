@@ -53,6 +53,7 @@ export default function LeaseDetailPage({ params }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div>
           <a href='/leases' style={{ fontSize: '11px', color: 'var(--text3)', textDecoration: 'none' }}>← Leases</a>
+        {l.tenant_id && <a href={'/tenants/' + l.tenant_id} style={{ fontSize: '11px', color: 'var(--text3)', textDecoration: 'none', marginLeft: '12px' }}>← Back to Tenant</a>}
           <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginTop: '2px' }}>{l.tenants?.full_name}</div>
           <div style={{ fontSize: '12px', color: 'var(--text3)' }}>{l.properties?.address}</div>
         </div>

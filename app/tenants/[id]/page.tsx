@@ -147,7 +147,7 @@ export default function TenantDetailPage({ params }) {
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)' }}>Recent Payments</div>
-                <a href={'/payments?tenant_id=' + t.id} style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none' }}>+ Record</a>
+                <a href={'/payments'} style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none' }}>View All</a>
               </div>
               {payments.length === 0 ? (
                 <div style={{ fontSize: '13px', color: 'var(--text3)', padding: '10px 0' }}>No payments recorded.</div>
@@ -177,7 +177,6 @@ export default function TenantDetailPage({ params }) {
                   </div>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                     <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: l.status === 'executed' ? 'var(--green-bg)' : 'var(--bg3)', color: l.status === 'executed' ? 'var(--green)' : 'var(--text3)' }}>{l.status}</span>
-                    <a href={'/leases/' + l.id} style={btnG}>View</a>
                   </div>
                 </div>
               ))}
