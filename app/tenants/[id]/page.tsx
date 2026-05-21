@@ -72,11 +72,11 @@ export default function TenantDetailPage({ params }) {
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: 'var(--text)' }}>{t.full_name}</div>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: 'var(--text)' }}>{t.full_name}{t.co_tenant_name ? ' & ' + t.co_tenant_name : ''}</div>
               <span style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '20px', background: statusBg, color: statusColor, fontWeight: 700, textTransform: 'uppercase' }}>{t.status}</span>
             </div>
             <div style={{ fontSize: '13px', color: 'var(--text3)', marginTop: '3px' }}>{t.unit_address || t.properties?.address}{t.properties?.city ? ' · ' + t.properties.city + ', ' + t.properties.state : ''}</div>
-            {t.co_tenant_name && <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>Co-tenant: {t.co_tenant_name}</div>}
+
           </div>
           <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
             <a href={'/payments?tenant_id=' + t.id} style={btnP}>+ Record Payment</a>
