@@ -54,7 +54,7 @@ export default function PropertyDetailPage({ params }) {
   const isDuplex = p.type === 'duplex' || p.type === 'multi_family'
 
   const card = { background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
-  const secTtl = { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }
+  const secTtl = { fontSize: '13px', fontWeight: 700, color: 'var(--text)', marginBottom: '14px' }
   const lbl = { fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }
   const val = { fontSize: '13px', fontWeight: 500, color: 'var(--text)', marginTop: '2px' }
   const btnG = { background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
@@ -121,7 +121,7 @@ export default function PropertyDetailPage({ params }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
                 <div style={card}>
-                  <div style={secTtl}>Property Info</div>
+                  <div style={secTtl}>🏠 Property Info</div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     {[
                       ['🏠 Type', p.type ? p.type.replace(/_/g, ' ') : '—'],
@@ -162,7 +162,7 @@ export default function PropertyDetailPage({ params }) {
                 </div>
                 {isDuplex && (
                   <div style={card}>
-                    <div style={secTtl}>Units</div>
+                    <div style={secTtl}>🏘 Units</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                       {tenants.length === 0 ? (
                         <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No tenants assigned.</div>
@@ -184,7 +184,7 @@ export default function PropertyDetailPage({ params }) {
                 )}
                 {!isDuplex && (
                   <div style={card}>
-                    <div style={secTtl}>Tenants</div>
+                    <div style={secTtl}>👥 Tenants</div>
                     {tenants.length === 0 ? (
                       <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No tenants assigned.</div>
                     ) : tenants.map(t => (
@@ -206,7 +206,7 @@ export default function PropertyDetailPage({ params }) {
               </div>
               <div>
                 <div style={card}>
-                  <div style={secTtl}>Recent Payments</div>
+                  <div style={secTtl}>💳 Recent Payments</div>
                   {payments.length === 0 ? (
                     <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No payments recorded.</div>
                   ) : payments.slice(0, 5).map(pay => (
@@ -224,7 +224,7 @@ export default function PropertyDetailPage({ params }) {
                   <div style={{ marginTop: '12px' }}><a href='/payments/new' style={btnG}>+ Record Payment</a></div>
                 </div>
                 <div style={card}>
-                  <div style={secTtl}>Recent Expenses</div>
+                  <div style={secTtl}>💰 Recent Expenses</div>
                   {expenses.length === 0 ? (
                     <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No expenses recorded.</div>
                   ) : expenses.slice(0, 5).map(exp => (
@@ -246,7 +246,7 @@ export default function PropertyDetailPage({ params }) {
         {tab === 'financials' && (
           <>
             <div style={card}>
-              <div style={secTtl}>Purchase & Value</div>
+              <div style={secTtl}>📈 Purchase & Value</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
                 {[
                   ['Purchase Price', fm(p.purchase_price)],
@@ -265,7 +265,7 @@ export default function PropertyDetailPage({ params }) {
             </div>
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <div style={secTtl}>Mortgage</div>
+                <div style={secTtl}>🏦 Mortgage</div>
                 <a href={'/mortgage'} style={btnG}>Manage Mortgages</a>
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text3)' }}>View and manage mortgage details in the Mortgage section.</div>
@@ -277,7 +277,7 @@ export default function PropertyDetailPage({ params }) {
           <>
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <div style={secTtl}>Insurance</div>
+                <div style={secTtl}>🛡 Insurance</div>
                 <a href={'/properties/' + p.id + '/edit#insurance'} style={btnG}>Edit</a>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
@@ -298,7 +298,7 @@ export default function PropertyDetailPage({ params }) {
             </div>
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <div style={secTtl}>Property Tax</div>
+                <div style={secTtl}>🧾 Property Tax</div>
                 <a href={'/properties/' + p.id + '/edit#tax'} style={btnG}>Edit</a>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
@@ -324,7 +324,7 @@ export default function PropertyDetailPage({ params }) {
           <>
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <div style={secTtl}>Utility Companies</div>
+                <div style={secTtl}>⚡ Utility Companies</div>
                 <a href={'/properties/' + p.id + '/edit#utilities'} style={btnG}>Edit</a>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
@@ -345,7 +345,7 @@ export default function PropertyDetailPage({ params }) {
             </div>
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <div style={secTtl}>Schools</div>
+                <div style={secTtl}>🎓 Schools</div>
                 <a href={'/properties/' + p.id + '/edit#utilities'} style={btnG}>Edit</a>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
@@ -368,7 +368,7 @@ export default function PropertyDetailPage({ params }) {
         {tab === 'documents' && (
           <div style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <div style={secTtl}>Property Documents</div>
+              <div style={secTtl}>📄 Property Documents</div>
               <button style={btnP} onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? 'Uploading...' : '⬆ Upload Document'}</button>
             </div>
             <input ref={fileRef} type='file' accept='.pdf,.jpg,.jpeg,.png,.doc,.docx' style={{ display: 'none' }} onChange={uploadDoc} />
