@@ -6,6 +6,8 @@ import { supabase, USER_ID } from '@/lib/supabase'
 export default function TenantsPage() {
   const [tenants, setTenants] = useState([])
   const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState('all')
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     supabase.from('tenants').select('*, properties(address)').eq('user_id', USER_ID).order('full_name')
@@ -19,6 +21,15 @@ export default function TenantsPage() {
     setTenants(prev => prev.filter(t => t.id !== id))
   }
 
+  const active = tenants.filter(t => t.status === 'active')
+  const past = tenants.filter(t => t.status === 'past')
+
+  const filtered = tenants.filter(t => {
+    const matchFilter = filter === 'all' || t.status === filter
+    const matchSearch = !search || t.full_name?.toLowerCase().includes(search.toLowerCase()) || t.co_tenant_name?.toLowerCase().includes(search.toLowerCase()) || t.unit_address?.toLowerCase().includes(search.toLowerCase()) || t.properties?.address?.toLowerCase().includes(search.toLowerCase())
+    return matchFilter && matchSearch
+  })
+
   const statusColor = (s) => ({ active: 'var(--green)', past: 'var(--text3)', applicant: 'var(--amber)' }[s] || 'var(--text3)')
   const statusBg = (s) => ({ active: 'var(--green-bg)', past: 'var(--bg3)', applicant: 'var(--amber-bg)' }[s] || 'var(--bg3)')
 
@@ -26,35 +37,61 @@ export default function TenantsPage() {
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Tenants</div>
-        <a href='/tenants/new' style={{ background: 'var(--green)', color: '#fff', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, textDecoration: 'none', display: 'inline-block' }}>+ Add Tenant</a>
+        <a href='/tenants/new' style={{ background: 'var(--green)', color: '#fff', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>+ Add Tenant</a>
       </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
+        {[
+          { label: '✅ Active', value: active.length, color: 'var(--green)', f: 'active' },
+          { label: '👥 Total', value: tenants.length, color: 'var(--text)', f: 'all' },
+          { label: '📦 Past', value: past.length, color: 'var(--text3)', f: 'past' },
+        ].map((mc, i) => (
+          <button key={mc.label} onClick={() => setFilter(filter === mc.f ? 'all' : mc.f)} style={{ padding: '14px 20px', background: filter === mc.f ? mc.color + '15' : 'var(--bg2)', border: 'none', borderRight: i < 2 ? '0.5px solid var(--border)' : 'none', cursor: 'pointer', textAlign: 'left' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: 600, marginBottom: '4px' }}>{mc.label}</div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color }}>{mc.value}</div>
+          </button>
+        ))}
+      </div>
+
+      <div style={{ padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder='🔍 Search by name, address...' style={{ width: '100%', padding: '8px 12px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '8px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' }} />
+      </div>
+
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-        {loading && <div style={{ color: 'var(--text3)', fontSize: '13px' }}>Loading tenants...</div>}
-        {!loading && tenants.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text3)' }}>
-            <div style={{ fontSize: '32px', marginBottom: '12px' }}>👥</div>
-            <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text2)', marginBottom: '16px' }}>No tenants yet</div>
-            <a href='/tenants/new' style={{ background: 'var(--green)', color: '#fff', padding: '8px 18px', borderRadius: '7px', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>+ Add Tenant</a>
+        {loading && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading...</div>}
+        {!loading && filtered.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
+            <div style={{ fontSize: '40px', marginBottom: '12px' }}>👥</div>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text2)', marginBottom: '16px' }}>{search ? 'No results found' : 'No tenants yet'}</div>
+            {!search && <a href='/tenants/new' style={{ background: 'var(--green)', color: '#fff', padding: '8px 18px', borderRadius: '7px', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>+ Add Tenant</a>}
           </div>
         )}
-        {!loading && tenants.length > 0 && (
+        {!loading && filtered.length > 0 && (
           <div style={{ display: 'grid', gap: '8px' }}>
-            {tenants.map(t => (
-              <div key={t.id} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--green-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: 700, color: 'var(--green)', flexShrink: 0 }}>
-                  {t.full_name?.charAt(0).toUpperCase()}
+            {filtered.map(t => (
+              <a key={t.id} href={'/tenants/' + t.id} style={{ textDecoration: 'none' }}>
+                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + statusColor(t.status), borderRadius: '10px', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '14px', transition: 'border-color 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--green)'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                >
+                  <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: statusBg(t.status), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 700, color: statusColor(t.status), flexShrink: 0, border: '1.5px solid ' + statusColor(t.status) }}>
+                    {t.full_name?.charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', marginBottom: '2px' }}>
+                      {t.full_name}{t.co_tenant_name ? ' & ' + t.co_tenant_name : ''}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text3)' }}>
+                      📍 {t.unit_address || t.properties?.address || 'No property'}
+                    </div>
+                    {t.email && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '1px' }}>{t.email}{t.phone ? ' · ' + t.phone : ''}</div>}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    <span style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '20px', background: statusBg(t.status), color: statusColor(t.status), fontWeight: 700, textTransform: 'capitalize' }}>{t.status}</span>
+                    <button onClick={e => { e.preventDefault(); deleteTenant(t.id, t.full_name) }} style={{ background: 'transparent', color: 'var(--text3)', border: '0.5px solid var(--border2)', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', cursor: 'pointer' }}>✕</button>
+                  </div>
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{t.full_name}{t.co_tenant_name ? ' & ' + t.co_tenant_name : ''}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>{t.unit_address || t.properties?.address || 'No property'}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{t.email}{t.phone ? ' · ' + t.phone : ''}</div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                  <span style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '20px', background: statusBg(t.status), color: statusColor(t.status), fontWeight: 600, textTransform: 'capitalize' }}>{t.status}</span>
-                  <a href={'/tenants/' + t.id} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '5px 12px', fontSize: '12px', textDecoration: 'none' }}>View</a>
-                  <button onClick={() => deleteTenant(t.id, t.full_name)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '5px 12px', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>Delete</button>
-                </div>
-              </div>
+              </a>
             ))}
           </div>
         )}
