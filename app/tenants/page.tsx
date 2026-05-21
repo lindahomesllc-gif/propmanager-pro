@@ -45,7 +45,7 @@ export default function TenantsPage() {
                   {t.full_name?.charAt(0).toUpperCase()}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{t.full_name}</div>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{t.full_name}{t.co_tenant_name ? ' & ' + t.co_tenant_name : ''}</div>
                   <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>{t.unit_address || t.properties?.address || 'No property'}</div>
                   <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{t.email}{t.phone ? ' · ' + t.phone : ''}</div>
                 </div>
