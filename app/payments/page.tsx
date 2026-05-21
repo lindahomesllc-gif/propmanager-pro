@@ -118,6 +118,17 @@ export default function PaymentsPage() {
 
   const filtered = filter === 'all' ? payments : payments.filter(p => p.status === filter)
 
+  const summary = {
+    paid: payments.filter(p => p.status === 'paid').reduce((s, p) => s + p.amount_paid, 0),
+    due: payments.filter(p => p.status === 'due' || p.status === 'upcoming').reduce((s, p) => s + p.amount_due, 0),
+    late: payments.filter(p => p.status === 'late').reduce((s, p) => s + p.amount_due, 0),
+    partial: payments.filter(p => p.status === 'partial').reduce((s, p) => s + p.amount_paid, 0),
+    paidCount: payments.filter(p => p.status === 'paid').length,
+    dueCount: payments.filter(p => p.status === 'due' || p.status === 'upcoming').length,
+    lateCount: payments.filter(p => p.status === 'late').length,
+    partialCount: payments.filter(p => p.status === 'partial').length,
+  }
+
   const inp = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' }
   const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
   const g2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }
@@ -129,6 +140,20 @@ export default function PaymentsPage() {
         <button onClick={openAdd} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>+ Record Payment</button>
       </div>
 
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
+        {[
+          { label: 'Collected', value: fm(summary.paid), count: summary.paidCount, color: 'var(--green)', bg: 'var(--green-bg)', filterVal: 'paid', icon: '✅' },
+          { label: 'Due', value: fm(summary.due), count: summary.dueCount, color: 'var(--amber)', bg: 'var(--amber-bg)', filterVal: 'due', icon: '📅' },
+          { label: 'Late', value: fm(summary.late), count: summary.lateCount, color: 'var(--red)', bg: 'var(--red-bg)', filterVal: 'late', icon: '⚠️' },
+          { label: 'Partial', value: fm(summary.partial), count: summary.partialCount, color: 'var(--blue)', bg: 'var(--bg3)', filterVal: 'partial', icon: '🔄' },
+        ].map((s, i) => (
+          <button key={s.label} onClick={() => setFilter(filter === s.filterVal ? 'all' : s.filterVal)} style={{ padding: '14px 20px', background: filter === s.filterVal ? s.bg : 'var(--bg2)', border: 'none', borderRight: i < 3 ? '0.5px solid var(--border)' : 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>{s.icon} {s.label}</div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: s.color }}>{s.value}</div>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{s.count} payment{s.count !== 1 ? 's' : ''}</div>
+          </button>
+        ))}
+      </div>
       <div style={{ display: 'flex', gap: '6px', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexWrap: 'wrap' }}>
         {['all', 'paid', 'due', 'late', 'partial', 'upcoming', 'waived'].map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '20px', border: '0.5px solid var(--border2)', background: filter === f ? 'var(--green)' : 'transparent', color: filter === f ? '#fff' : 'var(--text2)', cursor: 'pointer', fontWeight: filter === f ? 700 : 400, textTransform: 'capitalize' }}>{f}</button>
