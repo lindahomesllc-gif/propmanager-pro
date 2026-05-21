@@ -9,6 +9,7 @@ export default function MaintenancePage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [propFilter, setPropFilter] = useState('all')
+  const [view, setView] = useState('list')
 
   useEffect(() => {
     Promise.all([
@@ -21,6 +22,17 @@ export default function MaintenancePage() {
     })
   }, [])
 
+  async function updateStatus(id, status) {
+    await supabase.from('maintenance').update({ status }).eq('id', id).eq('user_id', USER_ID)
+    setTickets(prev => prev.map(t => t.id === id ? { ...t, status } : t))
+  }
+
+  async function deleteTicket(id) {
+    if (!confirm('Delete this maintenance request?')) return
+    await supabase.from('maintenance').delete().eq('id', id).eq('user_id', USER_ID)
+    setTickets(prev => prev.filter(t => t.id !== id))
+  }
+
   const filtered = tickets.filter(t => {
     if (filter !== 'all' && t.status !== filter) return false
     if (propFilter !== 'all' && t.property_id !== propFilter) return false
@@ -32,86 +44,120 @@ export default function MaintenancePage() {
   const completed = tickets.filter(t => t.status === 'completed').length
   const totalCost = tickets.filter(t => t.actual_cost).reduce((s, t) => s + (t.actual_cost || 0), 0)
 
-  async function deleteTicket(id) {
-    if (!confirm('Delete this maintenance request?')) return
-    await supabase.from('maintenance').delete().eq('id', id).eq('user_id', USER_ID)
-    setTickets(prev => prev.filter(t => t.id !== id))
-  }
+  const priorityColor = (p) => ({ emergency: 'var(--red)', high: 'var(--amber)', medium: 'var(--blue)', low: 'var(--green)' }[p] || 'var(--text3)')
+  const priorityBg = (p) => ({ emergency: 'var(--red-bg)', high: 'var(--amber-bg)', medium: 'var(--bg3)', low: 'var(--green-bg)' }[p] || 'var(--bg3)')
+  const statusColor = (s) => ({ open: 'var(--amber)', scheduled: 'var(--blue)', in_progress: '#A78BFA', completed: 'var(--green)', cancelled: 'var(--text3)' }[s] || 'var(--text3)')
+  const statusBg = (s) => ({ open: 'var(--amber-bg)', scheduled: 'var(--bg3)', in_progress: '#A78BFA22', completed: 'var(--green-bg)', cancelled: 'var(--bg3)' }[s] || 'var(--bg3)')
 
-  const priorityColor = (p) => ({ emergency: 'var(--red)', high: 'var(--amber)', medium: 'var(--blue)', low: 'var(--green)' }[p] || 'var(--text2)')
-  const statusColor = (s) => ({ open: 'var(--amber)', scheduled: 'var(--blue)', in_progress: '#A78BFA', completed: 'var(--green)', cancelled: 'var(--text2)' }[s] || 'var(--text2)')
+  const TicketCard = ({ t, compact = false }) => (
+    <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + priorityColor(t.priority), borderRadius: '10px', padding: compact ? '12px 14px' : '16px 18px', marginBottom: compact ? '8px' : '0' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '2px' }}>{t.title}</div>
+          <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{t.properties?.address}{t.tenants ? ' · ' + t.tenants.full_name : ''}</div>
+        </div>
+        <div style={{ display: 'flex', gap: '5px', flexShrink: 0, marginLeft: '8px' }}>
+          <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '20px', background: priorityBg(t.priority), color: priorityColor(t.priority), fontWeight: 700, textTransform: 'uppercase' }}>{t.priority}</span>
+          <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '20px', background: statusBg(t.status), color: statusColor(t.status), fontWeight: 700, textTransform: 'capitalize' }}>{t.status?.replace('_', ' ')}</span>
+        </div>
+      </div>
+      {!compact && t.description && <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px', lineHeight: 1.5 }}>{t.description}</div>}
+      <div style={{ display: 'flex', gap: '10px', fontSize: '11px', color: 'var(--text3)', marginBottom: '10px', flexWrap: 'wrap' }}>
+        {t.category && <span>📂 {t.category.replace('_', ' ')}</span>}
+        {t.scheduled_date && <span>📅 {formatDate(t.scheduled_date)}</span>}
+        {t.actual_cost && <span>💰 {fm(t.actual_cost)}</span>}
+        {t.estimated_cost && !t.actual_cost && <span>Est: {fm(t.estimated_cost)}</span>}
+      </div>
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+        <a href={'/maintenance/' + t.id} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', textDecoration: 'none' }}>View</a>
+        <a href={'/maintenance/' + t.id + '/edit'} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', textDecoration: 'none' }}>Edit</a>
+        {t.status !== 'completed' && <button onClick={() => updateStatus(t.id, 'completed')} style={{ background: 'var(--green-bg)', color: 'var(--green)', border: '0.5px solid var(--green)', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}>✓ Complete</button>}
+        {t.status === 'open' && <button onClick={() => updateStatus(t.id, 'in_progress')} style={{ background: '#A78BFA22', color: '#A78BFA', border: '0.5px solid #A78BFA', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', cursor: 'pointer' }}>→ In Progress</button>}
+        <button onClick={() => deleteTicket(t.id)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', cursor: 'pointer' }}>Delete</button>
+      </div>
+    </div>
+  )
+
+  const boardCols = [
+    { key: 'open', label: '🔴 Open', color: 'var(--amber)' },
+    { key: 'scheduled', label: '📅 Scheduled', color: 'var(--blue)' },
+    { key: 'in_progress', label: '🔄 In Progress', color: '#A78BFA' },
+    { key: 'completed', label: '✅ Completed', color: 'var(--green)' },
+  ]
 
   return (
     <AppShell>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Maintenance</div>
-        <a href='/maintenance/new' style={{ background: 'var(--green)', color: 'var(--bg)', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, textDecoration: 'none', display: 'inline-block' }}>+ New Request</a>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', background: 'var(--bg3)', borderRadius: '8px', padding: '3px', border: '0.5px solid var(--border)' }}>
+            <button onClick={() => setView('list')} style={{ padding: '5px 12px', borderRadius: '6px', border: 'none', background: view === 'list' ? 'var(--bg2)' : 'transparent', color: view === 'list' ? 'var(--text)' : 'var(--text3)', fontSize: '12px', cursor: 'pointer', fontWeight: view === 'list' ? 600 : 400 }}>☰ List</button>
+            <button onClick={() => setView('board')} style={{ padding: '5px 12px', borderRadius: '6px', border: 'none', background: view === 'board' ? 'var(--bg2)' : 'transparent', color: view === 'board' ? 'var(--text)' : 'var(--text3)', fontSize: '12px', cursor: 'pointer', fontWeight: view === 'board' ? 600 : 400 }}>⊞ Board</button>
+          </div>
+          <a href='/maintenance/new' style={{ background: 'var(--green)', color: '#fff', borderRadius: '7px', padding: '8px 16px', fontSize: '12px', fontWeight: 700, textDecoration: 'none' }}>+ New Request</a>
+        </div>
       </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
+        {[
+          { label: '🔴 Open', value: open, color: 'var(--amber)', filterVal: 'open' },
+          { label: '🔄 In Progress', value: inProgress, color: '#A78BFA', filterVal: 'in_progress' },
+          { label: '✅ Completed', value: completed, color: 'var(--green)', filterVal: 'completed' },
+          { label: '💰 Total Cost', value: fm(totalCost), color: 'var(--red)', filterVal: null },
+        ].map((mc, i) => (
+          <button key={mc.label} onClick={() => mc.filterVal && setFilter(filter === mc.filterVal ? 'all' : mc.filterVal)} style={{ padding: '14px 20px', background: filter === mc.filterVal ? mc.color + '15' : 'var(--bg2)', border: 'none', borderRight: i < 3 ? '0.5px solid var(--border)' : 'none', cursor: mc.filterVal ? 'pointer' : 'default', textAlign: 'left' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: 600, marginBottom: '4px' }}>{mc.label}</div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color }}>{mc.value}</div>
+          </button>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', gap: '8px', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
+        <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ padding: '6px 10px', fontSize: '12px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none' }}>
+          <option value='all'>All Properties</option>
+          {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
+        </select>
+        {['all','open','scheduled','in_progress','completed','cancelled'].map(f => (
+          <button key={f} onClick={() => setFilter(f)} style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '20px', border: '0.5px solid var(--border2)', background: filter === f ? 'var(--green)' : 'transparent', color: filter === f ? '#fff' : 'var(--text2)', cursor: 'pointer', fontWeight: filter === f ? 700 : 400, textTransform: 'capitalize' }}>{f.replace('_',' ')}</button>
+        ))}
+      </div>
+
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
-          {[
-            { label: 'Open', value: open, color: 'var(--amber)' },
-            { label: 'In Progress', value: inProgress, color: '#A78BFA' },
-            { label: 'Completed', value: completed, color: 'var(--green)' },
-            { label: 'Total Requests', value: tickets.length, color: 'var(--text)' },
-            { label: 'Total Cost', value: fm(totalCost), color: 'var(--red)' },
-          ].map(mc => (
-            <div key={mc.label} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px' }}>
-              <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color, marginTop: '5px' }}>{mc.value}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-          <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ padding: '6px 10px', fontSize: '12px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none' }}>
-            <option value='all'>All Properties</option>
-            {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
-          </select>
-          <select value={filter} onChange={e => setFilter(e.target.value)} style={{ padding: '6px 10px', fontSize: '12px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none' }}>
-            <option value='all'>All Status</option>
-            <option value='open'>Open</option>
-            <option value='scheduled'>Scheduled</option>
-            <option value='in_progress'>In Progress</option>
-            <option value='completed'>Completed</option>
-            <option value='cancelled'>Cancelled</option>
-          </select>
-        </div>
         {loading && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading...</div>}
         {!loading && filtered.length === 0 && (
           <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
-            <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔧</div>
-            <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text2)', marginBottom: '6px' }}>No maintenance requests</div>
-            <a href='/maintenance/new' style={{ background: 'var(--green)', color: 'var(--bg)', padding: '8px 18px', borderRadius: '7px', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>+ New Request</a>
+            <div style={{ fontSize: '40px', marginBottom: '12px' }}>🔧</div>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text2)', marginBottom: '16px' }}>No maintenance requests</div>
+            <a href='/maintenance/new' style={{ background: 'var(--green)', color: '#fff', padding: '8px 18px', borderRadius: '7px', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>+ New Request</a>
           </div>
         )}
-        {!loading && filtered.length > 0 && (
+        {!loading && filtered.length > 0 && view === 'list' && (
           <div style={{ display: 'grid', gap: '10px' }}>
-            {filtered.map(t => (
-              <div key={t.id} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderLeft: '3px solid ' + priorityColor(t.priority), borderRadius: '10px', padding: '16px 20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{t.title}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>{t.properties?.address}</div>
-                    {t.tenants && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Reported by: {t.tenants.full_name}</div>}
+            {filtered.map(t => <TicketCard key={t.id} t={t} />)}
+          </div>
+        )}
+        {!loading && view === 'board' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '14px', alignItems: 'start' }}>
+            {boardCols.map(col => {
+              const colTickets = tickets.filter(t => {
+                const statusMatch = col.key === 'in_progress' ? (t.status === 'in_progress' || t.status === 'scheduled') : t.status === col.key
+                const propMatch = propFilter === 'all' || t.property_id === propFilter
+                return statusMatch && propMatch
+              })
+              return (
+                <div key={col.key}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: col.color }}>{col.label}</div>
+                    <span style={{ fontSize: '11px', padding: '1px 7px', borderRadius: '20px', background: col.color + '22', color: col.color, fontWeight: 700 }}>{colTickets.length}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: priorityColor(t.priority) + '22', color: priorityColor(t.priority), fontWeight: 600, textTransform: 'uppercase' }}>{t.priority}</span>
-                    <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: statusColor(t.status) + '22', color: statusColor(t.status), fontWeight: 600, textTransform: 'uppercase' }}>{t.status?.replace('_', ' ')}</span>
+                  <div style={{ display: 'grid', gap: '8px' }}>
+                    {colTickets.length === 0 ? (
+                      <div style={{ background: 'var(--bg2)', border: '0.5px dashed var(--border2)', borderRadius: '10px', padding: '20px', textAlign: 'center', color: 'var(--text3)', fontSize: '12px' }}>No tickets</div>
+                    ) : colTickets.map(t => <TicketCard key={t.id} t={t} compact={true} />)}
                   </div>
                 </div>
-                {t.description && <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>{t.description}</div>}
-                <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: 'var(--text3)', marginBottom: '10px' }}>
-                  {t.category && <span>📂 {t.category.replace('_', ' ')}</span>}
-                  {t.scheduled_date && <span>📅 {formatDate(t.scheduled_date)}</span>}
-                  {t.actual_cost && <span>💰 {fm(t.actual_cost)}</span>}
-                  {t.estimated_cost && !t.actual_cost && <span>Est: {fm(t.estimated_cost)}</span>}
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <a href={'/maintenance/' + t.id} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '6px 12px', fontSize: '12px', textDecoration: 'none' }}>View</a>
-                  <a href={'/maintenance/' + t.id + '/edit'} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '6px 12px', fontSize: '12px', textDecoration: 'none' }}>Edit</a>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
