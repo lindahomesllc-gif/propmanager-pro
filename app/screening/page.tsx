@@ -94,20 +94,6 @@ export default function ScreeningPage() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px,1fr))', gap: '10px', marginBottom: '20px' }}>
-          {[
-            { label: 'Total Applications', value: applications.length, color: 'var(--text)' },
-            { label: 'Pending Screening', value: applications.filter(a => a.status === 'received' || a.status === 'screening_initiated').length, color: 'var(--amber)' },
-            { label: 'Screening Complete', value: applications.filter(a => a.status === 'screening_complete').length, color: '#A78BFA' },
-            { label: 'Approved', value: applications.filter(a => a.status === 'approved').length, color: 'var(--green)' },
-          ].map(mc => (
-            <div key={mc.label} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px' }}>
-              <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color, marginTop: '5px' }}>{mc.value}</div>
-            </div>
-          ))}
-        </div>
-
         <input ref={fileRef} type='file' accept='application/pdf' style={{ display: 'none' }} onChange={e => uploadTarget && uploadReport(e, uploadTarget)} />
 
         {loading && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading...</div>}
