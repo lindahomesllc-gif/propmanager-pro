@@ -109,7 +109,6 @@ export default function ApplicationsPage() {
         ))}
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px,1fr))', gap: '10px', marginBottom: '20px' }}>
           {[
             { label: 'Total', value: applications.length, color: 'var(--text)' },
