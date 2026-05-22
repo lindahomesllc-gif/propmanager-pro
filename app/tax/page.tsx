@@ -40,11 +40,11 @@ export default function TaxPage() {
     deductible: yearExp.filter(e => e.category === cat && e.is_deductible).reduce((s, e) => s + e.amount, 0),
   })).sort((a, b) => b.total - a.total)
 
-  const sel = { padding: '6px 10px', fontSize: '12px', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none' }
+  const sel = { padding: '6px 10px', fontSize: '12px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none' }
 
   return (
     <AppShell>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Tax Reports</div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={sel}>
@@ -60,24 +60,23 @@ export default function TaxPage() {
         {loading && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading...</div>}
         {!loading && (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))', gap: '10px', marginBottom: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden', marginBottom: '20px' }}>
               {[
-                { label: 'Gross Rental Income', value: fm(totalIncome), color: 'var(--green)' },
-                { label: 'Total Expenses', value: fm(totalExp), color: 'var(--red)' },
-                { label: 'Deductible Expenses', value: fm(deductible), color: 'var(--amber)' },
-                { label: 'Net Taxable Income', value: fm(netIncome), color: netIncome >= 0 ? 'var(--green)' : 'var(--red)' },
-                { label: 'Non-Deductible', value: fm(totalExp - deductible), color: 'var(--text2)' },
-              ].map(mc => (
-                <div key={mc.label} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px' }}>
-                  <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: mc.color, marginTop: '5px' }}>{mc.value}</div>
+                { label: '💰 Gross Income', value: fm(totalIncome), color: 'var(--green)' },
+                { label: '💸 Total Expenses', value: fm(totalExp), color: 'var(--red)' },
+                { label: '✅ Deductible', value: fm(deductible), color: 'var(--amber)' },
+                { label: '📈 Net Taxable', value: fm(netIncome), color: netIncome >= 0 ? 'var(--green)' : 'var(--red)' },
+              ].map((mc, i) => (
+                <div key={mc.label} style={{ padding: '16px 20px', background: 'var(--bg2)', borderRight: i < 3 ? '0.5px solid var(--border)' : 'none' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: 600, marginBottom: '4px' }}>{mc.label}</div>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color }}>{mc.value}</div>
                 </div>
               ))}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
-              <div style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }}>Schedule E Summary</div>
+              <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', marginBottom: '14px' }}>Schedule E Summary</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
                   <span style={{ fontSize: '13px', color: 'var(--text2)' }}>Gross Rental Income</span>
                   <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--green)' }}>{fm(totalIncome)}</span>
@@ -92,8 +91,8 @@ export default function TaxPage() {
                 </div>
               </div>
 
-              <div style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }}>Expenses by Category</div>
+              <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', marginBottom: '14px' }}>Expenses by Category</div>
                 {byCategory.length === 0 ? (
                   <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No expenses for {year}.</div>
                 ) : byCategory.map(c => (
@@ -108,7 +107,7 @@ export default function TaxPage() {
               </div>
             </div>
 
-            <div style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px' }}>
+            <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)' }}>All Deductible Expenses {year}</div>
                 <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{yearExp.filter(e => e.is_deductible).length} records</div>
@@ -118,7 +117,7 @@ export default function TaxPage() {
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr style={{ borderBottom: '0.5px solid rgba(255,255,255,0.07)' }}>
+                    <tr style={{ borderBottom: '0.5px solid var(--border)' }}>
                       {['Date','Property','Category','Vendor','Amount'].map(h => (
                         <th key={h} style={{ padding: '8px 10px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text3)', textAlign: 'left' }}>{h}</th>
                       ))}
