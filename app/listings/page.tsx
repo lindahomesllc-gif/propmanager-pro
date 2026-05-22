@@ -72,9 +72,9 @@ export default function ListingsPage() {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
         {[
-          { label: '🏠 Active', value: listings.filter(l => l.status === 'active').length, color: 'var(--green)' },
-          { label: '📭 Inactive', value: listings.filter(l => l.status !== 'active').length, color: 'var(--text3)' },
-          { label: '🏚 Vacant', value: vacantProps.length, color: 'var(--amber)' },
+          { label: '🏠 Active', value: active.length, color: 'var(--green)' },
+          { label: '📭 Inactive', value: inactive.length, color: 'var(--text3)' },
+          { label: '🏚 Vacant', value: properties.filter(p => p.occupancy_status === 'vacant').length, color: 'var(--amber)' },
           { label: '💰 Avg Rent', value: listings.length ? '$' + Math.round(listings.reduce((s,l) => s + (l.rent_amount||0), 0) / listings.length).toLocaleString() : '—', color: 'var(--blue)' },
         ].map((mc, i) => (
           <div key={mc.label} style={{ padding: '14px 20px', background: 'var(--bg2)', borderRight: i < 3 ? '0.5px solid var(--border)' : 'none' }}>
