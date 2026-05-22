@@ -36,9 +36,9 @@ export default function MarketPage() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
         {[
-          { label: '🏠 Portfolio Value', value: fm(properties.reduce((s,p) => s + (p.market_value||0), 0)), color: 'var(--green)' },
-          { label: '💵 Total Purchased', value: fm(properties.reduce((s,p) => s + (p.purchase_price||0), 0)), color: 'var(--text)' },
-          { label: '📈 Appreciation', value: fm(properties.reduce((s,p) => s + ((p.market_value||0)-(p.purchase_price||0)), 0)), color: 'var(--green)' },
+          { label: '🏠 Portfolio Value', value: fm(totalMarket), color: 'var(--green)' },
+          { label: '💵 Total Purchased', value: fm(totalPurchase), color: 'var(--text)' },
+          { label: '📈 Appreciation', value: fm(totalAppreciation), color: 'var(--green)' },
           { label: '🏘 Properties', value: properties.length, color: 'var(--text)' },
         ].map((mc, i) => (
           <div key={mc.label} style={{ padding: '14px 20px', background: 'var(--bg2)', borderRight: i < 3 ? '0.5px solid var(--border)' : 'none' }}>

@@ -74,8 +74,8 @@ export default function QuickBooksPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
         {[
           { label: '💰 Total Income', value: fm(totalIncome), color: 'var(--green)' },
-          { label: '💸 Total Expenses', value: fm(totalExpenses), color: 'var(--red)' },
-          { label: '📈 Net Income', value: fm(totalIncome - totalExpenses), color: (totalIncome - totalExpenses) >= 0 ? 'var(--green)' : 'var(--red)' },
+          { label: '💸 Total Expenses', value: fm(totalExp), color: 'var(--red)' },
+          { label: '📈 Net Income', value: fm(totalIncome - totalExp), color: (totalIncome - totalExp) >= 0 ? 'var(--green)' : 'var(--red)' },
         ].map((mc, i) => (
           <div key={mc.label} style={{ padding: '14px 20px', background: 'var(--bg2)', borderRight: i < 2 ? '0.5px solid var(--border)' : 'none' }}>
             <div style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: 600, marginBottom: '4px' }}>{mc.label}</div>
