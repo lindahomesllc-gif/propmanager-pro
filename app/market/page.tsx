@@ -34,21 +34,19 @@ export default function MarketPage() {
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Market Data</div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))', gap: '10px', marginBottom: '20px' }}>
-          {[
-            { label: 'Portfolio Market Value', value: fm(totalMarket), color: 'var(--green)' },
-            { label: 'Total Purchased', value: fm(totalPurchase), color: 'var(--text)' },
-            { label: 'Total Appreciation', value: fm(totalAppreciation), color: totalAppreciation >= 0 ? 'var(--green)' : 'var(--red)' },
-            { label: 'Appreciation %', value: appreciationPct + '%', color: totalAppreciation >= 0 ? 'var(--green)' : 'var(--red)' },
-            { label: 'Properties', value: properties.length, color: 'var(--text)' },
-          ].map(mc => (
-            <div key={mc.label} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px' }}>
-              <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: mc.color, marginTop: '5px' }}>{mc.value}</div>
-            </div>
-          ))}
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
+        {[
+          { label: '🏠 Portfolio Value', value: fm(properties.reduce((s,p) => s + (p.market_value||0), 0)), color: 'var(--green)' },
+          { label: '💵 Total Purchased', value: fm(properties.reduce((s,p) => s + (p.purchase_price||0), 0)), color: 'var(--text)' },
+          { label: '📈 Appreciation', value: fm(properties.reduce((s,p) => s + ((p.market_value||0)-(p.purchase_price||0)), 0)), color: 'var(--green)' },
+          { label: '🏘 Properties', value: properties.length, color: 'var(--text)' },
+        ].map((mc, i) => (
+          <div key={mc.label} style={{ padding: '14px 20px', background: 'var(--bg2)', borderRight: i < 3 ? '0.5px solid var(--border)' : 'none' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: 600, marginBottom: '4px' }}>{mc.label}</div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color }}>{mc.value}</div>
+          </div>
+        ))}
+      </div>
 
         <div style={card}>
           <div style={secTtl}>Property Values</div>

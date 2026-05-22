@@ -71,20 +71,18 @@ export default function QuickBooksPage() {
           </div>
           <button style={{ ...btnB, opacity: 0.6, cursor: 'not-allowed' }}>Connect QuickBooks</button>
         </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))', gap: '10px', marginBottom: '20px' }}>
-          {[
-            { label: 'Total Income', value: fm(totalIncome), color: 'var(--green)' },
-            { label: 'Total Expenses', value: fm(totalExp), color: 'var(--red)' },
-            { label: 'Deductible', value: fm(deductible), color: 'var(--amber)' },
-            { label: 'Net Income', value: fm(totalIncome - totalExp), color: totalIncome - totalExp >= 0 ? 'var(--green)' : 'var(--red)' },
-          ].map(mc => (
-            <div key={mc.label} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px' }}>
-              <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color, marginTop: '5px' }}>{mc.value}</div>
-            </div>
-          ))}
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
+        {[
+          { label: '💰 Total Income', value: fm(totalIncome), color: 'var(--green)' },
+          { label: '💸 Total Expenses', value: fm(totalExpenses), color: 'var(--red)' },
+          { label: '📈 Net Income', value: fm(totalIncome - totalExpenses), color: (totalIncome - totalExpenses) >= 0 ? 'var(--green)' : 'var(--red)' },
+        ].map((mc, i) => (
+          <div key={mc.label} style={{ padding: '14px 20px', background: 'var(--bg2)', borderRight: i < 2 ? '0.5px solid var(--border)' : 'none' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: 600, marginBottom: '4px' }}>{mc.label}</div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color }}>{mc.value}</div>
+          </div>
+        ))}
+      </div>
 
         <div style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
