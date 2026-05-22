@@ -83,6 +83,71 @@ export default function ListingsPage() {
           </div>
         ))}
       </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+        {showAdd && (
+          <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '16px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', marginBottom: '14px' }}>+ New Listing</div>
+            {error && <div style={{ color: 'var(--red)', fontSize: '12px', marginBottom: '10px' }}>{error}</div>}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '4px' }}>Title</div>
+                <input value={form.title} onChange={e => setForm(f => ({...f, title: e.target.value}))} placeholder='e.g. 2BR in Sanford' style={{ width: '100%', padding: '8px 10px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '4px' }}>Rent Amount</div>
+                <input value={form.rent_amount} onChange={e => setForm(f => ({...f, rent_amount: e.target.value}))} placeholder='1500' type='number' style={{ width: '100%', padding: '8px 10px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '4px' }}>Property</div>
+                <select value={form.property_id} onChange={e => setForm(f => ({...f, property_id: e.target.value}))} style={{ width: '100%', padding: '8px 10px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none' }}>
+                  <option value=''>Select property</option>
+                  {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
+                </select>
+              </div>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '4px' }}>Available Date</div>
+                <input value={form.available_date} onChange={e => setForm(f => ({...f, available_date: e.target.value}))} type='date' style={{ width: '100%', padding: '8px 10px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '4px' }}>Description</div>
+              <textarea value={form.description} onChange={e => setForm(f => ({...f, description: e.target.value}))} rows={3} placeholder='Describe the unit...' style={{ width: '100%', padding: '8px 10px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
+            </div>
+            <button onClick={saveListing} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>Save Listing</button>
+          </div>
+        )}
+        {loading && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading...</div>}
+        {!loading && listings.length === 0 && !showAdd && (
+          <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
+            <div style={{ fontSize: '40px', marginBottom: '12px' }}>🏠</div>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text2)', marginBottom: '16px' }}>No listings yet</div>
+            <button onClick={() => setShowAdd(true)} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>+ New Listing</button>
+          </div>
+        )}
+        {!loading && listings.length > 0 && (
+          <div style={{ display: 'grid', gap: '10px' }}>
+            {listings.map(l => (
+              <div key={l.id} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + (l.is_active ? 'var(--green)' : 'var(--text3)'), borderRadius: '10px', padding: '16px 18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>{l.title || l.properties?.address}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>📍 {l.properties?.address}{l.available_date ? ' · Available ' + l.available_date : ''}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: 'var(--green)' }}>${l.rent_amount?.toLocaleString()}/mo</div>
+                    <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: l.is_active ? 'var(--green-bg)' : 'var(--bg3)', color: l.is_active ? 'var(--green)' : 'var(--text3)', fontWeight: 600 }}>{l.is_active ? 'Active' : 'Inactive'}</span>
+                  </div>
+                </div>
+                {l.description && <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '10px', lineHeight: 1.5 }}>{l.description}</div>}
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button onClick={() => toggleActive(l.id, l.is_active)} style={{ background: l.is_active ? 'var(--amber-bg)' : 'var(--green-bg)', color: l.is_active ? 'var(--amber)' : 'var(--green)', border: '0.5px solid ' + (l.is_active ? 'var(--amber)' : 'var(--green)'), borderRadius: '6px', padding: '5px 12px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}>{l.is_active ? 'Deactivate' : 'Activate'}</button>
+                  <button onClick={() => deleteListing(l.id)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', cursor: 'pointer' }}>Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </AppShell>
   )
 }
