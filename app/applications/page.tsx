@@ -108,6 +108,68 @@ export default function ApplicationsPage() {
           </button>
         ))}
       </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+        {loading && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading...</div>}
+        {!loading && filtered.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
+            <div style={{ fontSize: '40px', marginBottom: '12px' }}>📋</div>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text2)', marginBottom: '16px' }}>No applications found</div>
+            <a href='/applications/new' style={{ background: 'var(--green)', color: '#fff', padding: '8px 18px', borderRadius: '7px', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>+ New Application</a>
+          </div>
+        )}
+        {!loading && filtered.map(a => (
+          <div key={a.id} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + statusColor(a.status), borderRadius: '10px', padding: '16px 18px', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+              <div>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>{a.applicant_name}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>📍 {a.properties?.address || 'No property'}{a.desired_move_in ? ' · Move in: ' + a.desired_move_in : ''}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{a.email}{a.phone ? ' · ' + a.phone : ''}</div>
+              </div>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+                <span style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '20px', background: statusColor(a.status) + '22', color: statusColor(a.status), fontWeight: 700, textTransform: 'capitalize' }}>
+                  {a.status === 'converted' ? '✓ Converted' : a.status?.replace(/_/g, ' ')}
+                </span>
+              </div>
+            </div>
+            {a.credit_score && (
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: 'var(--bg3)', color: recColor(a.ai_recommendation), border: '0.5px solid var(--border)', fontWeight: 600 }}>Credit: {a.credit_score}</span>
+                {a.criminal_check && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--text2)', border: '0.5px solid var(--border)' }}>Criminal: {a.criminal_check?.replace(/_/g,' ')}</span>}
+                {a.eviction_check && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--text2)', border: '0.5px solid var(--border)' }}>Eviction: {a.eviction_check?.replace(/_/g,' ')}</span>}
+                {a.ai_recommendation && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: recColor(a.ai_recommendation) + '22', color: recColor(a.ai_recommendation), border: '0.5px solid var(--border)', fontWeight: 700, textTransform: 'capitalize' }}>→ {a.ai_recommendation}</span>}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {a.status !== 'approved' && a.status !== 'denied' && a.status !== 'converted' && (
+                <>
+                  <button onClick={() => updateStatus(a.id, 'approved')} style={{ background: 'var(--green-bg)', color: 'var(--green)', border: '0.5px solid var(--green)', borderRadius: '6px', padding: '5px 12px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}>✓ Approve</button>
+                  <button onClick={() => updateStatus(a.id, 'denied')} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '6px', padding: '5px 12px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}>✗ Deny</button>
+                </>
+              )}
+              {(a.status === 'approved') && (
+                <>
+                  <button onClick={() => convertToTenant(a)} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '6px', padding: '5px 12px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>👤 Convert to Tenant</button>
+                  <button onClick={() => setShowCoTenant(showCoTenant === a.id ? null : a.id)} style={{ background: 'var(--bg3)', color: 'var(--blue)', border: '0.5px solid var(--border2)', borderRadius: '6px', padding: '5px 12px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>👥 Add as Co-Tenant</button>
+                </>
+              )}
+              {a.status === 'converted' && a.tenant_id && (
+                <a href={'/tenants/' + a.tenant_id} style={{ background: 'var(--green-bg)', color: 'var(--green)', border: '0.5px solid var(--green)', borderRadius: '6px', padding: '5px 12px', fontSize: '11px', fontWeight: 700, textDecoration: 'none' }}>View Tenant →</a>
+              )}
+              {a.screening_report_url && (
+                <a href={a.screening_report_url} target='_blank' style={{ background: 'var(--bg3)', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '6px', padding: '5px 12px', fontSize: '11px', textDecoration: 'none' }}>📄 Report</a>
+              )}
+            </div>
+            {showCoTenant === a.id && (
+              <div style={{ marginTop: '10px', background: 'var(--bg3)', borderRadius: '8px', padding: '12px', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text2)', fontWeight: 600 }}>Add as co-tenant to:</span>
+                {tenants.map(t => (
+                  <button key={t.id} onClick={() => addAsCoTenant(a, t.id)} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '6px', padding: '5px 12px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}>{t.full_name}</button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </AppShell>
   )
 }
