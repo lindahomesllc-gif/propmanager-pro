@@ -95,6 +95,20 @@ export default function ApplicationsPage() {
           <a href='/applications/new' style={{ background: 'var(--green)', color: 'var(--bg)', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, textDecoration: 'none', display: 'inline-block' }}>+ New Application</a>
         </div>
       </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
+        {[
+          { label: '📋 Total', value: applications.length, color: 'var(--text)', f: 'all' },
+          { label: '⏳ Pending', value: applications.filter(a => a.status === 'received' || a.status === 'screening_initiated' || a.status === 'screening_complete').length, color: 'var(--amber)', f: 'received' },
+          { label: '✅ Approved', value: applications.filter(a => a.status === 'approved' || a.status === 'converted').length, color: 'var(--green)', f: 'approved' },
+          { label: '❌ Denied', value: applications.filter(a => a.status === 'denied').length, color: 'var(--red)', f: 'denied' },
+        ].map((mc, i) => (
+          <button key={mc.label} onClick={() => setFilter(filter === mc.f ? 'all' : mc.f)} style={{ padding: '14px 20px', background: filter === mc.f ? mc.color + '15' : 'var(--bg2)', border: 'none', borderRight: i < 3 ? '0.5px solid var(--border)' : 'none', cursor: 'pointer', textAlign: 'left' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: 600, marginBottom: '4px' }}>{mc.label}</div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color }}>{mc.value}</div>
+          </button>
+        ))}
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px,1fr))', gap: '10px', marginBottom: '20px' }}>
           {[
