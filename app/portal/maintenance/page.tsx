@@ -35,7 +35,7 @@ export default function TenantMaintenance() {
     setSaving(true)
     setError('')
     const { data, error: err } = await supabase.from('maintenance').insert({
-      user_id: 'cacb3a74-75d7-4e07-af71-6db4fdde9a92',
+      user_id: tenant.user_id,
       tenant_id: tenant.id,
       property_id: tenant.properties?.id || tenant.property_id,
       title: form.title,
