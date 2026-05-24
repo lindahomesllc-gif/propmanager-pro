@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation'
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 
 export default function TenantMaintenance() {
-  const [tickets, setTickets] = useState([])
-  const [tenant, setTenant] = useState(null)
+  const [tickets, setTickets] = useState<any[]>([])
+  const [tenant, setTenant] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)

@@ -9,10 +9,10 @@ const supabase = createClient(
 )
 
 export default function TenantDashboard() {
-  const [tenant, setTenant] = useState(null)
-  const [lease, setLease] = useState(null)
-  const [payments, setPayments] = useState([])
-  const [maintenance, setMaintenance] = useState([])
+  const [tenant, setTenant] = useState<any>(null)
+  const [lease, setLease] = useState<any>(null)
+  const [payments, setPayments] = useState<any[]>([])
+  const [maintenance, setMaintenance] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
