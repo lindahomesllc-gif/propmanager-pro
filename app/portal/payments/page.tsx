@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 
 export default function PaymentsPage() {
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
   const router = useRouter()
   const [payments, setPayments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)

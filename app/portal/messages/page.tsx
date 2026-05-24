@@ -1,18 +1,19 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 
 export default function MessagesPage() {
   const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   )
   const router = useRouter()
-  const [messages, setMessages] = useState<any[]>([])
-  const [tenant, setTenant] = useState<any>(null)
+  const [messages, setMessages] = useState([])
+  const [tenant, setTenant] = useState(null)
   const [newMsg, setNewMsg] = useState('')
   const [loading, setLoading] = useState(true)
+  const bottomRef = useRef(null)
 
   useEffect(() => {
     async function load() {
@@ -40,6 +41,7 @@ export default function MessagesPage() {
     setNewMsg('')
     const { data: m } = await supabase.from('messages').select('*').eq('tenant_id', tenant.id).order('created_at', { ascending: true })
     setMessages(m || [])
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
   }
 
   if (loading) return <div className="p-8 text-center">Loading...</div>
@@ -50,14 +52,13 @@ export default function MessagesPage() {
       <div className="flex-1 overflow-y-auto space-y-3 mb-4 border rounded-lg p-4 bg-gray-50">
         {messages.length === 0 && <p className="text-gray-400 text-center">No messages yet.</p>}
         {messages.map((m) => (
-          <div key={m.id} className={`flex ${m.sender === 'tenant' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-xs px-4 py-2 rounded-2xl text-sm ${
-              m.sender === 'tenant' ? 'bg-blue-600 text-white' : 'bg-white border text-gray-800'
-            }`}>
+          <div key={m.id} className={"flex " + (m.sender === 'tenant' ? 'justify-end' : 'justify-start')}>
+            <div className={"max-w-xs px-4 py-2 rounded-2xl text-sm " + (m.sender === 'tenant' ? 'bg-blue-600 text-white' : 'bg-white border text-gray-800')}>
               {m.body}
             </div>
           </div>
         ))}
+        <div ref={bottomRef} />
       </div>
       <div className="flex gap-2">
         <input
