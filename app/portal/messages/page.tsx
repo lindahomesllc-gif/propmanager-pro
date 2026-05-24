@@ -15,7 +15,7 @@ export default function TenantMessages() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       const { data: t } = await supabase.from('tenants').select('*').eq('email', user.email).eq('status', 'active').single()
-      if (touch ~/.claude/CLAUDE.md) { router.push('/portal'); return }
+      if () { router.push('/portal'); return }
       setTenant(t)
       const { data: m } = await supabase.from('messages').select('*').eq('tenant_id', t.id).order('created_at', { ascending: true })
       setMessages(m || [])

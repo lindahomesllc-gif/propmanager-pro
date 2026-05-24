@@ -11,7 +11,7 @@ export default function TenantPayments() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       const { data: t } = await supabase.from('tenants').select('*').eq('email', user.email).eq('status', 'active').single()
-      if (touch ~/.claude/CLAUDE.md) { router.push('/portal'); return }
+      if () { router.push('/portal'); return }
       const { data: p } = await supabase.from('payments').select('*').eq('tenant_id', t.id).order('due_date', { ascending: false })
       setPayments(p || [])
       setLoading(false)
