@@ -47,16 +47,16 @@ export default function TenantMaintenance() {
     setSaving(false)
     if (err) { setError(err.message); return }
     setTickets(prev => [data, ...prev])
-    setForm({ title: '', description: '', category: 'repairs_maintenance', priority: 'medium' })
+    setForm({ title: '', description: '', category: 'plumbing', priority: 'medium' })
     setShowForm(false)
     setSuccess('Request submitted! Your landlord will be in touch soon.')
     setTimeout(() => setSuccess(''), 4000)
   }
 
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
-  const statusColor = (s) => ({ open: '#D97706', scheduled: '#2563EB', in_progress: '#7C3AED', completed: '#16A34A', cancelled: '#6B7280' }[s] || '#6B7280')
+  const statusColor = (s) => ({ open: '#D97706', scheduled: '#2563EB', in_progress: '#7C3AED', completed: '#2D6A4F', cancelled: '#6B7280' }[s] || '#6B7280')
   const statusBg = (s) => ({ open: '#FEF3C7', scheduled: '#EFF6FF', in_progress: '#EDE9FE', completed: '#DCFCE7', cancelled: '#F3F4F6' }[s] || '#F3F4F6')
-  const priorityColor = (p) => ({ emergency: '#DC2626', high: '#D97706', medium: '#2563EB', low: '#16A34A' }[p] || '#6B7280')
+  const priorityColor = (p) => ({ emergency: '#DC2626', high: '#D97706', medium: '#2563EB', low: '#2D6A4F' }[p] || '#6B7280')
 
   const inp = { width: '100%', padding: '10px 12px', fontSize: '13px', border: '1.5px solid #E5E7EB', borderRadius: '8px', outline: 'none', boxSizing: 'border-box' as const, background: '#FAFAFA' }
 

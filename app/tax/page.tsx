@@ -77,11 +77,11 @@ export default function TaxPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
               <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
                 <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', marginBottom: '14px' }}>Schedule E Summary</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
                   <span style={{ fontSize: '13px', color: 'var(--text2)' }}>Gross Rental Income</span>
                   <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--green)' }}>{fm(totalIncome)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
                   <span style={{ fontSize: '13px', color: 'var(--text2)' }}>Total Deductible Expenses</span>
                   <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--red)' }}>({fm(deductible)})</span>
                 </div>
@@ -96,7 +96,7 @@ export default function TaxPage() {
                 {byCategory.length === 0 ? (
                   <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No expenses for {year}.</div>
                 ) : byCategory.map(c => (
-                  <div key={c.cat} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+                  <div key={c.cat} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '0.5px solid var(--border)' }}>
                     <div>
                       <div style={{ fontSize: '12px', color: 'var(--text)', textTransform: 'capitalize' }}>{c.cat.replace(/_/g, ' ')}</div>
                       <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{c.count} records · {fm(c.deductible)} deductible</div>
@@ -125,7 +125,7 @@ export default function TaxPage() {
                   </thead>
                   <tbody>
                     {yearExp.filter(e => e.is_deductible).map(e => (
-                      <tr key={e.id} style={{ borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+                      <tr key={e.id} style={{ borderBottom: '0.5px solid var(--border)' }}>
                         <td style={{ padding: '8px 10px', fontSize: '12px', color: 'var(--text2)' }}>{e.expense_date}</td>
                         <td style={{ padding: '8px 10px', fontSize: '12px', color: 'var(--text)' }}>{e.properties?.address || '—'}</td>
                         <td style={{ padding: '8px 10px', fontSize: '12px', color: 'var(--text2)', textTransform: 'capitalize' }}>{e.category?.replace(/_/g, ' ')}</td>

@@ -13,9 +13,9 @@
   --text:     #1A1A18;
   --text2:    #5A5A56;
   --text3:    #9A9A96;
-  --green:    #16A34A;
-  --green-dk: #15803D;
-  --green-bg: rgba(22,163,74,0.1);
+  --green:    #2D6A4F;
+  --green-dk: #245741;
+  --green-bg: rgba(45,106,79,0.1);
   --amber:    #D97706;
   --amber-bg: rgba(217,119,6,0.1);
   --red:      #DC2626;
@@ -45,7 +45,18 @@ body {
   border: 0.5px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
+.shadow-card { box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+
+/* Loading skeleton */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg3) 25%, var(--bg4) 37%, var(--bg3) 63%);
+  background-size: 400% 100%;
+  animation: skel 1.4s ease infinite;
+  border-radius: 8px;
+}
+@keyframes skel { 0% { background-position: 100% 50% } 100% { background-position: 0 50% } }
 
 /* Buttons */
 .btn {
@@ -67,7 +78,7 @@ body {
 .btn:hover { background: var(--bg4); }
 .btn-primary {
   background: var(--green);
-  color: #0E0E0C;
+  color: #fff;
   border-color: var(--green);
   font-weight: 700;
 }

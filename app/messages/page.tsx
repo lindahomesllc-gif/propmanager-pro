@@ -41,14 +41,14 @@ export default function MessagesPage() {
 
   return (
     <AppShell>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Messages</div>
       </div>
 
       <div style={{ flex: 1, overflow: 'hidden', display: 'grid', gridTemplateColumns: '200px 1fr' }}>
         {/* Thread list */}
-        <div style={{ background: 'var(--bg2)', borderRight: '0.5px solid rgba(255,255,255,0.07)', overflowY: 'auto' }}>
-          <div style={{ padding: '10px 12px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', borderBottom: '0.5px solid rgba(255,255,255,0.07)' }}>
+        <div style={{ background: 'var(--bg2)', borderRight: '0.5px solid var(--border)', overflowY: 'auto' }}>
+          <div style={{ padding: '10px 12px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', borderBottom: '0.5px solid var(--border)' }}>
             Conversations
           </div>
           {loading ? (
@@ -61,7 +61,7 @@ export default function MessagesPage() {
             return (
               <div key={t.id} onClick={() => setActiveId(t.id)} style={{
                 display: 'flex', alignItems: 'center', gap: '9px', padding: '10px 12px',
-                cursor: 'pointer', borderBottom: '0.5px solid rgba(255,255,255,0.07)',
+                cursor: 'pointer', borderBottom: '0.5px solid var(--border)',
                 background: t.id === activeId ? 'var(--bg3)' : 'transparent',
                 borderLeft: t.id === activeId ? '2px solid #4ADE9A' : '2px solid transparent',
               }}>
@@ -84,7 +84,7 @@ export default function MessagesPage() {
         <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
           {activeTenant ? (
             <>
-              <div style={{ padding: '12px 16px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ padding: '12px 16px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#1E3D2A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: 'var(--green)' }}>
                   {activeTenant.full_name.split(' ').map((w:string)=>w[0]).join('').slice(0,2)}
                 </div>
@@ -107,7 +107,7 @@ export default function MessagesPage() {
                         {isMe ? 'P' : activeTenant.full_name.split(' ').map((w:string)=>w[0]).join('').slice(0,2)}
                       </div>
                       <div>
-                        <div style={{ maxWidth: '72%', padding: '9px 13px', borderRadius: '12px', fontSize: '12.5px', lineHeight: 1.55, background: isMe ? 'var(--green)' : 'var(--bg3)', color: isMe ? 'var(--bg)' : 'var(--text)', fontWeight: isMe ? 500 : 400, borderBottomRightRadius: isMe ? '3px' : '12px', borderBottomLeftRadius: isMe ? '12px' : '3px', border: isMe ? 'none' : '0.5px solid rgba(255,255,255,0.07)' }}>
+                        <div style={{ maxWidth: '72%', padding: '9px 13px', borderRadius: '12px', fontSize: '12.5px', lineHeight: 1.55, background: isMe ? 'var(--green)' : 'var(--bg3)', color: isMe ? 'var(--bg)' : 'var(--text)', fontWeight: isMe ? 500 : 400, borderBottomRightRadius: isMe ? '3px' : '12px', borderBottomLeftRadius: isMe ? '12px' : '3px', border: isMe ? 'none' : '0.5px solid var(--border)' }}>
                           {m.body}
                         </div>
                         <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '3px', textAlign: isMe ? 'right' : 'left' }}>
@@ -119,7 +119,7 @@ export default function MessagesPage() {
                 })}
               </div>
 
-              <div style={{ padding: '10px 14px', borderTop: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)', display: 'flex', gap: '8px' }}>
+              <div style={{ padding: '10px 14px', borderTop: '0.5px solid var(--border)', background: 'var(--bg2)', display: 'flex', gap: '8px' }}>
                 <input
                   className="input"
                   value={input}

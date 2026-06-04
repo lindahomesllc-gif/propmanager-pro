@@ -25,15 +25,15 @@ export default function MaintenanceDetailPage({ params }) {
   const t = ticket
   const priorityColor = { emergency: 'var(--red)', high: 'var(--amber)', medium: 'var(--blue)', low: 'var(--green)' }[t.priority] || 'var(--text2)'
   const statusColor = { open: 'var(--amber)', scheduled: 'var(--blue)', in_progress: '#A78BFA', completed: 'var(--green)', cancelled: 'var(--text2)' }[t.status] || 'var(--text2)'
-  const card = { background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
+  const card = { background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
   const secTtl = { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }
   const lbl = { fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }
   const val = { fontSize: '13px', fontWeight: 500, color: 'var(--text)', marginTop: '2px' }
-  const btnG = { background: 'transparent', color: 'var(--text2)', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
+  const btnG = { background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
 
   return (
     <AppShell>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid rgba(255,255,255,0.07)', background: 'var(--bg2)', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div>
           <a href='/maintenance' style={{ fontSize: '11px', color: 'var(--text3)', textDecoration: 'none' }}>← Maintenance</a>
           <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginTop: '2px' }}>{t.title}</div>
@@ -55,7 +55,7 @@ export default function MaintenanceDetailPage({ params }) {
             { label: 'Actual Cost', value: t.actual_cost ? fm(t.actual_cost) : '—', color: t.actual_cost ? 'var(--red)' : 'var(--text3)' },
             { label: 'Completed', value: t.completed_date ? formatDate(t.completed_date) : '—', color: 'var(--green)' },
           ].map(mc => (
-            <div key={mc.label} style={{ background: 'var(--bg2)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px' }}>
+            <div key={mc.label} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px' }}>
               <div style={lbl}>{mc.label}</div>
               <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: mc.color, marginTop: '5px', textTransform: 'capitalize' }}>{mc.value}</div>
             </div>
