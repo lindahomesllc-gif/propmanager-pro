@@ -101,11 +101,12 @@ export async function GET(request: Request) {
   }
 
   try {
+    const toLatin1 = (s: string) => s.replace(/[–—]/g, '-').replace(/[^\x00-\xFF]/g, '')
     const payload = JSON.stringify({
       personalizations: [{ to: [{ email: to }] }],
       from: { email: from, name: 'PropManager Pro' },
-      subject: `Due Dates: ${overdue} overdue, ${dueSoon} due this week`,
-      content: [{ type: 'text/html', value: html }],
+      subject: toLatin1(`Due Dates: ${overdue} overdue, ${dueSoon} due this week`),
+      content: [{ type: 'text/html', value: toLatin1(html) }],
     })
     const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
@@ -120,6 +121,14 @@ export async function GET(request: Request) {
     }
     return NextResponse.json({ status: 'sent', to, summary: { overdue, dueSoon, atRisk, items: items.length } })
   } catch (e: any) {
-    return NextResponse.json({ status: 'error', message: String(e?.message || e) }, { status: 500 })
+    return NextResponse.json({
+      status: 'error', build: 'v3', message: String(e?.message || e),
+      diag: {
+        apiKeyLen: apiKey?.length || 0,
+        authAscii: /^[\x00-\xFF]*$/.test('Bearer ' + (apiKey || '')),
+        fromAscii: /^[\x00-\xFF]*$/.test(from || ''),
+        toAscii: /^[\x00-\xFF]*$/.test(to || ''),
+      },
+    }, { status: 500 })
   }
 }
