@@ -18,22 +18,34 @@ export default function CalendarPage() {
   }, [])
 
   useEffect(() => {
+    const y = currentDate.getFullYear()
+    const mo = currentDate.getMonth() + 1
+    const pad = n => String(n).padStart(2, '0')
+    const monthPrefix = y + '-' + pad(mo)
+    const dim = new Date(y, mo, 0).getDate()
+    const todayStr = new Date().toISOString().split('T')[0]
     Promise.all([
-      supabase.from('payments').select('*, tenants(full_name), properties(address)').eq('user_id', USER_ID).in('status', ['due','upcoming','late']).order('due_date'),
       supabase.from('leases').select('*, tenants(full_name), properties(address)').eq('user_id', USER_ID).eq('status', 'executed'),
+      supabase.from('payments').select('lease_id, status').eq('user_id', USER_ID).gte('due_date', monthPrefix + '-01').lte('due_date', monthPrefix + '-31'),
       supabase.from('maintenance').select('*, properties(address)').eq('user_id', USER_ID).not('scheduled_date', 'is', null).in('status', ['open','scheduled','in_progress']),
       supabase.from('mortgages').select('*, properties(address)').eq('user_id', USER_ID).eq('is_paid_off', false),
-    ]).then(([pay, lea, mai, mor]) => {
+    ]).then(([lea, pay, mai, mor]) => {
       const ev = []
-      const y = currentDate.getFullYear()
-      const m = currentDate.getMonth() + 1
-      const pad = n => String(n).padStart(2, '0')
-      pay.data?.forEach(p => ev.push({ date: p.due_date, label: (p.tenants?.full_name || 'Tenant') + ' — Rent Due', amount: p.amount_due, color: p.status === 'late' ? '#F87171' : '#FBB040', type: 'payment', link: '/payments' }))
-      lea.data?.forEach(l => ev.push({ date: l.end_date, label: (l.tenants?.full_name || 'Tenant') + ' — Lease Expires', amount: l.rent_amount, color: '#60A5FA', type: 'lease', link: '/leases/' + l.id }))
+      lea.data?.forEach(l => {
+        // Recurring rent due, projected onto every month from the lease's due_day
+        if (l.due_day) {
+          const dateStr = monthPrefix + '-' + pad(Math.min(l.due_day, dim))
+          const isPaid = pay.data?.some(p => p.lease_id === l.id && p.status === 'paid')
+          const state = isPaid ? 'Paid' : (dateStr < todayStr ? 'Overdue' : 'Due')
+          ev.push({ date: dateStr, label: (l.tenants?.full_name || 'Tenant') + ' — Rent ' + state, amount: l.rent_amount, color: isPaid ? '#34D399' : (dateStr < todayStr ? '#F87171' : '#FBB040'), type: 'payment', link: '/payments' })
+        }
+        // Lease expiration (shows in whichever month it falls)
+        if (l.end_date) ev.push({ date: l.end_date, label: (l.tenants?.full_name || 'Tenant') + ' — Lease Expires', amount: l.rent_amount, color: '#60A5FA', type: 'lease', link: '/leases/' + l.id })
+      })
       mai.data?.forEach(m => ev.push({ date: m.scheduled_date, label: m.title + ' — ' + (m.properties?.address || ''), color: '#A78BFA', type: 'maintenance', link: '/maintenance/' + m.id }))
-      mor.data?.forEach(mo => {
-        const date = y + '-' + pad(m) + '-' + pad(mo.due_day)
-        ev.push({ date, label: (mo.properties?.address || 'Property') + ' — Mortgage', amount: mo.monthly_payment, color: '#34D399', type: 'mortgage', link: '/mortgage' })
+      mor.data?.forEach(mt => {
+        const dateStr = monthPrefix + '-' + pad(Math.min(mt.due_day || 1, dim))
+        ev.push({ date: dateStr, label: (mt.properties?.address || 'Property') + ' — Mortgage', amount: mt.monthly_payment, color: '#9CA3AF', type: 'mortgage', link: '/mortgage' })
       })
       setEvents(ev)
       setLoading(false)
@@ -89,6 +101,7 @@ export default function CalendarPage() {
             {[2023,2024,2025,2026,2027,2028,2029,2030].map(y => <option key={y} value={y}>{y}</option>)}
           </select>
           <button onClick={nextMonth} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' }}>→</button>
+          <button onClick={() => setCurrentDate(new Date())} className='btn btn-ghost'>Today</button>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'grid', gridTemplateColumns: '1fr 280px', gap: '20px' }}>

@@ -31,6 +31,14 @@ export default function AlertsPage() {
 
   const today = new Date()
   const daysUntil = (date) => Math.ceil((new Date(date) - today) / (1000 * 60 * 60 * 24))
+  const daysSince = (date) => Math.max(0, Math.floor((today - new Date(date)) / (1000 * 60 * 60 * 24)))
+  // Days until the next occurrence of a monthly due-day (never falsely negative)
+  const nextDueDays = (dueDay) => {
+    const d = today.getDate()
+    if (dueDay >= d) return dueDay - d
+    const dim = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
+    return (dim - d) + dueDay
+  }
 
   const urgencyColor = (days) => {
     if (days < 0) return '#F87171'
@@ -72,7 +80,7 @@ export default function AlertsPage() {
 
   const filters = ['all', 'urgent', 'payments', 'leases', 'insurance', 'maintenance', 'mortgage']
 
-  const AlertCard = ({ title, subtitle, days, color, link, onDelete }) => (
+  const AlertCard = ({ title, subtitle, days, color, link, label }) => (
     <a href={link || '#'} onClick={!link ? e => e.preventDefault() : undefined} style={{ textDecoration: 'none', display: 'block' }}>
       <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + (color || urgencyColor(days)), borderRadius: '10px', padding: '14px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -80,7 +88,7 @@ export default function AlertsPage() {
           <div style={{ fontSize: '11px', color: color || urgencyColor(days), marginTop: '2px' }}>{subtitle}</div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 600, color: color || urgencyColor(days), background: (color || urgencyColor(days)) + '22', padding: '2px 8px', borderRadius: '20px' }}>{urgencyLabel(days)}</div>
+          <div style={{ fontSize: '11px', fontWeight: 600, color: color || urgencyColor(days), background: (color || urgencyColor(days)) + '22', padding: '2px 8px', borderRadius: '20px' }}>{label || urgencyLabel(days)}</div>
         </div>
       </div>
     </a>
@@ -152,24 +160,26 @@ export default function AlertsPage() {
 
             {(filter === 'all' || filter === 'urgent' || filter === 'maintenance') && emergencyMaint.length > 0 && (
               <Section title='High Priority Maintenance' count={emergencyMaint.length} color='var(--red)'>
-                {emergencyMaint.map(m => (
-                  <AlertCard key={m.id} title={m.title} subtitle={(m.properties?.address || '') + ' · ' + m.priority + ' priority · ' + m.status?.replace('_', ' ')} days={0} color='var(--red)' link={'/maintenance/' + m.id} />
-                ))}
+                {emergencyMaint.map(m => {
+                  const d = m.scheduled_date ? daysUntil(m.scheduled_date) : null
+                  return <AlertCard key={m.id} title={m.title} subtitle={(m.properties?.address || '') + ' · ' + m.priority + ' priority · ' + m.status?.replace('_', ' ') + (m.scheduled_date ? ' · scheduled ' + formatDate(m.scheduled_date) : '')} days={d ?? 0} label={d !== null ? undefined : (m.priority === 'emergency' ? '🔴 Emergency' : '🟠 High priority')} color={m.priority === 'emergency' ? '#F87171' : '#FBB040'} link={'/maintenance/' + m.id} />
+                })}
               </Section>
             )}
 
             {(filter === 'all' || filter === 'maintenance') && openMaint.length > 0 && (
               <Section title='Open Maintenance' count={openMaint.length} color='var(--amber)'>
-                {openMaint.map(m => (
-                  <AlertCard key={m.id} title={m.title} subtitle={(m.properties?.address || '') + ' · ' + m.priority + ' priority'} days={7} link={'/maintenance/' + m.id} />
-                ))}
+                {openMaint.map(m => {
+                  const d = m.scheduled_date ? daysUntil(m.scheduled_date) : null
+                  return <AlertCard key={m.id} title={m.title} subtitle={(m.properties?.address || '') + ' · ' + m.priority + ' priority' + (m.scheduled_date ? ' · scheduled ' + formatDate(m.scheduled_date) : '')} days={d ?? 0} label={d !== null ? undefined : 'Open ' + daysSince(m.created_at) + 'd'} color={d !== null ? undefined : '#A8A69E'} link={'/maintenance/' + m.id} />
+                })}
               </Section>
             )}
 
             {(filter === 'all' || filter === 'mortgage') && mortgages.length > 0 && (
               <Section title='Monthly Mortgages' count={mortgages.length} color='var(--blue)'>
                 {mortgages.map(m => (
-                  <AlertCard key={m.id} title={(m.properties?.address || 'Property') + ' — Mortgage'} subtitle={(m.lender_name || 'No lender') + ' · Due day ' + m.due_day + ' · Balance: ' + fm(m.current_balance)} days={m.due_day - today.getDate()} color='var(--blue)' link='/mortgage' />
+                  <AlertCard key={m.id} title={(m.properties?.address || 'Property') + ' — Mortgage'} subtitle={(m.lender_name || 'No lender') + ' · Due day ' + m.due_day + ' · Balance: ' + fm(m.current_balance)} days={nextDueDays(m.due_day)} color='#60A5FA' link='/mortgage' />
                 ))}
               </Section>
             )}
