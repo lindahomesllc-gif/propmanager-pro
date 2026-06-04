@@ -46,7 +46,7 @@ export default function ExpensesPage() {
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Expenses</div>
-        <a href='/expenses/new' style={{ background: 'var(--green)', color: '#fff', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>+ Add Expense</a>
+        <a href='/expenses/new' className='btn btn-primary'>+ Add Expense</a>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
@@ -81,7 +81,7 @@ export default function ExpensesPage() {
           <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
             <div style={{ fontSize: '40px', marginBottom: '12px' }}>💰</div>
             <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text2)', marginBottom: '16px' }}>No expenses yet</div>
-            <a href='/expenses/new' style={{ background: 'var(--green)', color: '#fff', padding: '8px 18px', borderRadius: '7px', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>+ Add Expense</a>
+            <a href='/expenses/new' className='btn btn-primary'>+ Add Expense</a>
           </div>
         )}
         {!loading && filtered.length > 0 && (

@@ -137,7 +137,7 @@ export default function PaymentsPage() {
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Payments</div>
-        <button onClick={openAdd} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>+ Record Payment</button>
+        <button onClick={openAdd} className='btn btn-primary'>+ Record Payment</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
@@ -166,7 +166,7 @@ export default function PaymentsPage() {
           <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
             <div style={{ fontSize: '32px', marginBottom: '12px' }}>💳</div>
             <div style={{ fontSize: '14px', color: 'var(--text2)', marginBottom: '16px' }}>No payments found</div>
-            <button onClick={openAdd} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>+ Record Payment</button>
+            <button onClick={openAdd} className='btn btn-primary'>+ Record Payment</button>
           </div>
         )}
         {!loading && filtered.length > 0 && (
@@ -245,8 +245,8 @@ export default function PaymentsPage() {
               <textarea style={{ ...inp, resize: 'vertical' }} rows={2} value={form.notes} onChange={e => set('notes', e.target.value)} />
             </div>
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowForm(false)} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={save} disabled={saving} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>{saving ? 'Saving...' : editId ? 'Save Changes' : 'Record Payment'}</button>
+              <button onClick={() => setShowForm(false)} className='btn btn-ghost'>Cancel</button>
+              <button onClick={save} disabled={saving} className='btn btn-primary'>{saving ? 'Saving...' : editId ? 'Save Changes' : 'Record Payment'}</button>
             </div>
           </div>
         </div>

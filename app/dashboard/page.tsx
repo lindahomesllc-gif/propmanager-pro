@@ -54,8 +54,8 @@ export default function DashboardPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Dashboard</div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <a href='/properties/new' style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '6px 12px', fontSize: '12px', textDecoration: 'none' }}>+ Property</a>
-          <a href='/tenants/new' style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '6px 12px', fontSize: '12px', fontWeight: 700, textDecoration: 'none' }}>+ Tenant</a>
+          <a href='/properties/new' className='btn btn-ghost'>+ Property</a>
+          <a href='/tenants/new' className='btn btn-primary'>+ Tenant</a>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>

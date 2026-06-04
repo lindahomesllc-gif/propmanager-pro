@@ -94,7 +94,7 @@ export default function MaintenancePage() {
             <button onClick={() => setView('list')} style={{ padding: '5px 12px', borderRadius: '6px', border: 'none', background: view === 'list' ? 'var(--bg2)' : 'transparent', color: view === 'list' ? 'var(--text)' : 'var(--text3)', fontSize: '12px', cursor: 'pointer', fontWeight: view === 'list' ? 600 : 400 }}>☰ List</button>
             <button onClick={() => setView('board')} style={{ padding: '5px 12px', borderRadius: '6px', border: 'none', background: view === 'board' ? 'var(--bg2)' : 'transparent', color: view === 'board' ? 'var(--text)' : 'var(--text3)', fontSize: '12px', cursor: 'pointer', fontWeight: view === 'board' ? 600 : 400 }}>⊞ Board</button>
           </div>
-          <a href='/maintenance/new' style={{ background: 'var(--green)', color: '#fff', borderRadius: '7px', padding: '8px 16px', fontSize: '12px', fontWeight: 700, textDecoration: 'none' }}>+ New Request</a>
+          <a href='/maintenance/new' className='btn btn-primary'>+ New Request</a>
         </div>
       </div>
 

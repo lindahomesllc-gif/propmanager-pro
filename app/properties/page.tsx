@@ -28,10 +28,10 @@ export default function PropertiesPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Properties</div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={() => setView(v => v === 'cards' ? 'table' : 'cards')} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '6px 12px', fontSize: '12px', cursor: 'pointer' }}>
+          <button onClick={() => setView(v => v === 'cards' ? 'table' : 'cards')} className='btn btn-ghost'>
             {view === 'cards' ? '☰ Table' : '⊞ Cards'}
           </button>
-          <a href='/properties/new' style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, textDecoration: 'none' }}>+ Add Property</a>
+          <a href='/properties/new' className='btn btn-primary'>+ Add Property</a>
         </div>
       </div>
 
