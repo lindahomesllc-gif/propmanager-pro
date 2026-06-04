@@ -40,6 +40,12 @@ export default function DashboardPage() {
   const in90 = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000)
   const expiringLeases = leases.filter(l => l.end_date && new Date(l.end_date) <= in90).sort((a, b) => new Date(a.end_date) - new Date(b.end_date))
   const recentPayments = payments.filter(p => p.status === 'paid').slice(0, 5)
+  const thisMonth = new Date().toISOString().slice(0, 7)
+  const collectedThisMonth = payments.filter(p => p.status === 'paid' && p.paid_date?.startsWith(thisMonth)).reduce((s, p) => s + (p.amount_paid || 0), 0)
+  const expectedThisMonth = totalRentRoll
+  const collectionPct = expectedThisMonth > 0 ? Math.min(100, Math.round((collectedThisMonth / expectedThisMonth) * 100)) : 0
+  const pctColor = collectionPct >= 100 ? 'var(--green)' : collectionPct >= 50 ? 'var(--amber)' : 'var(--red)'
+  const monthLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   const chartData = monthNames.map((month, i) => {
@@ -59,8 +65,29 @@ export default function DashboardPage() {
         </div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-        {loading ? <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>Loading...</div> : (
+        {loading ? (
+          <div style={{ display: 'grid', gap: '14px' }}>
+            <div className='skeleton' style={{ height: '96px' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px' }}>{[0,1,2,3,4,5].map(i => <div key={i} className='skeleton' style={{ height: '78px' }} />)}</div>
+            <div className='skeleton' style={{ height: '220px' }} />
+          </div>
+        ) : (
           <>
+            <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '20px 22px', marginBottom: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)' }}>This Month's Rent Collection · {monthLabel}</div>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '30px', fontWeight: 800, color: 'var(--text)', marginTop: '6px' }}>{fm(collectedThisMonth)} <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text3)' }}>/ {fm(expectedThisMonth)} expected</span></div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '26px', fontWeight: 800, color: pctColor }}>{collectionPct}%</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{fm(Math.max(0, expectedThisMonth - collectedThisMonth))} outstanding</div>
+                </div>
+              </div>
+              <div style={{ marginTop: '14px', height: '8px', background: 'var(--bg3)', borderRadius: '20px', overflow: 'hidden' }}>
+                <div style={{ width: collectionPct + '%', height: '100%', background: pctColor, borderRadius: '20px', transition: 'width 0.4s' }} />
+              </div>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
               {[
                 { label: 'Properties', value: properties.length, sub: occupied.length + ' occupied', color: 'var(--text)' },
@@ -70,7 +97,7 @@ export default function DashboardPage() {
                 { label: 'Portfolio Value', value: fm(portfolioValue), sub: 'Equity: ' + fm(totalEquity), color: 'var(--text)' },
                 { label: 'Late Payments', value: latePayments.length, sub: duePayments.length + ' upcoming', color: latePayments.length > 0 ? 'var(--red)' : 'var(--green)' },
               ].map(mc => (
-                <div key={mc.label} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px' }}>
+                <div key={mc.label} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                   <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
                   <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color, marginTop: '5px' }}>{mc.value}</div>
                   <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>{mc.sub}</div>
@@ -78,7 +105,7 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '20px' }}>
+            <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Rent Collection {currentYear}</div>
                 <div style={{ display: 'flex', gap: '16px', fontSize: '11px' }}>
@@ -109,7 +136,7 @@ export default function DashboardPage() {
                           <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{p.address}</div>
                           <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px', textTransform: 'capitalize' }}>{p.city} · {p.type?.replace(/_/g, ' ')} · {p.bedrooms}bd/{p.bathrooms}ba</div>
                         </div>
-                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: p.occupancy_status === 'occupied' ? 'var(--green-bg)' : 'var(--amber-bg)', color: p.occupancy_status === 'occupied' ? 'var(--green)' : 'var(--amber)', fontWeight: 600 }}>{p.occupancy_status}</span>
+                        <span className={'chip ' + (p.occupancy_status === 'occupied' ? 'chip-g' : 'chip-a')} style={{ textTransform: 'capitalize' }}>{p.occupancy_status}</span>
                       </div>
                     </a>
                   ))}
@@ -117,7 +144,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Active Tenants & Rent Roll</div>
-                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                   {tenants.length === 0 ? <div style={{ padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No active tenants.</div> : tenants.map(t => (
                     <a key={t.id} href={'/tenants/' + t.id} style={{ textDecoration: 'none' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '0.5px solid var(--border)' }}>
@@ -125,7 +152,7 @@ export default function DashboardPage() {
                           <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{t.full_name}</div>
                           <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{t.unit_address || t.properties?.address}</div>
                         </div>
-                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: 'var(--green-bg)', color: 'var(--green)', fontWeight: 600 }}>active</span>
+                        <span className='chip chip-g'>active</span>
                       </div>
                     </a>
                   ))}
@@ -136,7 +163,7 @@ export default function DashboardPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Recent Payments</div>
-                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                   {recentPayments.length === 0 ? <div style={{ padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No payments yet.</div> : recentPayments.map(p => (
                     <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '0.5px solid var(--border)' }}>
                       <div>
@@ -194,7 +221,7 @@ export default function DashboardPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Open Maintenance</div>
-                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                   {maintenance.length === 0 ? <div style={{ padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No open maintenance requests.</div> : maintenance.slice(0, 5).map(m => (
                     <a key={m.id} href={'/maintenance/' + m.id} style={{ textDecoration: 'none' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '0.5px solid var(--border)' }}>
@@ -202,7 +229,7 @@ export default function DashboardPage() {
                           <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{m.title}</div>
                           <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{m.properties?.address}</div>
                         </div>
-                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: m.priority === 'emergency' ? 'var(--red-bg)' : m.priority === 'high' ? 'var(--amber-bg)' : 'var(--bg3)', color: m.priority === 'emergency' ? 'var(--red)' : m.priority === 'high' ? 'var(--amber)' : 'var(--text3)', fontWeight: 600, textTransform: 'capitalize' }}>{m.priority}</span>
+                        <span className={'chip ' + (m.priority === 'emergency' ? 'chip-r' : m.priority === 'high' ? 'chip-a' : 'chip-x')} style={{ textTransform: 'capitalize' }}>{m.priority}</span>
                       </div>
                     </a>
                   ))}
@@ -211,7 +238,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Quick Actions</div>
-                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                   {[
                     { href: '/payments', icon: '💳', label: 'Record Payment', sub: duePayments.length + ' payments due' },
                     { href: '/tenants/new', icon: '👤', label: 'Add Tenant', sub: vacant.length + ' vacant units' },
