@@ -76,13 +76,10 @@ export default function TurnoverPage() {
     return <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: color + '22', color, fontWeight: 600, textTransform: 'capitalize' }}>{s?.replace('_', ' ')}</span>
   }
 
-  const inp = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', fontFamily: 'Plus Jakarta Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }
   const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
   const card = { background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
   const g2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }
   const g3 = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }
-  const btnP = { background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }
-  const btnG = { background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '8px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
   const secTtl = { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }
 
   const active = turnovers.filter(t => { try { const d = JSON.parse(t.room_data); return d.cleaning_status !== 'complete' || d.repairs_status !== 'complete' } catch { return true } })
@@ -92,7 +89,7 @@ export default function TurnoverPage() {
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Turnover</div>
-        <button style={btnP} onClick={() => setShowAdd(!showAdd)}>{showAdd ? 'Cancel' : '+ New Turnover'}</button>
+        <button className='btn btn-primary' onClick={() => setShowAdd(!showAdd)}>{showAdd ? 'Cancel' : '+ New Turnover'}</button>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
@@ -114,39 +111,39 @@ export default function TurnoverPage() {
             {error && <div style={{ background: 'var(--red-bg)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '10px 14px', marginBottom: '14px', color: 'var(--red)', fontSize: '13px' }}>{error}</div>}
             <div style={{ ...g2, marginBottom: '12px' }}>
               <div><label style={lbl}>Property *</label>
-                <select style={inp} value={form.property_id} onChange={e => set('property_id', e.target.value)}>
+                <select className='input' value={form.property_id} onChange={e => set('property_id', e.target.value)}>
                   <option value=''>Select property...</option>
                   {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
                 </select>
               </div>
               <div><label style={lbl}>Tenant Moving Out</label>
-                <select style={inp} value={form.tenant_id} onChange={e => set('tenant_id', e.target.value)}>
+                <select className='input' value={form.tenant_id} onChange={e => set('tenant_id', e.target.value)}>
                   <option value=''>Select tenant...</option>
                   {tenants.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
                 </select>
               </div>
             </div>
             <div style={{ ...g2, marginBottom: '12px' }}>
-              <div><label style={lbl}>Move Out Date</label><input style={inp} type='date' value={form.move_out_date} onChange={e => set('move_out_date', e.target.value)} /></div>
-              <div><label style={lbl}>Expected Move In</label><input style={inp} type='date' value={form.expected_move_in} onChange={e => set('expected_move_in', e.target.value)} /></div>
+              <div><label style={lbl}>Move Out Date</label><input className='input' type='date' value={form.move_out_date} onChange={e => set('move_out_date', e.target.value)} /></div>
+              <div><label style={lbl}>Expected Move In</label><input className='input' type='date' value={form.expected_move_in} onChange={e => set('expected_move_in', e.target.value)} /></div>
             </div>
             <div style={{ ...g3, marginBottom: '12px' }}>
               <div><label style={lbl}>Cleaning Status</label>
-                <select style={inp} value={form.cleaning_status} onChange={e => set('cleaning_status', e.target.value)}>
+                <select className='input' value={form.cleaning_status} onChange={e => set('cleaning_status', e.target.value)}>
                   <option value='pending'>Pending</option>
                   <option value='in_progress'>In Progress</option>
                   <option value='complete'>Complete</option>
                 </select>
               </div>
               <div><label style={lbl}>Repairs Status</label>
-                <select style={inp} value={form.repairs_status} onChange={e => set('repairs_status', e.target.value)}>
+                <select className='input' value={form.repairs_status} onChange={e => set('repairs_status', e.target.value)}>
                   <option value='pending'>Pending</option>
                   <option value='in_progress'>In Progress</option>
                   <option value='complete'>Complete</option>
                 </select>
               </div>
               <div><label style={lbl}>Inspection Status</label>
-                <select style={inp} value={form.inspection_status} onChange={e => set('inspection_status', e.target.value)}>
+                <select className='input' value={form.inspection_status} onChange={e => set('inspection_status', e.target.value)}>
                   <option value='pending'>Pending</option>
                   <option value='in_progress'>In Progress</option>
                   <option value='complete'>Complete</option>
@@ -154,22 +151,22 @@ export default function TurnoverPage() {
               </div>
             </div>
             <div style={{ ...g2, marginBottom: '12px' }}>
-              <div><label style={lbl}>Cleaning Cost</label><input style={inp} type='number' placeholder='0.00' value={form.cleaning_cost} onChange={e => set('cleaning_cost', e.target.value)} /></div>
-              <div><label style={lbl}>Repairs Cost</label><input style={inp} type='number' placeholder='0.00' value={form.repairs_cost} onChange={e => set('repairs_cost', e.target.value)} /></div>
+              <div><label style={lbl}>Cleaning Cost</label><input className='input' type='number' placeholder='0.00' value={form.cleaning_cost} onChange={e => set('cleaning_cost', e.target.value)} /></div>
+              <div><label style={lbl}>Repairs Cost</label><input className='input' type='number' placeholder='0.00' value={form.repairs_cost} onChange={e => set('repairs_cost', e.target.value)} /></div>
             </div>
             <div style={{ ...g2, marginBottom: '12px' }}>
               <div><label style={lbl}>Deposit Returned</label>
-                <select style={inp} value={form.deposit_returned ? 'true' : 'false'} onChange={e => set('deposit_returned', e.target.value === 'true')}>
+                <select className='input' value={form.deposit_returned ? 'true' : 'false'} onChange={e => set('deposit_returned', e.target.value === 'true')}>
                   <option value='false'>No</option>
                   <option value='true'>Yes</option>
                 </select>
               </div>
-              <div><label style={lbl}>Deposit Deductions</label><input style={inp} type='number' placeholder='0.00' value={form.deposit_deductions} onChange={e => set('deposit_deductions', e.target.value)} /></div>
+              <div><label style={lbl}>Deposit Deductions</label><input className='input' type='number' placeholder='0.00' value={form.deposit_deductions} onChange={e => set('deposit_deductions', e.target.value)} /></div>
             </div>
-            <div style={{ marginBottom: '12px' }}><label style={lbl}>Notes</label><textarea style={{ ...inp, resize: 'vertical' }} rows={3} value={form.notes} onChange={e => set('notes', e.target.value)} /></div>
+            <div style={{ marginBottom: '12px' }}><label style={lbl}>Notes</label><textarea className='input' style={{ resize: 'vertical' }} rows={3} value={form.notes} onChange={e => set('notes', e.target.value)} /></div>
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button style={btnG} onClick={() => setShowAdd(false)}>Cancel</button>
-              <button style={btnP} onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save Turnover'}</button>
+              <button className='btn btn-ghost' onClick={() => setShowAdd(false)}>Cancel</button>
+              <button className='btn btn-primary' onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save Turnover'}</button>
             </div>
           </div>
         )}
@@ -180,7 +177,7 @@ export default function TurnoverPage() {
             <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔄</div>
             <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text2)', marginBottom: '6px' }}>No turnovers yet</div>
             <div style={{ fontSize: '13px', marginBottom: '20px' }}>Track unit turnover when tenants move out.</div>
-            <button style={btnP} onClick={() => setShowAdd(true)}>+ New Turnover</button>
+            <button className='btn btn-primary' onClick={() => setShowAdd(true)}>+ New Turnover</button>
           </div>
         )}
 

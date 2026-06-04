@@ -70,13 +70,10 @@ export default function ScreeningPage() {
   const recColor = (r) => ({ approve: 'var(--green)', review: 'var(--amber)', decline: 'var(--red)' }[r] || 'var(--text2)')
   const statusColor = (s) => ({ received: 'var(--blue)', screening_initiated: '#A78BFA', screening_complete: 'var(--amber)', approved: 'var(--green)', denied: 'var(--red)' }[s] || 'var(--text2)')
 
-  const inp = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', fontFamily: 'Plus Jakarta Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }
   const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
   const g2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }
   const g3 = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }
-  const btnP = { background: 'var(--green)', color: 'var(--bg)', border: 'none', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }
   const btnB = { background: '#60A5FA22', color: 'var(--blue)', border: '0.5px solid #60A5FA44', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
-  const btnG = { background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', cursor: 'pointer' }
   const btnY = { background: '#FBB04022', color: 'var(--amber)', border: '0.5px solid #FBB04044', borderRadius: '7px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }
 
   return (
@@ -145,16 +142,16 @@ export default function ScreeningPage() {
               <div style={{ background: 'var(--bg3)', borderRadius: '8px', padding: '14px', marginTop: '10px' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text3)', marginBottom: '12px' }}>Enter Screening Results</div>
                 <div style={{ ...g3, marginBottom: '12px' }}>
-                  <div><label style={lbl}>Credit Score</label><input style={inp} type='number' placeholder='700' value={form.credit_score} onChange={e => setForm(f => ({ ...f, credit_score: e.target.value }))} /></div>
+                  <div><label style={lbl}>Credit Score</label><input className='input' type='number' placeholder='700' value={form.credit_score} onChange={e => setForm(f => ({ ...f, credit_score: e.target.value }))} /></div>
                   <div><label style={lbl}>Criminal Check</label>
-                    <select style={inp} value={form.criminal_check} onChange={e => setForm(f => ({ ...f, criminal_check: e.target.value }))}>
+                    <select className='input' value={form.criminal_check} onChange={e => setForm(f => ({ ...f, criminal_check: e.target.value }))}>
                       <option value='clear'>Clear</option>
                       <option value='flagged'>Flagged</option>
                       <option value='pending'>Pending</option>
                     </select>
                   </div>
                   <div><label style={lbl}>Eviction Check</label>
-                    <select style={inp} value={form.eviction_check} onChange={e => setForm(f => ({ ...f, eviction_check: e.target.value }))}>
+                    <select className='input' value={form.eviction_check} onChange={e => setForm(f => ({ ...f, eviction_check: e.target.value }))}>
                       <option value='none_found'>None Found</option>
                       <option value='found'>Found</option>
                       <option value='pending'>Pending</option>
@@ -162,26 +159,26 @@ export default function ScreeningPage() {
                   </div>
                 </div>
                 <div style={{ ...g2, marginBottom: '12px' }}>
-                  <div><label style={lbl}>Overall Score (0-100)</label><input style={inp} type='number' min='0' max='100' placeholder='75' value={form.overall_score} onChange={e => setForm(f => ({ ...f, overall_score: e.target.value }))} /></div>
+                  <div><label style={lbl}>Overall Score (0-100)</label><input className='input' type='number' min='0' max='100' placeholder='75' value={form.overall_score} onChange={e => setForm(f => ({ ...f, overall_score: e.target.value }))} /></div>
                   <div><label style={lbl}>Recommendation</label>
-                    <select style={inp} value={form.ai_recommendation} onChange={e => setForm(f => ({ ...f, ai_recommendation: e.target.value }))}>
+                    <select className='input' value={form.ai_recommendation} onChange={e => setForm(f => ({ ...f, ai_recommendation: e.target.value }))}>
                       <option value='approve'>Approve</option>
                       <option value='review'>Review</option>
                       <option value='decline'>Decline</option>
                     </select>
                   </div>
                 </div>
-                <div style={{ marginBottom: '12px' }}><label style={lbl}>Notes / Reason</label><textarea style={{ ...inp, resize: 'vertical' }} rows={2} placeholder='Any notes about screening results...' value={form.ai_reason} onChange={e => setForm(f => ({ ...f, ai_reason: e.target.value }))} /></div>
+                <div style={{ marginBottom: '12px' }}><label style={lbl}>Notes / Reason</label><textarea className='input' style={{ resize: 'vertical' }} rows={2} placeholder='Any notes about screening results...' value={form.ai_reason} onChange={e => setForm(f => ({ ...f, ai_reason: e.target.value }))} /></div>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button style={btnP} onClick={() => saveResults(a.id)} disabled={saving}>{saving ? 'Saving...' : 'Save Results'}</button>
-                  <button style={btnG} onClick={() => setEditing(null)}>Cancel</button>
+                  <button className='btn btn-primary' onClick={() => saveResults(a.id)} disabled={saving}>{saving ? 'Saving...' : 'Save Results'}</button>
+                  <button className='btn btn-ghost' onClick={() => setEditing(null)}>Cancel</button>
                 </div>
               </div>
             ) : (
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <a href='https://www.myrental.com' target='_blank' style={btnB}>🔍 Screen on MyRental</a>
                 <button style={btnY} onClick={() => { setUploadTarget(a.id); setTimeout(() => fileRef.current?.click(), 100) }}>{uploading === a.id ? 'Uploading...' : '⬆ Upload Report'}</button>
-                <button style={btnP} onClick={() => startEdit(a)}>Enter Results</button>
+                <button className='btn btn-primary' onClick={() => startEdit(a)}>Enter Results</button>
               </div>
             )}
           </div>

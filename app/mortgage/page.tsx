@@ -64,20 +64,17 @@ export default function MortgagePage() {
   const totalOriginal = mortgages.reduce((s, m) => s + (m.original_amount || 0), 0)
   const totalPaidDown = totalOriginal - totalBalance
 
-  const inp = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', fontFamily: 'Plus Jakarta Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }
   const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
   const card = { background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
   const g2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }
   const g3 = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }
-  const btnP = { background: 'var(--green)', color: 'var(--bg)', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }
-  const btnG = { background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '8px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
   const secTtl = { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }
 
   return (
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Mortgages</div>
-        <button style={btnP} onClick={() => setShowAdd(!showAdd)}>{showAdd ? 'Cancel' : '+ Add Mortgage'}</button>
+        <button className='btn btn-primary' onClick={() => setShowAdd(!showAdd)}>{showAdd ? 'Cancel' : '+ Add Mortgage'}</button>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))', gap: '10px', marginBottom: '20px' }}>
@@ -101,13 +98,13 @@ export default function MortgagePage() {
             {error && <div style={{ background: '#3a1a1a', border: '0.5px solid #ff6b6b', borderRadius: '7px', padding: '10px 14px', marginBottom: '14px', color: '#ff6b6b', fontSize: '13px' }}>{error}</div>}
             <div style={{ ...g2, marginBottom: '12px' }}>
               <div><label style={lbl}>Property *</label>
-                <select style={inp} value={form.property_id} onChange={e => set('property_id', e.target.value)}>
+                <select className='input' value={form.property_id} onChange={e => set('property_id', e.target.value)}>
                   <option value=''>Select property...</option>
                   {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
                 </select>
               </div>
               <div><label style={lbl}>Loan Type</label>
-                <select style={inp} value={form.loan_type} onChange={e => set('loan_type', e.target.value)}>
+                <select className='input' value={form.loan_type} onChange={e => set('loan_type', e.target.value)}>
                   <option value='conventional'>Conventional</option>
                   <option value='fha'>FHA</option>
                   <option value='va'>VA</option>
@@ -117,22 +114,22 @@ export default function MortgagePage() {
               </div>
             </div>
             <div style={{ ...g2, marginBottom: '12px' }}>
-              <div><label style={lbl}>Lender Name</label><input style={inp} placeholder='e.g. Wells Fargo' value={form.lender_name} onChange={e => set('lender_name', e.target.value)} /></div>
-              <div><label style={lbl}>Loan Number</label><input style={inp} placeholder='Optional' value={form.loan_number} onChange={e => set('loan_number', e.target.value)} /></div>
+              <div><label style={lbl}>Lender Name</label><input className='input' placeholder='e.g. Wells Fargo' value={form.lender_name} onChange={e => set('lender_name', e.target.value)} /></div>
+              <div><label style={lbl}>Loan Number</label><input className='input' placeholder='Optional' value={form.loan_number} onChange={e => set('loan_number', e.target.value)} /></div>
             </div>
             <div style={{ ...g3, marginBottom: '12px' }}>
-              <div><label style={lbl}>Original Amount *</label><input style={inp} type='number' placeholder='285000' value={form.original_amount} onChange={e => set('original_amount', e.target.value)} /></div>
-              <div><label style={lbl}>Current Balance *</label><input style={inp} type='number' placeholder='250000' value={form.current_balance} onChange={e => set('current_balance', e.target.value)} /></div>
-              <div><label style={lbl}>Monthly Payment *</label><input style={inp} type='number' placeholder='1500' value={form.monthly_payment} onChange={e => set('monthly_payment', e.target.value)} /></div>
+              <div><label style={lbl}>Original Amount *</label><input className='input' type='number' placeholder='285000' value={form.original_amount} onChange={e => set('original_amount', e.target.value)} /></div>
+              <div><label style={lbl}>Current Balance *</label><input className='input' type='number' placeholder='250000' value={form.current_balance} onChange={e => set('current_balance', e.target.value)} /></div>
+              <div><label style={lbl}>Monthly Payment *</label><input className='input' type='number' placeholder='1500' value={form.monthly_payment} onChange={e => set('monthly_payment', e.target.value)} /></div>
             </div>
             <div style={{ ...g3, marginBottom: '12px' }}>
-              <div><label style={lbl}>Interest Rate % *</label><input style={inp} type='number' step='0.01' placeholder='6.5' value={form.interest_rate} onChange={e => set('interest_rate', e.target.value)} /></div>
-              <div><label style={lbl}>Term (Years)</label><input style={inp} type='number' placeholder='30' value={form.term_years} onChange={e => set('term_years', e.target.value)} /></div>
-              <div><label style={lbl}>Start Date *</label><input style={inp} type='date' value={form.start_date} onChange={e => set('start_date', e.target.value)} /></div>
+              <div><label style={lbl}>Interest Rate % *</label><input className='input' type='number' step='0.01' placeholder='6.5' value={form.interest_rate} onChange={e => set('interest_rate', e.target.value)} /></div>
+              <div><label style={lbl}>Term (Years)</label><input className='input' type='number' placeholder='30' value={form.term_years} onChange={e => set('term_years', e.target.value)} /></div>
+              <div><label style={lbl}>Start Date *</label><input className='input' type='date' value={form.start_date} onChange={e => set('start_date', e.target.value)} /></div>
             </div>
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button style={btnG} onClick={() => setShowAdd(false)}>Cancel</button>
-              <button style={btnP} onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save Mortgage'}</button>
+              <button className='btn btn-ghost' onClick={() => setShowAdd(false)}>Cancel</button>
+              <button className='btn btn-primary' onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save Mortgage'}</button>
             </div>
           </div>
         )}
@@ -142,7 +139,7 @@ export default function MortgagePage() {
           <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
             <div style={{ fontSize: '32px', marginBottom: '12px' }}>🏦</div>
             <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text2)', marginBottom: '6px' }}>No mortgages yet</div>
-            <button style={btnP} onClick={() => setShowAdd(true)}>+ Add Mortgage</button>
+            <button className='btn btn-primary' onClick={() => setShowAdd(true)}>+ Add Mortgage</button>
           </div>
         )}
         {!loading && mortgages.map(m => (
