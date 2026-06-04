@@ -5,6 +5,9 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 
+const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+const fmtMoney = (n: any) => '$' + (Number(n) || 0).toLocaleString()
+
 export default function DocumentsPage() {
   const router = useRouter()
   const [leases, setLeases] = useState<any[]>([])
@@ -26,46 +29,63 @@ export default function DocumentsPage() {
     load()
   }, [])
 
-  if (loading) return <div className="p-8 text-center">Loading...</div>
+  const linkBtn = { background: '#2D6A4F', color: '#fff', border: 'none', borderRadius: '8px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' as const }
+  const sectionTtl = { fontSize: '12px', fontWeight: 700, color: '#888', textTransform: 'uppercase' as const, letterSpacing: '0.05em', margin: '4px 0 10px' }
+  const row = { background: '#fff', borderRadius: '12px', padding: '16px 18px', boxShadow: '0 1px 8px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">My Documents</h1>
-      <h2 className="text-lg font-semibold mb-3">Leases</h2>
-      {leases.length === 0 ? <p className="text-gray-500 mb-6">No leases found.</p> : (
-        <div className="space-y-3 mb-6">
-          {leases.map((l) => (
-            <div key={l.id} className="border rounded-lg p-4 flex justify-between items-center">
-              <div>
-                <p className="font-medium">${l.rent_amount}/mo</p>
-                <p className="text-sm text-gray-500">{l.start_date} → {l.end_date}</p>
+    <div style={{ minHeight: '100vh', background: '#F6F8F3', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+      <div style={{ background: '#fff', borderBottom: '1px solid #E5E7EB', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <a href='/portal/dashboard' style={{ color: '#2D6A4F', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>← Back</a>
+        <div style={{ fontSize: '16px', fontWeight: 700, color: '#1A1A1A' }}>📄 My Documents</div>
+      </div>
+      <div style={{ maxWidth: '700px', margin: '0 auto', padding: '24px 20px' }}>
+        {loading ? (
+          <div style={{ display: 'grid', gap: '10px' }}>
+            {[0, 1].map(i => <div key={i} style={{ height: '66px', borderRadius: '12px', background: '#ECEFEA' }} />)}
+          </div>
+        ) : (
+          <>
+            <div style={sectionTtl}>Leases</div>
+            {leases.length === 0 ? (
+              <div style={{ ...row, justifyContent: 'center', color: '#888', fontSize: '13px', marginBottom: '24px' }}>No leases on file yet.</div>
+            ) : (
+              <div style={{ display: 'grid', gap: '10px', marginBottom: '24px' }}>
+                {leases.map(l => (
+                  <div key={l.id} style={row}>
+                    <div>
+                      <div style={{ fontSize: '15px', fontWeight: 700, color: '#1A1A1A' }}>📋 Lease · {fmtMoney(l.rent_amount)}/mo</div>
+                      <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', textTransform: 'capitalize' }}>{fmtDate(l.start_date)} → {fmtDate(l.end_date)} · {l.status?.replace('_', ' ')}</div>
+                    </div>
+                    {l.pdf_url
+                      ? <a href={l.pdf_url} target='_blank' style={linkBtn}>View PDF</a>
+                      : <span style={{ fontSize: '11px', color: '#AAA' }}>No file</span>}
+                  </div>
+                ))}
               </div>
-              <div className="flex gap-2 items-center">
-                <span className="text-sm text-gray-500 capitalize">{l.status}</span>
-                {l.pdf_url && (
-                  <a href={l.pdf_url} target="_blank" className="text-blue-600 text-sm underline">View PDF</a>
-                )}
+            )}
+
+            <div style={sectionTtl}>Inspection Reports</div>
+            {reports.length === 0 ? (
+              <div style={{ ...row, justifyContent: 'center', color: '#888', fontSize: '13px' }}>No inspection reports yet.</div>
+            ) : (
+              <div style={{ display: 'grid', gap: '10px' }}>
+                {reports.map(r => (
+                  <div key={r.id} style={row}>
+                    <div>
+                      <div style={{ fontSize: '15px', fontWeight: 700, color: '#1A1A1A', textTransform: 'capitalize' }}>🔍 {r.report_type?.replace('_', ' ')}</div>
+                      <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>{fmtDate(r.inspection_date)}</div>
+                    </div>
+                    {r.pdf_url
+                      ? <a href={r.pdf_url} target='_blank' style={linkBtn}>View PDF</a>
+                      : <span style={{ fontSize: '11px', color: '#AAA' }}>No file</span>}
+                  </div>
+                ))}
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-      <h2 className="text-lg font-semibold mb-3">Inspection Reports</h2>
-      {reports.length === 0 ? <p className="text-gray-500">No reports found.</p> : (
-        <div className="space-y-3">
-          {reports.map((r) => (
-            <div key={r.id} className="border rounded-lg p-4 flex justify-between items-center">
-              <div>
-                <p className="font-medium capitalize">{r.report_type.replace('_', ' ')}</p>
-                <p className="text-sm text-gray-500">{r.inspection_date}</p>
-              </div>
-              {r.pdf_url && (
-                <a href={r.pdf_url} target="_blank" className="text-blue-600 text-sm underline">View PDF</a>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }
