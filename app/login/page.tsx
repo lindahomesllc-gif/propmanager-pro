@@ -35,6 +35,9 @@ export default function LoginPage() {
           <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#5A5A56', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Password</label>
           <input type='password' value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === 'Enter' && login()} placeholder='••••••••' className='input' style={{ marginBottom: '20px' }} />
           <button onClick={login} disabled={loading} className='btn btn-primary' style={{ width: '100%', justifyContent: 'center', padding: '11px', fontSize: '14px' }}>{loading ? 'Signing in…' : 'Sign In'}</button>
+          <div style={{ textAlign: 'center', marginTop: '14px' }}>
+            <a href='/forgot-password' style={{ fontSize: '12px', color: '#9A9A96', textDecoration: 'none' }}>Forgot password?</a>
+          </div>
         </div>
 
         <div style={{ textAlign: 'center', fontSize: '13px', color: '#9A9A96', marginTop: '18px' }}>
