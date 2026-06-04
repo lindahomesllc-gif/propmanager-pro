@@ -44,8 +44,6 @@ export default function LeaseDetailPage({ params }) {
   const secTtl = { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }
   const lbl = { fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }
   const val = { fontSize: '13px', fontWeight: 500, color: 'var(--text)', marginTop: '2px' }
-  const btnG = { background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
-  const btnP = { background: 'var(--green)', color: 'var(--bg)', border: 'none', borderRadius: '7px', padding: '8px 16px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
   const btnB = { background: '#60A5FA22', color: 'var(--blue)', border: '0.5px solid #60A5FA44', borderRadius: '7px', padding: '8px 16px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
 
   return (
@@ -59,7 +57,7 @@ export default function LeaseDetailPage({ params }) {
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <span style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '20px', background: statusColor + '22', color: statusColor, fontWeight: 600, textTransform: 'uppercase' }}>{l.status.replace(/_/g, ' ')}</span>
-          <a href={'/leases/' + l.id + '/edit'} style={btnG}>Edit</a>
+          <a href={'/leases/' + l.id + '/edit'} className='btn btn-ghost'>Edit</a>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
@@ -87,9 +85,9 @@ export default function LeaseDetailPage({ params }) {
                 <span style={{ fontSize: '13px', color: 'var(--green)' }}>✓ Signed lease uploaded</span>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <a href={l.pdf_url} target='_blank' style={btnP}>📄 View PDF</a>
-                <a href={l.pdf_url} download style={btnG}>⬇ Download</a>
-                <button onClick={() => fileRef.current?.click()} style={btnG}>↑ Replace PDF</button>
+                <a href={l.pdf_url} target='_blank' className='btn btn-primary'>📄 View PDF</a>
+                <a href={l.pdf_url} download className='btn btn-ghost'>⬇ Download</a>
+                <button onClick={() => fileRef.current?.click()} className='btn btn-ghost'>↑ Replace PDF</button>
               </div>
             </div>
           ) : (
@@ -97,7 +95,7 @@ export default function LeaseDetailPage({ params }) {
               <div style={{ fontSize: '13px', color: 'var(--text3)', marginBottom: '12px' }}>No signed lease uploaded yet. Complete signing in Authentisign, then upload the signed PDF here.</div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <a href='https://www.authentisign.com' target='_blank' style={btnB}>✍ Open Authentisign</a>
-                <button onClick={() => fileRef.current?.click()} style={btnP} disabled={uploading}>{uploading ? 'Uploading...' : '⬆ Upload Signed PDF'}</button>
+                <button onClick={() => fileRef.current?.click()} className='btn btn-primary' disabled={uploading}>{uploading ? 'Uploading...' : '⬆ Upload Signed PDF'}</button>
               </div>
             </div>
           )}

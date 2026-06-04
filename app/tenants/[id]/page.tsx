@@ -77,7 +77,6 @@ export default function TenantDetailPage({ params }) {
   const val = { fontSize: '13px', fontWeight: 500, color: 'var(--text)', marginTop: '2px' }
   const card = { background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
   const btnG = { background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
-  const btnP = { background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 16px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
   const tabs = ['overview', 'payments', 'leases', 'documents']
   const tabLabels = { overview: 'Overview', payments: 'Payments', leases: 'Leases', documents: 'Documents' }
 
@@ -100,9 +99,9 @@ export default function TenantDetailPage({ params }) {
             <div style={{ fontSize: '13px', color: 'var(--text3)', marginTop: '3px' }}>📍 {t.unit_address || t.properties?.address}{t.properties?.city ? ' · ' + t.properties.city + ', ' + t.properties.state : ''}</div>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-            <a href={'/payments?tenant_id=' + t.id} style={btnP}>+ Payment</a>
+            <a href={'/payments?tenant_id=' + t.id} className='btn btn-primary'>+ Payment</a>
             <button onClick={sendPortalLink} disabled={sendingLink} style={{ ...btnG, cursor: sendingLink ? 'not-allowed' : 'pointer', opacity: sendingLink ? 0.6 : 1 }}>{sendingLink ? 'Sending…' : '✉ Send Portal Link'}</button>
-            <a href={'/tenants/' + t.id + '/edit'} style={btnG}>Edit</a>
+            <a href={'/tenants/' + t.id + '/edit'} className='btn btn-ghost'>Edit</a>
           </div>
         </div>
         {activeLease && (
@@ -111,7 +110,7 @@ export default function TenantDetailPage({ params }) {
             <div><div style={lbl}>Lease Start</div><div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)' }}>{formatDate(activeLease.start_date)}</div></div>
             <div><div style={lbl}>Lease End</div><div style={{ fontSize: '13px', fontWeight: 500, color: expiryColor }}>{formatDate(activeLease.end_date)}{daysUntilExpiry !== null ? ' (' + daysUntilExpiry + 'd)' : ''}</div></div>
             {activeLease.security_deposit && <div><div style={lbl}>Deposit</div><div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)' }}>{fm(activeLease.security_deposit)}</div></div>}
-            <div style={{ marginLeft: 'auto' }}><a href={'/leases/' + activeLease.id} style={btnG}>View Lease</a></div>
+            <div style={{ marginLeft: 'auto' }}><a href={'/leases/' + activeLease.id} className='btn btn-ghost'>View Lease</a></div>
           </div>
         )}
         <div style={{ display: 'flex', marginTop: '12px', overflowX: 'auto' }}>
@@ -175,7 +174,7 @@ export default function TenantDetailPage({ params }) {
           <div style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>💳 Payment History</div>
-              <a href={'/payments?tenant_id=' + t.id} style={btnP}>+ Record Payment</a>
+              <a href={'/payments?tenant_id=' + t.id} className='btn btn-primary'>+ Record Payment</a>
             </div>
             {payments.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text3)', fontSize: '13px' }}>No payments recorded yet.</div>
@@ -198,7 +197,7 @@ export default function TenantDetailPage({ params }) {
           <div style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>📋 Lease History</div>
-              <a href='/leases/new' style={btnG}>+ New Lease</a>
+              <a href='/leases/new' className='btn btn-ghost'>+ New Lease</a>
             </div>
             {leases.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text3)', fontSize: '13px' }}>No leases found.</div>
@@ -213,7 +212,7 @@ export default function TenantDetailPage({ params }) {
                     {l.pdf_url && <span style={{ fontSize: '10px', padding: '1px 7px', borderRadius: '20px', background: 'var(--green-bg)', color: 'var(--green)', fontWeight: 600 }}>📄 Signed</span>}
                   </div>
                 </div>
-                <a href={'/leases/' + l.id} style={btnG}>View</a>
+                <a href={'/leases/' + l.id} className='btn btn-ghost'>View</a>
               </div>
             ))}
           </div>
@@ -223,7 +222,7 @@ export default function TenantDetailPage({ params }) {
           <div style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>📄 Documents</div>
-              <button style={btnP} onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? 'Uploading...' : '⬆ Upload'}</button>
+              <button className='btn btn-primary' onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? 'Uploading...' : '⬆ Upload'}</button>
             </div>
             <input ref={fileRef} type='file' accept='.pdf,.jpg,.jpeg,.png,.doc,.docx' style={{ display: 'none' }} onChange={uploadDoc} />
             {leases.filter(l => l.pdf_url).map(l => (
@@ -233,8 +232,8 @@ export default function TenantDetailPage({ params }) {
                   <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{formatDate(l.start_date)} → {formatDate(l.end_date)}</div>
                 </div>
                 <div style={{ display: 'flex', gap: '6px' }}>
-                  <a href={l.pdf_url} target='_blank' style={btnG}>View</a>
-                  <a href={l.pdf_url} download style={btnG}>Download</a>
+                  <a href={l.pdf_url} target='_blank' className='btn btn-ghost'>View</a>
+                  <a href={l.pdf_url} download className='btn btn-ghost'>Download</a>
                 </div>
               </div>
             ))}
@@ -248,8 +247,8 @@ export default function TenantDetailPage({ params }) {
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg3)', borderRadius: '8px', border: '0.5px solid var(--border)', marginBottom: '8px' }}>
                 <div style={{ fontSize: '13px', color: 'var(--text)', fontWeight: 500 }}>📄 {decodeURIComponent(url.split('/').pop().split('_').slice(1).join('_')) || 'Document ' + (i + 1)}</div>
                 <div style={{ display: 'flex', gap: '6px' }}>
-                  <a href={url} target='_blank' style={btnG}>View</a>
-                  <a href={url} download style={btnG}>Download</a>
+                  <a href={url} target='_blank' className='btn btn-ghost'>View</a>
+                  <a href={url} download className='btn btn-ghost'>Download</a>
                 </div>
               </div>
             ))}

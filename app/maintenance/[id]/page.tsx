@@ -29,7 +29,6 @@ export default function MaintenanceDetailPage({ params }) {
   const secTtl = { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }
   const lbl = { fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }
   const val = { fontSize: '13px', fontWeight: 500, color: 'var(--text)', marginTop: '2px' }
-  const btnG = { background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
 
   return (
     <AppShell>
@@ -42,7 +41,7 @@ export default function MaintenanceDetailPage({ params }) {
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <span style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '20px', background: priorityColor + '22', color: priorityColor, fontWeight: 600, textTransform: 'uppercase' }}>{t.priority}</span>
           <span style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '20px', background: statusColor + '22', color: statusColor, fontWeight: 600, textTransform: 'uppercase' }}>{t.status?.replace('_', ' ')}</span>
-          <a href={'/maintenance/' + t.id + '/edit'} style={btnG}>Edit</a>
+          <a href={'/maintenance/' + t.id + '/edit'} className='btn btn-ghost'>Edit</a>
           <button onClick={deleteTicket} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>Delete</button>
         </div>
       </div>

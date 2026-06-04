@@ -140,13 +140,10 @@ export default function EditPropertyPage({ params }) {
     window.location.href = '/properties/' + params.id
   }
 
-  const inp = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', fontFamily: 'Plus Jakarta Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }
   const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
   const card = { background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
   const g2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }
   const g3 = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }
-  const btnP = { background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }
-  const btnG = { background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '8px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
   const secTtl = { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }
   const tabs = ['basic', 'tax', 'insurance', 'utilities', 'hoa']
   const tabLabels = { basic: 'Basic Info', tax: 'Tax & Appraiser', insurance: 'Insurance', utilities: 'Utilities & Schools', hoa: 'HOA' }
@@ -161,8 +158,8 @@ export default function EditPropertyPage({ params }) {
           <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginTop: '2px' }}>Edit Property</div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <a href={'/properties/' + params.id} style={btnG}>Cancel</a>
-          <button style={btnP} onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
+          <a href={'/properties/' + params.id} className='btn btn-ghost'>Cancel</a>
+          <button className='btn btn-primary' onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
         </div>
       </div>
 
@@ -179,18 +176,18 @@ export default function EditPropertyPage({ params }) {
           <>
             <div style={card}>
               <div style={secTtl}>Property Address</div>
-              <div style={{ marginBottom: '12px' }}><label style={lbl}>Street Address *</label><input style={inp} value={form.address} onChange={e => set('address', e.target.value)} /></div>
+              <div style={{ marginBottom: '12px' }}><label style={lbl}>Street Address *</label><input className='input' value={form.address} onChange={e => set('address', e.target.value)} /></div>
               <div style={g3}>
-                <div><label style={lbl}>City</label><input style={inp} value={form.city} onChange={e => set('city', e.target.value)} /></div>
-                <div><label style={lbl}>State</label><input style={inp} value={form.state} onChange={e => set('state', e.target.value)} /></div>
-                <div><label style={lbl}>ZIP</label><input style={inp} value={form.zip} onChange={e => set('zip', e.target.value)} /></div>
+                <div><label style={lbl}>City</label><input className='input' value={form.city} onChange={e => set('city', e.target.value)} /></div>
+                <div><label style={lbl}>State</label><input className='input' value={form.state} onChange={e => set('state', e.target.value)} /></div>
+                <div><label style={lbl}>ZIP</label><input className='input' value={form.zip} onChange={e => set('zip', e.target.value)} /></div>
               </div>
             </div>
             <div style={card}>
               <div style={secTtl}>Property Details</div>
               <div style={{ ...g2, marginBottom: '12px' }}>
                 <div><label style={lbl}>Type</label>
-                  <select style={inp} value={form.type} onChange={e => { const t = e.target.value; set('type', t); if (t === 'single_family' || t === 'condo') set('num_units', '1'); else if (t === 'duplex') set('num_units', '2'); else if (t === 'triplex') set('num_units', '3'); else if (t === 'quadplex') set('num_units', '4'); else if (t === 'multi_family') set('num_units', '4'); }}>
+                  <select className='input' value={form.type} onChange={e => { const t = e.target.value; set('type', t); if (t === 'single_family' || t === 'condo') set('num_units', '1'); else if (t === 'duplex') set('num_units', '2'); else if (t === 'triplex') set('num_units', '3'); else if (t === 'quadplex') set('num_units', '4'); else if (t === 'multi_family') set('num_units', '4'); }}>
                     <option value='single_family'>Single Family</option>
                     <option value='triplex'>Triplex</option>
                     <option value='quadplex'>Quadplex</option>
@@ -201,7 +198,7 @@ export default function EditPropertyPage({ params }) {
                   </select>
                 </div>
                 <div><label style={lbl}>Ownership</label>
-                  <select style={inp} value={form.owner_entity} onChange={e => set('owner_entity', e.target.value)}>
+                  <select className='input' value={form.owner_entity} onChange={e => set('owner_entity', e.target.value)}>
                     <option value='Self'>Self</option>
                     <option value='LLC - PropCo'>LLC - PropCo</option>
                     <option value='Trust'>Trust</option>
@@ -210,29 +207,29 @@ export default function EditPropertyPage({ params }) {
                 </div>
               </div>
               <div style={{ ...g3, marginBottom: '12px' }}>
-                <div><label style={lbl}>Bedrooms</label><input style={inp} type='number' value={form.bedrooms} onChange={e => set('bedrooms', e.target.value)} /></div>
-                <div><label style={lbl}>Bathrooms</label><input style={inp} type='number' step='0.5' value={form.bathrooms} onChange={e => set('bathrooms', e.target.value)} /></div>
-                <div><label style={lbl}>Sq Ft</label><input style={inp} type='number' value={form.sqft} onChange={e => set('sqft', e.target.value)} /></div>
+                <div><label style={lbl}>Bedrooms</label><input className='input' type='number' value={form.bedrooms} onChange={e => set('bedrooms', e.target.value)} /></div>
+                <div><label style={lbl}>Bathrooms</label><input className='input' type='number' step='0.5' value={form.bathrooms} onChange={e => set('bathrooms', e.target.value)} /></div>
+                <div><label style={lbl}>Sq Ft</label><input className='input' type='number' value={form.sqft} onChange={e => set('sqft', e.target.value)} /></div>
               </div>
               <div style={{ ...g3, marginBottom: '12px' }}>
-                <div><label style={lbl}>Year Built</label><input style={inp} type='number' value={form.year_built} onChange={e => set('year_built', e.target.value)} /></div>
-                <div><label style={lbl}>Number of Units</label><input style={inp} type='number' min='1' max='20' value={form.num_units} onChange={e => set('num_units', e.target.value)} /></div>
+                <div><label style={lbl}>Year Built</label><input className='input' type='number' value={form.year_built} onChange={e => set('year_built', e.target.value)} /></div>
+                <div><label style={lbl}>Number of Units</label><input className='input' type='number' min='1' max='20' value={form.num_units} onChange={e => set('num_units', e.target.value)} /></div>
                 <div><label style={lbl}>Occupancy</label>
-                  <select style={inp} value={form.occupancy_status} onChange={e => set('occupancy_status', e.target.value)}>
+                  <select className='input' value={form.occupancy_status} onChange={e => set('occupancy_status', e.target.value)}>
                     <option value='vacant'>Vacant</option>
                     <option value='occupied'>Occupied</option>
                   </select>
                 </div>
-                <div><label style={lbl}>Purchase Date</label><input style={inp} type='date' value={form.purchase_date} onChange={e => set('purchase_date', e.target.value)} /></div>
+                <div><label style={lbl}>Purchase Date</label><input className='input' type='date' value={form.purchase_date} onChange={e => set('purchase_date', e.target.value)} /></div>
               </div>
               <div style={g2}>
-                <div><label style={lbl}>Purchase Price</label><input style={inp} type='number' value={form.purchase_price} onChange={e => set('purchase_price', e.target.value)} /></div>
-                <div><label style={lbl}>Market Value</label><input style={inp} type='number' value={form.market_value} onChange={e => set('market_value', e.target.value)} /></div>
+                <div><label style={lbl}>Purchase Price</label><input className='input' type='number' value={form.purchase_price} onChange={e => set('purchase_price', e.target.value)} /></div>
+                <div><label style={lbl}>Market Value</label><input className='input' type='number' value={form.market_value} onChange={e => set('market_value', e.target.value)} /></div>
               </div>
             </div>
             <div style={card}>
               <div style={secTtl}>Notes</div>
-              <textarea style={{ ...inp, resize: 'vertical' }} rows={3} value={form.notes} onChange={e => set('notes', e.target.value)} />
+              <textarea className='input' style={{ resize: 'vertical' }} rows={3} value={form.notes} onChange={e => set('notes', e.target.value)} />
             </div>
           </>
         )}
@@ -241,15 +238,15 @@ export default function EditPropertyPage({ params }) {
           <div style={card}>
             <div style={secTtl}>County Appraiser Info</div>
             <div style={{ ...g3, marginBottom: '12px' }}>
-              <div><label style={lbl}>County</label><input style={inp} placeholder='Seminole' value={form.county} onChange={e => set('county', e.target.value)} /></div>
-              <div><label style={lbl}>Parcel ID</label><input style={inp} placeholder='12-34-56-789' value={form.parcel_id} onChange={e => set('parcel_id', e.target.value)} /></div>
-              <div><label style={lbl}>Alt Key</label><input style={inp} placeholder='1234567' value={form.alt_key} onChange={e => set('alt_key', e.target.value)} /></div>
+              <div><label style={lbl}>County</label><input className='input' placeholder='Seminole' value={form.county} onChange={e => set('county', e.target.value)} /></div>
+              <div><label style={lbl}>Parcel ID</label><input className='input' placeholder='12-34-56-789' value={form.parcel_id} onChange={e => set('parcel_id', e.target.value)} /></div>
+              <div><label style={lbl}>Alt Key</label><input className='input' placeholder='1234567' value={form.alt_key} onChange={e => set('alt_key', e.target.value)} /></div>
             </div>
-            <div style={{ marginBottom: '12px' }}><label style={lbl}>Property Description</label><input style={inp} placeholder='LOT 4 BLK 2 EXAMPLE SUB' value={form.prop_description} onChange={e => set('prop_description', e.target.value)} /></div>
+            <div style={{ marginBottom: '12px' }}><label style={lbl}>Property Description</label><input className='input' placeholder='LOT 4 BLK 2 EXAMPLE SUB' value={form.prop_description} onChange={e => set('prop_description', e.target.value)} /></div>
             <div style={g3}>
-              <div><label style={lbl}>Assessed Value</label><input style={inp} type='number' value={form.assessed_value} onChange={e => set('assessed_value', e.target.value)} /></div>
-              <div><label style={lbl}>Annual Tax</label><input style={inp} type='number' value={form.annual_tax} onChange={e => set('annual_tax', e.target.value)} /></div>
-              <div><label style={lbl}>Tax Due Date</label><input style={inp} type='date' value={form.tax_due_date} onChange={e => set('tax_due_date', e.target.value)} /></div>
+              <div><label style={lbl}>Assessed Value</label><input className='input' type='number' value={form.assessed_value} onChange={e => set('assessed_value', e.target.value)} /></div>
+              <div><label style={lbl}>Annual Tax</label><input className='input' type='number' value={form.annual_tax} onChange={e => set('annual_tax', e.target.value)} /></div>
+              <div><label style={lbl}>Tax Due Date</label><input className='input' type='date' value={form.tax_due_date} onChange={e => set('tax_due_date', e.target.value)} /></div>
             </div>
           </div>
         )}
@@ -258,14 +255,14 @@ export default function EditPropertyPage({ params }) {
           <div style={card}>
             <div style={secTtl}>Insurance Details</div>
             <div style={{ ...g3, marginBottom: '12px' }}>
-              <div><label style={lbl}>Insurance Company</label><input style={inp} placeholder='Citizens, Universal, etc.' value={form.insurance_company} onChange={e => set('insurance_company', e.target.value)} /></div>
-              <div><label style={lbl}>Policy Number</label><input style={inp} value={form.insurance_policy} onChange={e => set('insurance_policy', e.target.value)} /></div>
-              <div><label style={lbl}>Annual Premium</label><input style={inp} type='number' value={form.insurance_premium} onChange={e => set('insurance_premium', e.target.value)} /></div>
+              <div><label style={lbl}>Insurance Company</label><input className='input' placeholder='Citizens, Universal, etc.' value={form.insurance_company} onChange={e => set('insurance_company', e.target.value)} /></div>
+              <div><label style={lbl}>Policy Number</label><input className='input' value={form.insurance_policy} onChange={e => set('insurance_policy', e.target.value)} /></div>
+              <div><label style={lbl}>Annual Premium</label><input className='input' type='number' value={form.insurance_premium} onChange={e => set('insurance_premium', e.target.value)} /></div>
             </div>
             <div style={g3}>
-              <div><label style={lbl}>Policy Start</label><input style={inp} type='date' value={form.insurance_start} onChange={e => set('insurance_start', e.target.value)} /></div>
-              <div><label style={lbl}>Policy Expires</label><input style={inp} type='date' value={form.insurance_expires} onChange={e => set('insurance_expires', e.target.value)} /></div>
-              <div><label style={lbl}>Agent Name</label><input style={inp} value={form.insurance_agent} onChange={e => set('insurance_agent', e.target.value)} /></div>
+              <div><label style={lbl}>Policy Start</label><input className='input' type='date' value={form.insurance_start} onChange={e => set('insurance_start', e.target.value)} /></div>
+              <div><label style={lbl}>Policy Expires</label><input className='input' type='date' value={form.insurance_expires} onChange={e => set('insurance_expires', e.target.value)} /></div>
+              <div><label style={lbl}>Agent Name</label><input className='input' value={form.insurance_agent} onChange={e => set('insurance_agent', e.target.value)} /></div>
             </div>
           </div>
         )}
@@ -275,25 +272,25 @@ export default function EditPropertyPage({ params }) {
             <div style={card}>
               <div style={secTtl}>Utility Companies</div>
               <div style={{ ...g3, marginBottom: '12px' }}>
-                <div><label style={lbl}>Electric</label><input style={inp} placeholder='Duke Energy' value={form.utility_electric} onChange={e => set('utility_electric', e.target.value)} /></div>
-                <div><label style={lbl}>Water</label><input style={inp} placeholder='County Water' value={form.utility_water} onChange={e => set('utility_water', e.target.value)} /></div>
-                <div><label style={lbl}>Gas</label><input style={inp} placeholder='TECO Peoples Gas' value={form.utility_gas} onChange={e => set('utility_gas', e.target.value)} /></div>
+                <div><label style={lbl}>Electric</label><input className='input' placeholder='Duke Energy' value={form.utility_electric} onChange={e => set('utility_electric', e.target.value)} /></div>
+                <div><label style={lbl}>Water</label><input className='input' placeholder='County Water' value={form.utility_water} onChange={e => set('utility_water', e.target.value)} /></div>
+                <div><label style={lbl}>Gas</label><input className='input' placeholder='TECO Peoples Gas' value={form.utility_gas} onChange={e => set('utility_gas', e.target.value)} /></div>
               </div>
               <div style={g3}>
-                <div><label style={lbl}>Trash</label><input style={inp} placeholder='Waste Pro' value={form.utility_trash} onChange={e => set('utility_trash', e.target.value)} /></div>
-                <div><label style={lbl}>Internet</label><input style={inp} placeholder='Spectrum, AT&T' value={form.utility_internet} onChange={e => set('utility_internet', e.target.value)} /></div>
-                <div><label style={lbl}>Cable</label><input style={inp} placeholder='Spectrum' value={form.utility_cable} onChange={e => set('utility_cable', e.target.value)} /></div>
+                <div><label style={lbl}>Trash</label><input className='input' placeholder='Waste Pro' value={form.utility_trash} onChange={e => set('utility_trash', e.target.value)} /></div>
+                <div><label style={lbl}>Internet</label><input className='input' placeholder='Spectrum, AT&T' value={form.utility_internet} onChange={e => set('utility_internet', e.target.value)} /></div>
+                <div><label style={lbl}>Cable</label><input className='input' placeholder='Spectrum' value={form.utility_cable} onChange={e => set('utility_cable', e.target.value)} /></div>
               </div>
             </div>
             <div style={card}>
               <div style={secTtl}>Schools</div>
               <div style={{ ...g2, marginBottom: '12px' }}>
-                <div><label style={lbl}>School District</label><input style={inp} placeholder='Seminole County Schools' value={form.school_district} onChange={e => set('school_district', e.target.value)} /></div>
-                <div><label style={lbl}>Elementary School</label><input style={inp} value={form.school_elementary} onChange={e => set('school_elementary', e.target.value)} /></div>
+                <div><label style={lbl}>School District</label><input className='input' placeholder='Seminole County Schools' value={form.school_district} onChange={e => set('school_district', e.target.value)} /></div>
+                <div><label style={lbl}>Elementary School</label><input className='input' value={form.school_elementary} onChange={e => set('school_elementary', e.target.value)} /></div>
               </div>
               <div style={g2}>
-                <div><label style={lbl}>Middle School</label><input style={inp} value={form.school_middle} onChange={e => set('school_middle', e.target.value)} /></div>
-                <div><label style={lbl}>High School</label><input style={inp} value={form.school_high} onChange={e => set('school_high', e.target.value)} /></div>
+                <div><label style={lbl}>Middle School</label><input className='input' value={form.school_middle} onChange={e => set('school_middle', e.target.value)} /></div>
+                <div><label style={lbl}>High School</label><input className='input' value={form.school_high} onChange={e => set('school_high', e.target.value)} /></div>
               </div>
             </div>
           </>
@@ -315,17 +312,17 @@ export default function EditPropertyPage({ params }) {
             </div>
             {form.hoa && (
               <div style={g3}>
-                <div><label style={lbl}>HOA Name</label><input style={inp} placeholder='Lakeside HOA' value={form.hoa_name} onChange={e => set('hoa_name', e.target.value)} /></div>
-                <div><label style={lbl}>Monthly Fee</label><input style={inp} type='number' placeholder='150' value={form.hoa_fee} onChange={e => set('hoa_fee', e.target.value)} /></div>
-                <div><label style={lbl}>HOA Contact</label><input style={inp} placeholder='Phone or email' value={form.hoa_contact} onChange={e => set('hoa_contact', e.target.value)} /></div>
+                <div><label style={lbl}>HOA Name</label><input className='input' placeholder='Lakeside HOA' value={form.hoa_name} onChange={e => set('hoa_name', e.target.value)} /></div>
+                <div><label style={lbl}>Monthly Fee</label><input className='input' type='number' placeholder='150' value={form.hoa_fee} onChange={e => set('hoa_fee', e.target.value)} /></div>
+                <div><label style={lbl}>HOA Contact</label><input className='input' placeholder='Phone or email' value={form.hoa_contact} onChange={e => set('hoa_contact', e.target.value)} /></div>
               </div>
             )}
           </div>
         )}
 
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', paddingTop: '8px' }}>
-          <a href={'/properties/' + params.id} style={btnG}>Cancel</a>
-          <button style={btnP} onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
+          <a href={'/properties/' + params.id} className='btn btn-ghost'>Cancel</a>
+          <button className='btn btn-primary' onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
         </div>
       </div>
     </AppShell>

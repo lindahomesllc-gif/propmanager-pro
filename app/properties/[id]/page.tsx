@@ -57,8 +57,6 @@ export default function PropertyDetailPage({ params }) {
   const secTtl = { fontSize: '13px', fontWeight: 700, color: 'var(--text)', marginBottom: '14px' }
   const lbl = { fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }
   const val = { fontSize: '13px', fontWeight: 500, color: 'var(--text)', marginTop: '2px' }
-  const btnG = { background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
-  const btnP = { background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
   const tabs = ['overview', 'financials', 'insurance', 'utilities', 'documents']
   const tabLabels = { overview: 'Overview', financials: 'Financials', insurance: 'Insurance & Tax', utilities: 'Utilities & Schools', documents: 'Documents' }
 
@@ -77,7 +75,7 @@ export default function PropertyDetailPage({ params }) {
             <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '3px' }}>{p.city}, {p.state} {p.zip} · {(p.type || '').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</div>
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
-            <a href={'/properties/' + p.id + '/edit'} style={btnG}>Edit</a>
+            <a href={'/properties/' + p.id + '/edit'} className='btn btn-ghost'>Edit</a>
             <span style={{ padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: 600, background: p.occupancy_status === 'occupied' ? 'var(--green-bg)' : 'var(--amber-bg)', color: p.occupancy_status === 'occupied' ? 'var(--green)' : 'var(--amber)', border: '0.5px solid ' + (p.occupancy_status === 'occupied' ? 'var(--green)' : 'var(--amber)') }}>
               {p.occupancy_status === 'occupied' ? 'Occupied' : 'Vacant'}
             </span>
@@ -141,7 +139,7 @@ export default function PropertyDetailPage({ params }) {
                   <div style={card}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                       <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)' }}>HOA</div>
-                      <a href={'/properties/' + p.id + '/edit#hoa'} style={btnG}>Edit HOA</a>
+                      <a href={'/properties/' + p.id + '/edit#hoa'} className='btn btn-ghost'>Edit HOA</a>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                       <div style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '8px 10px' }}>
@@ -200,7 +198,7 @@ export default function PropertyDetailPage({ params }) {
                         </div>
                       </div>
                     ))}
-                    <div style={{ marginTop: '12px' }}><a href={'/tenants/new?property=' + p.id} style={btnG}>+ Add Tenant</a></div>
+                    <div style={{ marginTop: '12px' }}><a href={'/tenants/new?property=' + p.id} className='btn btn-ghost'>+ Add Tenant</a></div>
                   </div>
                 )}
               </div>
@@ -221,7 +219,7 @@ export default function PropertyDetailPage({ params }) {
                       </div>
                     </div>
                   ))}
-                  <div style={{ marginTop: '12px' }}><a href='/payments/new' style={btnG}>+ Record Payment</a></div>
+                  <div style={{ marginTop: '12px' }}><a href='/payments/new' className='btn btn-ghost'>+ Record Payment</a></div>
                 </div>
                 <div style={card}>
                   <div style={secTtl}>💰 Recent Expenses</div>
@@ -236,7 +234,7 @@ export default function PropertyDetailPage({ params }) {
                       <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--amber)' }}>{fm(exp.amount)}</div>
                     </div>
                   ))}
-                  <div style={{ marginTop: '12px' }}><a href='/expenses/new' style={btnG}>+ Add Expense</a></div>
+                  <div style={{ marginTop: '12px' }}><a href='/expenses/new' className='btn btn-ghost'>+ Add Expense</a></div>
                 </div>
               </div>
             </div>
@@ -266,7 +264,7 @@ export default function PropertyDetailPage({ params }) {
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={secTtl}>🏦 Mortgage</div>
-                <a href={'/mortgage'} style={btnG}>Manage Mortgages</a>
+                <a href={'/mortgage'} className='btn btn-ghost'>Manage Mortgages</a>
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text3)' }}>View and manage mortgage details in the Mortgage section.</div>
             </div>
@@ -278,7 +276,7 @@ export default function PropertyDetailPage({ params }) {
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={secTtl}>🛡 Insurance</div>
-                <a href={'/properties/' + p.id + '/edit#insurance'} style={btnG}>Edit</a>
+                <a href={'/properties/' + p.id + '/edit#insurance'} className='btn btn-ghost'>Edit</a>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
                 {[
@@ -299,7 +297,7 @@ export default function PropertyDetailPage({ params }) {
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={secTtl}>🧾 Property Tax</div>
-                <a href={'/properties/' + p.id + '/edit#tax'} style={btnG}>Edit</a>
+                <a href={'/properties/' + p.id + '/edit#tax'} className='btn btn-ghost'>Edit</a>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
                 {[
@@ -325,7 +323,7 @@ export default function PropertyDetailPage({ params }) {
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={secTtl}>⚡ Utility Companies</div>
-                <a href={'/properties/' + p.id + '/edit#utilities'} style={btnG}>Edit</a>
+                <a href={'/properties/' + p.id + '/edit#utilities'} className='btn btn-ghost'>Edit</a>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
                 {[
@@ -346,7 +344,7 @@ export default function PropertyDetailPage({ params }) {
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={secTtl}>🎓 Schools</div>
-                <a href={'/properties/' + p.id + '/edit#utilities'} style={btnG}>Edit</a>
+                <a href={'/properties/' + p.id + '/edit#utilities'} className='btn btn-ghost'>Edit</a>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
                 {[
@@ -369,7 +367,7 @@ export default function PropertyDetailPage({ params }) {
           <div style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={secTtl}>📄 Property Documents</div>
-              <button style={btnP} onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? 'Uploading...' : '⬆ Upload Document'}</button>
+              <button className='btn btn-primary' onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? 'Uploading...' : '⬆ Upload Document'}</button>
             </div>
             <input ref={fileRef} type='file' accept='.pdf,.jpg,.jpeg,.png,.doc,.docx' style={{ display: 'none' }} onChange={uploadDoc} />
             {(!p.photo_urls || p.photo_urls.length === 0) ? (
@@ -384,8 +382,8 @@ export default function PropertyDetailPage({ params }) {
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg3)', borderRadius: '8px', border: '0.5px solid var(--border)' }}>
                     <div style={{ fontSize: '13px', color: 'var(--text)' }}>📄 {decodeURIComponent(url.split('/').pop().split('_').slice(1).join('_')) || 'Document ' + (i + 1)}</div>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <a href={url} target='_blank' style={btnG}>View</a>
-                      <a href={url} download style={btnG}>Download</a>
+                      <a href={url} target='_blank' className='btn btn-ghost'>View</a>
+                      <a href={url} download className='btn btn-ghost'>Download</a>
                     </div>
                   </div>
                 ))}
