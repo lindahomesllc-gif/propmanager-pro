@@ -78,6 +78,22 @@ export default function AlertsPage() {
   const emergencyMaint = maintenance.filter(m => m.priority === 'emergency' || m.priority === 'high')
   const openMaint = maintenance.filter(m => m.priority !== 'emergency' && m.priority !== 'high')
 
+  // Unified, cross-type, date-sorted list for the timeline + summary
+  const allAlerts = [
+    ...latePayments.map(p => ({ id: 'pl' + p.id, title: (p.tenants?.full_name || 'Tenant') + ' — Rent Overdue', subtitle: 'Was due ' + formatDate(p.due_date) + ' · ' + fm(p.amount_due), days: daysUntil(p.due_date), color: '#F87171', link: '/payments', amount: p.amount_due })),
+    ...duePayments.map(p => ({ id: 'pd' + p.id, title: (p.tenants?.full_name || 'Tenant') + ' — Rent Due', subtitle: 'Due ' + formatDate(p.due_date) + ' · ' + fm(p.amount_due), days: daysUntil(p.due_date), color: urgencyColor(daysUntil(p.due_date)), link: '/payments', amount: p.amount_due })),
+    ...expiringLeases.map(l => ({ id: 'ls' + l.id, title: (l.tenants?.full_name || 'Tenant') + ' — Lease ' + (l.days < 0 ? 'Expired' : 'Expires'), subtitle: formatDate(l.end_date) + ' · ' + (l.properties?.address || ''), days: l.days, color: urgencyColor(l.days), link: '/leases/' + l.id, amount: 0 })),
+    ...insuranceAlerts.map(p => ({ id: 'in' + p.id, title: 'Insurance — ' + p.address, subtitle: (p.insurance_company || 'Insurance') + ' · Expires ' + formatDate(p.insurance_expires), days: p.days, color: urgencyColor(p.days), link: '/properties/' + p.id + '/edit#insurance', amount: 0 })),
+    ...taxAlerts.map(p => ({ id: 'tx' + p.id, title: 'Property Tax — ' + p.address, subtitle: 'Due ' + formatDate(p.tax_due_date) + (p.annual_tax ? ' · ' + fm(p.annual_tax) : ''), days: p.days, color: urgencyColor(p.days), link: '/properties/' + p.id + '/edit#tax', amount: p.annual_tax || 0 })),
+    ...emergencyMaint.map(m => ({ id: 'mt' + m.id, title: m.title, subtitle: (m.properties?.address || '') + ' · ' + m.priority + ' priority', days: m.scheduled_date ? daysUntil(m.scheduled_date) : 0, color: m.priority === 'emergency' ? '#F87171' : '#FBB040', link: '/maintenance/' + m.id, amount: 0 })),
+    ...mortgages.map(m => ({ id: 'mo' + m.id, title: (m.properties?.address || 'Property') + ' — Mortgage', subtitle: (m.lender_name || 'No lender') + ' · Due day ' + m.due_day, days: nextDueDays(m.due_day), color: '#60A5FA', link: '/mortgage', amount: m.monthly_payment || 0 })),
+  ].sort((a, b) => a.days - b.days)
+
+  const overdueCount = allAlerts.filter(a => a.days < 0).length
+  const weekCount = allAlerts.filter(a => a.days >= 0 && a.days <= 7).length
+  const monthCount = allAlerts.filter(a => a.days > 7 && a.days <= 30).length
+  const atRisk = allAlerts.filter(a => a.days <= 7).reduce((s, a) => s + (a.amount || 0), 0)
+
   const filters = ['all', 'urgent', 'payments', 'leases', 'insurance', 'maintenance', 'mortgage']
 
   const AlertCard = ({ title, subtitle, days, color, link, label }) => (
@@ -118,7 +134,31 @@ export default function AlertsPage() {
         {loading && <div style={{ display: 'grid', gap: '8px' }}>{[0, 1, 2, 3].map(i => <div key={i} className='skeleton' style={{ height: '64px' }} />)}</div>}
         {!loading && (
           <>
-            {(filter === 'all' || filter === 'urgent' || filter === 'payments') && latePayments.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '20px' }}>
+              {[
+                { label: 'Overdue', value: overdueCount, color: 'var(--red)' },
+                { label: 'This Week', value: weekCount, color: 'var(--amber)' },
+                { label: 'Next 30 Days', value: monthCount, color: 'var(--blue)' },
+                { label: 'Due Soon', value: fm(atRisk), color: 'var(--text)' },
+              ].map(s => (
+                <div key={s.label} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{s.label}</div>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: s.color, marginTop: '5px' }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
+
+            {(filter === 'all' || filter === 'urgent') && (() => {
+              const horizon = filter === 'urgent' ? 7 : 30
+              const timeline = allAlerts.filter(a => a.days <= horizon)
+              return timeline.length > 0 ? (
+                <Section title={'⏱ Next ' + horizon + ' Days'} count={timeline.length} color='var(--green)'>
+                  {timeline.map(a => <AlertCard key={a.id} title={a.title} subtitle={a.subtitle} days={a.days} color={a.color} link={a.link} />)}
+                </Section>
+              ) : null
+            })()}
+
+            {(filter === 'all' || filter === 'payments') && latePayments.length > 0 && (
               <Section title='Late Payments' count={latePayments.length} color='var(--red)'>
                 {latePayments.map(p => (
                   <AlertCard key={p.id} title={(p.tenants?.full_name || 'Tenant') + ' — Rent Overdue'} subtitle={'Was due ' + formatDate(p.due_date) + ' · ' + fm(p.amount_due)} days={daysUntil(p.due_date)} color='var(--red)' link='/payments' />
@@ -126,7 +166,7 @@ export default function AlertsPage() {
               </Section>
             )}
 
-            {(filter === 'all' || filter === 'urgent' || filter === 'payments') && duePayments.length > 0 && (
+            {(filter === 'all' || filter === 'payments') && duePayments.length > 0 && (
               <Section title='Upcoming Payments' count={duePayments.length} color='var(--amber)'>
                 {duePayments.map(p => (
                   <AlertCard key={p.id} title={(p.tenants?.full_name || 'Tenant') + ' — Rent Due'} subtitle={'Due ' + formatDate(p.due_date) + ' · ' + fm(p.amount_due)} days={daysUntil(p.due_date)} link='/payments' />
@@ -158,7 +198,7 @@ export default function AlertsPage() {
               </Section>
             )}
 
-            {(filter === 'all' || filter === 'urgent' || filter === 'maintenance') && emergencyMaint.length > 0 && (
+            {(filter === 'all' || filter === 'maintenance') && emergencyMaint.length > 0 && (
               <Section title='High Priority Maintenance' count={emergencyMaint.length} color='var(--red)'>
                 {emergencyMaint.map(m => {
                   const d = m.scheduled_date ? daysUntil(m.scheduled_date) : null
