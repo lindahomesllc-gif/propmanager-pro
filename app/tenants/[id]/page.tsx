@@ -20,7 +20,12 @@ export default function TenantDetailPage({ params }) {
       email: tenant.email,
       options: { emailRedirectTo: window.location.origin + '/portal/auth/callback' },
     })
-    if (error) { alert('Could not send portal link: ' + error.message); setSendingLink(false); return }
+    if (error) {
+      const msg = /rate limit/i.test(error.message)
+        ? 'A login link was sent to this tenant recently. Please wait a few minutes before requesting another.'
+        : 'Could not send portal link: ' + error.message
+      alert(msg); setSendingLink(false); return
+    }
     if (!tenant.portal_access) {
       await supabase.from('tenants').update({ portal_access: true }).eq('id', params.id).eq('user_id', USER_ID)
       setTenant(prev => ({ ...prev, portal_access: true }))

@@ -35,7 +35,12 @@ export default function TenantsPage() {
       setTenants(prev => prev.map(t => t.id === tenant.id ? { ...t, portal_access: true } : t))
     }
     setSendingId(null)
-    if (error) { alert('Could not send portal link: ' + error.message); return }
+    if (error) {
+      const msg = /rate limit/i.test(error.message)
+        ? 'A login link was sent to this tenant recently. Please wait a few minutes before requesting another.'
+        : 'Could not send portal link: ' + error.message
+      alert(msg); return
+    }
     alert('✅ Portal login link sent to ' + tenant.email + '\n\nThe link expires in 1 hour.')
   }
 
