@@ -41,25 +41,23 @@ export default function NewPropertyPage() {
   const g2 = { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px' }
   const g3 = { display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px' }
   const secTtl = { fontSize:'11px', fontWeight:700, textTransform:'uppercase' as const, letterSpacing:'0.07em', color:'var(--text3)', marginBottom:'12px' }
-  const btnP = { background:'var(--green)', color:'var(--bg)', border:'none', borderRadius:'7px', padding:'8px 18px', fontSize:'13px', fontWeight:700, cursor:'pointer' as const, fontFamily:'Plus Jakarta Sans, sans-serif' }
-  const btnG = { background:'transparent', color:'var(--text2)', border:'0.5px solid var(--border2)', borderRadius:'7px', padding:'8px 14px', fontSize:'12px', cursor:'pointer' as const, fontFamily:'Plus Jakarta Sans, sans-serif' }
   return (
     <AppShell>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 20px', borderBottom:'0.5px solid var(--border)', background:'var(--bg2)', flexShrink:0 }}>
         <div style={{ fontFamily:'Syne, sans-serif', fontSize:'16px', fontWeight:700, color:'var(--text)' }}>Add New Property</div>
         <div style={{ display:'flex', gap:'8px' }}>
-          <button style={btnG} onClick={() => router.push('/properties')}>Cancel</button>
-          <button style={btnP} onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Property'}</button>
+          <button className='btn btn-ghost' onClick={() => router.push('/properties')}>Cancel</button>
+          <button className='btn btn-primary' onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Property'}</button>
         </div>
       </div>
       <div style={{ flex:1, overflowY:'auto' as const, padding:'20px' }}>
         <div style={card}>
           <div style={secTtl}>Property Address</div>
-          <div style={{ marginBottom:'12px' }}><label style={lbl}>Street Address *</label><input style={inp} placeholder="123 Main St" value={form.address} onChange={e => set('address', e.target.value)} /></div>
+          <div style={{ marginBottom:'12px' }}><label style={lbl}>Street Address *</label><input className='input' placeholder="123 Main St" value={form.address} onChange={e => set('address', e.target.value)} /></div>
           <div style={g3}>
-            <div><label style={lbl}>City</label><input style={inp} placeholder="Orlando" value={form.city} onChange={e => set('city', e.target.value)} /></div>
-            <div><label style={lbl}>State</label><input style={inp} placeholder="FL" value={form.state} onChange={e => set('state', e.target.value)} /></div>
-            <div><label style={lbl}>ZIP</label><input style={inp} placeholder="32803" value={form.zip} onChange={e => set('zip', e.target.value)} /></div>
+            <div><label style={lbl}>City</label><input className='input' placeholder="Orlando" value={form.city} onChange={e => set('city', e.target.value)} /></div>
+            <div><label style={lbl}>State</label><input className='input' placeholder="FL" value={form.state} onChange={e => set('state', e.target.value)} /></div>
+            <div><label style={lbl}>ZIP</label><input className='input' placeholder="32803" value={form.zip} onChange={e => set('zip', e.target.value)} /></div>
           </div>
         </div>
         <div style={card}>
@@ -69,9 +67,9 @@ export default function NewPropertyPage() {
             <div><label style={lbl}>Ownership</label><select style={sel} value={form.owner_entity} onChange={e => set('owner_entity', e.target.value)}><option value="Self">Self</option><option value="LLC - PropCo">LLC - PropCo</option><option value="Trust">Trust</option><option value="Partnership">Partnership</option></select></div>
           </div>
           <div style={{ ...g3, marginBottom:'12px' }}>
-            <div><label style={lbl}>Bedrooms</label><input style={inp} type="number" placeholder="3" value={form.bedrooms} onChange={e => set('bedrooms', e.target.value)} /></div>
-            <div><label style={lbl}>Bathrooms</label><input style={inp} type="number" step="0.5" placeholder="2" value={form.bathrooms} onChange={e => set('bathrooms', e.target.value)} /></div>
-            <div><label style={lbl}>Sq Ft</label><input style={inp} type="number" placeholder="1400" value={form.sqft} onChange={e => set('sqft', e.target.value)} /></div>
+            <div><label style={lbl}>Bedrooms</label><input className='input' type="number" placeholder="3" value={form.bedrooms} onChange={e => set('bedrooms', e.target.value)} /></div>
+            <div><label style={lbl}>Bathrooms</label><input className='input' type="number" step="0.5" placeholder="2" value={form.bathrooms} onChange={e => set('bathrooms', e.target.value)} /></div>
+            <div><label style={lbl}>Sq Ft</label><input className='input' type="number" placeholder="1400" value={form.sqft} onChange={e => set('sqft', e.target.value)} /></div>
           </div>
           <div style={g2}>
             <div><label style={lbl}>Occupancy</label><select style={sel} value={form.occupancy_status} onChange={e => set('occupancy_status', e.target.value)}><option value="vacant">Vacant</option><option value="occupied">Occupied</option></select></div>
@@ -80,8 +78,8 @@ export default function NewPropertyPage() {
         <div style={card}>
           <div style={secTtl}>Financial Details</div>
           <div style={g2}>
-            <div><label style={lbl}>Purchase Price</label><input style={inp} type="number" placeholder="285000" value={form.purchase_price} onChange={e => set('purchase_price', e.target.value)} /></div>
-            <div><label style={lbl}>Market Value</label><input style={inp} type="number" placeholder="320000" value={form.market_value} onChange={e => set('market_value', e.target.value)} /></div>
+            <div><label style={lbl}>Purchase Price</label><input className='input' type="number" placeholder="285000" value={form.purchase_price} onChange={e => set('purchase_price', e.target.value)} /></div>
+            <div><label style={lbl}>Market Value</label><input className='input' type="number" placeholder="320000" value={form.market_value} onChange={e => set('market_value', e.target.value)} /></div>
           </div>
         </div>
         <div style={card}>
@@ -89,8 +87,8 @@ export default function NewPropertyPage() {
           <textarea style={{ ...inp, resize:'vertical' as const }} rows={3} placeholder="Any notes about this property..." value={form.notes} onChange={e => set('notes', e.target.value)} />
         </div>
         <div style={{ display:'flex', gap:'8px', justifyContent:'flex-end' }}>
-          <button style={btnG} onClick={() => router.push('/properties')}>Cancel</button>
-          <button style={btnP} onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Property'}</button>
+          <button className='btn btn-ghost' onClick={() => router.push('/properties')}>Cancel</button>
+          <button className='btn btn-primary' onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Property'}</button>
         </div>
       </div>
     </AppShell>

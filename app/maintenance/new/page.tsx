@@ -59,13 +59,10 @@ export default function NewMaintenancePage() {
     window.location.href = '/maintenance'
   }
 
-  const inp = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', fontFamily: 'Plus Jakarta Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }
   const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
   const card = { background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
   const g2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }
   const g3 = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }
-  const btnP = { background: 'var(--green)', color: 'var(--bg)', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }
-  const btnG = { background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '8px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
   const secTtl = { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }
 
   return (
@@ -76,8 +73,8 @@ export default function NewMaintenancePage() {
           <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginTop: '2px' }}>New Maintenance Request</div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <a href='/maintenance' style={btnG}>Cancel</a>
-          <button style={btnP} onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Request'}</button>
+          <a href='/maintenance' className='btn btn-ghost'>Cancel</a>
+          <button className='btn btn-primary' onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Request'}</button>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
@@ -86,13 +83,13 @@ export default function NewMaintenancePage() {
           <div style={secTtl}>Property & Tenant</div>
           <div style={g2}>
             <div><label style={lbl}>Property *</label>
-              <select style={inp} value={form.property_id} onChange={e => set('property_id', e.target.value)}>
+              <select className='input' value={form.property_id} onChange={e => set('property_id', e.target.value)}>
                 <option value=''>Select property...</option>
                 {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
               </select>
             </div>
             <div><label style={lbl}>Reported By (Tenant)</label>
-              <select style={inp} value={form.tenant_id} onChange={e => set('tenant_id', e.target.value)}>
+              <select className='input' value={form.tenant_id} onChange={e => set('tenant_id', e.target.value)}>
                 <option value=''>Select tenant...</option>
                 {tenants.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
               </select>
@@ -103,11 +100,11 @@ export default function NewMaintenancePage() {
           <div style={secTtl}>Request Details</div>
           <div style={{ marginBottom: '12px' }}>
             <label style={lbl}>Title *</label>
-            <input style={inp} placeholder='e.g. Leaking kitchen faucet' value={form.title} onChange={e => set('title', e.target.value)} />
+            <input className='input' placeholder='e.g. Leaking kitchen faucet' value={form.title} onChange={e => set('title', e.target.value)} />
           </div>
           <div style={{ ...g3, marginBottom: '12px' }}>
             <div><label style={lbl}>Category</label>
-              <select style={inp} value={form.category} onChange={e => set('category', e.target.value)}>
+              <select className='input' value={form.category} onChange={e => set('category', e.target.value)}>
                 <option value='plumbing'>Plumbing</option>
                 <option value='hvac'>HVAC</option>
                 <option value='electrical'>Electrical</option>
@@ -122,7 +119,7 @@ export default function NewMaintenancePage() {
               </select>
             </div>
             <div><label style={lbl}>Priority</label>
-              <select style={inp} value={form.priority} onChange={e => set('priority', e.target.value)}>
+              <select className='input' value={form.priority} onChange={e => set('priority', e.target.value)}>
                 <option value='low'>Low</option>
                 <option value='medium'>Medium</option>
                 <option value='high'>High</option>
@@ -130,7 +127,7 @@ export default function NewMaintenancePage() {
               </select>
             </div>
             <div><label style={lbl}>Status</label>
-              <select style={inp} value={form.status} onChange={e => set('status', e.target.value)}>
+              <select className='input' value={form.status} onChange={e => set('status', e.target.value)}>
                 <option value='open'>Open</option>
                 <option value='scheduled'>Scheduled</option>
                 <option value='in_progress'>In Progress</option>
@@ -141,24 +138,24 @@ export default function NewMaintenancePage() {
           </div>
           <div style={{ marginBottom: '12px' }}>
             <label style={lbl}>Description</label>
-            <textarea style={{ ...inp, resize: 'vertical' }} rows={3} placeholder='Describe the issue...' value={form.description} onChange={e => set('description', e.target.value)} />
+            <textarea className='input' style={{ resize: 'vertical' }} rows={3} placeholder='Describe the issue...' value={form.description} onChange={e => set('description', e.target.value)} />
           </div>
         </div>
         <div style={card}>
           <div style={secTtl}>Scheduling & Cost</div>
           <div style={g3}>
-            <div><label style={lbl}>Scheduled Date</label><input style={inp} type='date' value={form.scheduled_date} onChange={e => set('scheduled_date', e.target.value)} /></div>
-            <div><label style={lbl}>Estimated Cost</label><input style={inp} type='number' placeholder='0.00' value={form.estimated_cost} onChange={e => set('estimated_cost', e.target.value)} /></div>
-            <div><label style={lbl}>Actual Cost</label><input style={inp} type='number' placeholder='0.00' value={form.actual_cost} onChange={e => set('actual_cost', e.target.value)} /></div>
+            <div><label style={lbl}>Scheduled Date</label><input className='input' type='date' value={form.scheduled_date} onChange={e => set('scheduled_date', e.target.value)} /></div>
+            <div><label style={lbl}>Estimated Cost</label><input className='input' type='number' placeholder='0.00' value={form.estimated_cost} onChange={e => set('estimated_cost', e.target.value)} /></div>
+            <div><label style={lbl}>Actual Cost</label><input className='input' type='number' placeholder='0.00' value={form.actual_cost} onChange={e => set('actual_cost', e.target.value)} /></div>
           </div>
         </div>
         <div style={card}>
           <div style={secTtl}>Notes</div>
-          <textarea style={{ ...inp, resize: 'vertical' }} rows={3} placeholder='Internal notes...' value={form.landlord_notes} onChange={e => set('landlord_notes', e.target.value)} />
+          <textarea className='input' style={{ resize: 'vertical' }} rows={3} placeholder='Internal notes...' value={form.landlord_notes} onChange={e => set('landlord_notes', e.target.value)} />
         </div>
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-          <a href='/maintenance' style={btnG}>Cancel</a>
-          <button style={btnP} onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Request'}</button>
+          <a href='/maintenance' className='btn btn-ghost'>Cancel</a>
+          <button className='btn btn-primary' onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Request'}</button>
         </div>
       </div>
     </AppShell>
