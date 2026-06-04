@@ -11,6 +11,7 @@ export default function CalendarPage() {
   const [viewDate, setViewDate] = useState(null)
   const [showAdd, setShowAdd] = useState(null)
   const [newTitle, setNewTitle] = useState('')
+  const [view, setView] = useState('month')
 
   useEffect(() => {
     supabase.from('reminders').select('*').eq('user_id', USER_ID)
@@ -86,7 +87,45 @@ export default function CalendarPage() {
     setReminders(prev => prev.filter(r => r.id !== id))
   }
 
+  // Generate a 12-month .ics calendar (recurring rent + mortgages, lease ends,
+  // scheduled maintenance, reminders) and download it for Google/Apple Calendar.
+  async function exportICS() {
+    const [lea, mor, mai] = await Promise.all([
+      supabase.from('leases').select('*, tenants(full_name), properties(address)').eq('user_id', USER_ID).eq('status', 'executed'),
+      supabase.from('mortgages').select('*, properties(address)').eq('user_id', USER_ID).eq('is_paid_off', false),
+      supabase.from('maintenance').select('*, properties(address)').eq('user_id', USER_ID).not('scheduled_date', 'is', null).in('status', ['open','scheduled','in_progress']),
+    ])
+    const p2 = n => String(n).padStart(2, '0')
+    const esc = s => String(s || '').replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n')
+    const nextDay = ds => { const d = new Date(ds + 'T00:00:00'); d.setDate(d.getDate() + 1); return '' + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) }
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+    const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//PropManager Pro//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:PropManager Pro']
+    const ev = (uid, ds, summary) => L.push('BEGIN:VEVENT', 'UID:' + uid + '@propmanager-pro', 'DTSTAMP:' + stamp, 'DTSTART;VALUE=DATE:' + ds.replace(/-/g, ''), 'DTEND;VALUE=DATE:' + nextDay(ds), 'SUMMARY:' + esc(summary), 'END:VEVENT')
+    const base = new Date()
+    for (let k = 0; k < 12; k++) {
+      const d = new Date(base.getFullYear(), base.getMonth() + k, 1)
+      const yy = d.getFullYear(), mm = d.getMonth() + 1
+      const dim = new Date(yy, mm, 0).getDate()
+      const pre = yy + '-' + p2(mm)
+      lea.data?.forEach(l => { if (l.due_day) ev('rent-' + l.id + '-' + pre, pre + '-' + p2(Math.min(l.due_day, dim)), 'Rent Due — ' + (l.tenants?.full_name || 'Tenant') + ' (' + fm(l.rent_amount) + ')') })
+      mor.data?.forEach(m => ev('mort-' + m.id + '-' + pre, pre + '-' + p2(Math.min(m.due_day || 1, dim)), 'Mortgage — ' + (m.properties?.address || 'Property')))
+    }
+    lea.data?.forEach(l => { if (l.end_date) ev('lease-' + l.id, l.end_date, 'Lease Expires — ' + (l.tenants?.full_name || 'Tenant')) })
+    mai.data?.forEach(m => ev('maint-' + m.id, m.scheduled_date, 'Maintenance — ' + m.title))
+    reminders.forEach(r => { if (r.date) ev('rem-' + r.id, r.date, r.title) })
+    L.push('END:VCALENDAR')
+    const blob = new Blob([L.join('\r\n')], { type: 'text/calendar;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = 'propmanager-calendar.ics'; a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const viewDateEvents = viewDate ? [...events.filter(e => e.date === viewDate), ...reminders.filter(r => r.date === viewDate)] : []
+  const monthPrefix = year + '-' + pad(month + 1)
+  const agendaItems = [...events, ...reminders.filter(r => (r.date || '').startsWith(monthPrefix)).map(r => ({ ...r, label: r.title }))]
+    .filter(e => (e.date || '').startsWith(monthPrefix))
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
 
   return (
     <AppShell>
@@ -102,9 +141,16 @@ export default function CalendarPage() {
           </select>
           <button onClick={nextMonth} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' }}>→</button>
           <button onClick={() => setCurrentDate(new Date())} className='btn btn-ghost'>Today</button>
+          <div style={{ display: 'flex', background: 'var(--bg3)', borderRadius: '8px', padding: '3px', border: '0.5px solid var(--border)' }}>
+            {['month', 'agenda'].map(v => (
+              <button key={v} onClick={() => setView(v)} style={{ padding: '5px 12px', borderRadius: '6px', border: 'none', background: view === v ? 'var(--bg2)' : 'transparent', color: view === v ? 'var(--text)' : 'var(--text3)', fontSize: '12px', cursor: 'pointer', fontWeight: view === v ? 600 : 400, textTransform: 'capitalize' }}>{v}</button>
+            ))}
+          </div>
+          <button onClick={exportICS} className='btn btn-ghost'>⤓ Export</button>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'grid', gridTemplateColumns: '1fr 280px', gap: '20px' }}>
+        {view === 'month' && (
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginBottom: '2px' }}>
             {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
@@ -133,6 +179,27 @@ export default function CalendarPage() {
             })}
           </div>
         </div>
+        )}
+        {view === 'agenda' && (
+          <div style={{ gridColumn: '1 / -1' }}>
+            {agendaItems.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)', fontSize: '13px' }}>No events this month. Use ← → to change month.</div>
+            ) : agendaItems.map((ev, i) => (
+              <a key={i} href={ev.link || '#'} onClick={!ev.link ? e => e.preventDefault() : undefined} style={{ display: 'flex', alignItems: 'center', gap: '14px', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + (ev.color || '#A78BFA'), borderRadius: '10px', padding: '12px 16px', marginBottom: '8px', textDecoration: 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={{ textAlign: 'center', minWidth: '44px', flexShrink: 0 }}>
+                  <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase', fontWeight: 700 }}>{new Date(ev.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short' })}</div>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: ev.color || 'var(--text)', lineHeight: 1.1 }}>{new Date(ev.date + 'T12:00:00').getDate()}</div>
+                  <div style={{ fontSize: '9px', color: 'var(--text3)' }}>{new Date(ev.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{ev.label || ev.title}</div>
+                  {ev.amount ? <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{fm(ev.amount)}</div> : null}
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+        {view === 'month' && (
         <div>
           <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }}>Upcoming Events</div>
           {loading && <div style={{ color: 'var(--text3)', fontSize: '12px' }}>Loading...</div>}
@@ -144,6 +211,7 @@ export default function CalendarPage() {
             </a>
           ))}
         </div>
+        )}
       </div>
 
       {viewDate && (
