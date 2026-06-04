@@ -14,11 +14,29 @@ export default function TenantsPage() {
       .then(({ data }) => { setTenants(data || []); setLoading(false) })
   }, [])
 
+  const [sendingId, setSendingId] = useState(null)
+
   async function deleteTenant(id, name) {
     if (!confirm('Delete ' + name + '? This cannot be undone.')) return
     const { error } = await supabase.from('tenants').delete().eq('id', id).eq('user_id', USER_ID)
     if (error) { alert('Error: ' + error.message); return }
     setTenants(prev => prev.filter(t => t.id !== id))
+  }
+
+  async function sendPortalLink(tenant) {
+    if (!tenant.email) { alert('This tenant has no email address on file. Add one before sending a portal link.'); return }
+    setSendingId(tenant.id)
+    const { error } = await supabase.auth.signInWithOtp({
+      email: tenant.email,
+      options: { emailRedirectTo: window.location.origin + '/portal/auth/callback' },
+    })
+    if (!error && !tenant.portal_access) {
+      await supabase.from('tenants').update({ portal_access: true }).eq('id', tenant.id).eq('user_id', USER_ID)
+      setTenants(prev => prev.map(t => t.id === tenant.id ? { ...t, portal_access: true } : t))
+    }
+    setSendingId(null)
+    if (error) { alert('Could not send portal link: ' + error.message); return }
+    alert('✅ Portal login link sent to ' + tenant.email + '\n\nThe link expires in 1 hour.')
   }
 
   const active = tenants.filter(t => t.status === 'active')
@@ -88,6 +106,7 @@ export default function TenantsPage() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     <span style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '20px', background: statusBg(t.status), color: statusColor(t.status), fontWeight: 700, textTransform: 'capitalize' }}>{t.status}</span>
+                    <button onClick={e => { e.preventDefault(); sendPortalLink(t) }} disabled={sendingId === t.id} title='Send portal login link' style={{ background: 'transparent', color: 'var(--green)', border: '0.5px solid var(--border2)', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', cursor: sendingId === t.id ? 'not-allowed' : 'pointer', opacity: sendingId === t.id ? 0.6 : 1, whiteSpace: 'nowrap' }}>{sendingId === t.id ? '…' : '✉ Portal'}</button>
                     <button onClick={e => { e.preventDefault(); deleteTenant(t.id, t.full_name) }} style={{ background: 'transparent', color: 'var(--text3)', border: '0.5px solid var(--border2)', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', cursor: 'pointer' }}>✕</button>
                   </div>
                 </div>

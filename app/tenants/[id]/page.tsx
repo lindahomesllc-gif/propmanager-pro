@@ -10,7 +10,24 @@ export default function TenantDetailPage({ params }) {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('overview')
   const [uploading, setUploading] = useState(false)
+  const [sendingLink, setSendingLink] = useState(false)
   const fileRef = useRef(null)
+
+  async function sendPortalLink() {
+    if (!tenant?.email) { alert('This tenant has no email address on file. Add one via Edit before sending a portal link.'); return }
+    setSendingLink(true)
+    const { error } = await supabase.auth.signInWithOtp({
+      email: tenant.email,
+      options: { emailRedirectTo: window.location.origin + '/portal/auth/callback' },
+    })
+    if (error) { alert('Could not send portal link: ' + error.message); setSendingLink(false); return }
+    if (!tenant.portal_access) {
+      await supabase.from('tenants').update({ portal_access: true }).eq('id', params.id).eq('user_id', USER_ID)
+      setTenant(prev => ({ ...prev, portal_access: true }))
+    }
+    setSendingLink(false)
+    alert('✅ Portal login link sent to ' + tenant.email + '\n\nThey can click the link in their email to access the tenant portal. The link expires in 1 hour.')
+  }
 
   useEffect(() => {
     Promise.all([
@@ -78,6 +95,7 @@ export default function TenantDetailPage({ params }) {
           </div>
           <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
             <a href={'/payments?tenant_id=' + t.id} style={btnP}>+ Payment</a>
+            <button onClick={sendPortalLink} disabled={sendingLink} style={{ ...btnG, cursor: sendingLink ? 'not-allowed' : 'pointer', opacity: sendingLink ? 0.6 : 1 }}>{sendingLink ? 'Sending…' : '✉ Send Portal Link'}</button>
             <a href={'/tenants/' + t.id + '/edit'} style={btnG}>Edit</a>
           </div>
         </div>

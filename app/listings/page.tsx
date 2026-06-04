@@ -52,6 +52,19 @@ export default function ListingsPage() {
     window.location.reload()
   }
 
+  async function toggleActive(id, isActive) {
+    const { error: err } = await supabase.from('listings').update({ is_active: !isActive }).eq('id', id).eq('user_id', USER_ID)
+    if (err) { alert('Error: ' + err.message); return }
+    setListings(prev => prev.map(l => l.id === id ? { ...l, is_active: !isActive } : l))
+  }
+
+  async function deleteListing(id) {
+    if (!confirm('Delete this listing? This cannot be undone.')) return
+    const { error: err } = await supabase.from('listings').delete().eq('id', id).eq('user_id', USER_ID)
+    if (err) { alert('Error: ' + err.message); return }
+    setListings(prev => prev.filter(l => l.id !== id))
+  }
+
   const active = listings.filter(l => l.is_active)
   const inactive = listings.filter(l => !l.is_active)
 
@@ -74,7 +87,7 @@ export default function ListingsPage() {
         {[
           { label: '🏠 Active', value: active.length, color: 'var(--green)' },
           { label: '📭 Inactive', value: inactive.length, color: 'var(--text3)' },
-          { label: '🏚 Vacant', value: properties.filter(p => p.occupancy_status === 'vacant').length, color: 'var(--amber)' },
+          { label: '🏚 Vacant', value: properties.length, color: 'var(--amber)' },
           { label: '💰 Avg Rent', value: listings.length ? '$' + Math.round(listings.reduce((s,l) => s + (l.rent_amount||0), 0) / listings.length).toLocaleString() : '—', color: 'var(--blue)' },
         ].map((mc, i) => (
           <div key={mc.label} style={{ padding: '14px 20px', background: 'var(--bg2)', borderRight: i < 3 ? '0.5px solid var(--border)' : 'none' }}>
@@ -113,7 +126,7 @@ export default function ListingsPage() {
               <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '4px' }}>Description</div>
               <textarea value={form.description} onChange={e => setForm(f => ({...f, description: e.target.value}))} rows={3} placeholder='Describe the unit...' style={{ width: '100%', padding: '8px 10px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
             </div>
-            <button onClick={saveListing} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>Save Listing</button>
+            <button onClick={save} disabled={saving} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving…' : 'Save Listing'}</button>
           </div>
         )}
         {loading && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading...</div>}
