@@ -82,9 +82,9 @@ export async function GET(request: Request) {
     </div>
   </div>`
 
-  const apiKey = process.env.SENDGRID_API_KEY
-  const to = process.env.NOTIFY_EMAIL
-  const from = process.env.NOTIFY_FROM
+  const apiKey = process.env.SENDGRID_API_KEY?.trim()
+  const to = process.env.NOTIFY_EMAIL?.trim()
+  const from = process.env.NOTIFY_FROM?.trim()
 
   if (!apiKey || !to || !from) {
     return NextResponse.json({
@@ -100,20 +100,23 @@ export async function GET(request: Request) {
     return NextResponse.json({ status: 'skipped_empty', summary: { overdue, dueSoon, atRisk } })
   }
 
-  const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      personalizations: [{ to: [{ email: to }] }],
-      from: { email: from, name: 'PropManager Pro' },
-      subject: `Due Dates: ${overdue} overdue · ${dueSoon} due this week`,
-      content: [{ type: 'text/html', value: html }],
-    }),
-  })
-
-  if (!res.ok) {
-    const detail = await res.text()
-    return NextResponse.json({ status: 'send_failed', code: res.status, detail }, { status: 502 })
+  try {
+    const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: to }] }],
+        from: { email: from, name: 'PropManager Pro' },
+        subject: `Due Dates: ${overdue} overdue · ${dueSoon} due this week`,
+        content: [{ type: 'text/html', value: html }],
+      }),
+    })
+    if (!res.ok) {
+      const detail = await res.text()
+      return NextResponse.json({ status: 'send_failed', code: res.status, detail }, { status: 502 })
+    }
+    return NextResponse.json({ status: 'sent', to, summary: { overdue, dueSoon, atRisk, items: items.length } })
+  } catch (e: any) {
+    return NextResponse.json({ status: 'error', message: String(e?.message || e) }, { status: 500 })
   }
-  return NextResponse.json({ status: 'sent', to, summary: { overdue, dueSoon, atRisk, items: items.length } })
 }
