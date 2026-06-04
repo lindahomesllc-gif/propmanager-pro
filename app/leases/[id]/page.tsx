@@ -12,7 +12,7 @@ export default function LeaseDetailPage({ params }) {
 
   useEffect(() => {
     supabase.from('leases').select('*, properties(address, city, state), tenants(full_name, email, phone)')
-      .eq('id', params.id).eq('user_id', USER_ID).single()
+      .eq('id', params.id).single()
       .then(({ data }) => { setLease(data); setLoading(false) })
   }, [params.id])
 
@@ -29,7 +29,7 @@ export default function LeaseDetailPage({ params }) {
     const { error: updateErr } = await supabase.from('leases').update({
       pdf_url: urlData.publicUrl,
       status: 'executed',
-    }).eq('id', params.id).eq('user_id', USER_ID)
+    }).eq('id', params.id)
     if (updateErr) { setUploadError('Error saving: ' + updateErr.message); setUploading(false); return }
     setLease(l => ({ ...l, pdf_url: urlData.publicUrl, status: 'executed' }))
     setUploading(false)

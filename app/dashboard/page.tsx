@@ -10,13 +10,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('properties').select('*').eq('user_id', USER_ID),
-      supabase.from('tenants').select('*, properties(address)').eq('user_id', USER_ID).eq('status', 'active'),
-      supabase.from('payments').select('*, tenants(full_name), properties(address)').eq('user_id', USER_ID).order('due_date', { ascending: false }).limit(50),
-      supabase.from('expenses').select('*').eq('user_id', USER_ID),
-      supabase.from('leases').select('*, tenants(full_name), properties(address)').eq('user_id', USER_ID).eq('status', 'executed'),
-      supabase.from('maintenance').select('*, properties(address)').eq('user_id', USER_ID).in('status', ['open', 'scheduled', 'in_progress']),
-      supabase.from('mortgages').select('*, properties(address)').eq('user_id', USER_ID).eq('is_paid_off', false),
+      supabase.from('properties').select('*'),
+      supabase.from('tenants').select('*, properties(address)').eq('status', 'active'),
+      supabase.from('payments').select('*, tenants(full_name), properties(address)').order('due_date', { ascending: false }).limit(50),
+      supabase.from('expenses').select('*'),
+      supabase.from('leases').select('*, tenants(full_name), properties(address)').eq('status', 'executed'),
+      supabase.from('maintenance').select('*, properties(address)').in('status', ['open', 'scheduled', 'in_progress']),
+      supabase.from('mortgages').select('*, properties(address)').eq('is_paid_off', false),
     ]).then(([p, t, pay, exp, l, m, mo]) => {
       setData({ properties: p.data || [], tenants: t.data || [], payments: pay.data || [], expenses: exp.data || [], leases: l.data || [], maintenance: m.data || [], mortgages: mo.data || [] })
       setLoading(false)

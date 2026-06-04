@@ -20,7 +20,7 @@ export default function NewPropertyPage() {
     if (!form.address) { alert('Address is required'); return }
     setSaving(true)
     const { error } = await supabase.from('properties').insert({
-      user_id: USER_ID, address: form.address, city: form.city||null,
+      address: form.address, city: form.city||null,
       state: form.state||'FL', zip: form.zip||null, type: form.type||null,
       bedrooms: form.bedrooms ? parseFloat(form.bedrooms) : null,
       bathrooms: form.bathrooms ? parseFloat(form.bathrooms) : null,

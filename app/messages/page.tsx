@@ -28,7 +28,6 @@ export default function MessagesPage() {
   async function handleSend() {
     if (!input.trim() || !activeId) return
     const newMsg = await sendMessage({
-      user_id: USER_ID,
       tenant_id: activeId,
       property_id: activeTenant?.property_id || '',
       sender: 'landlord',

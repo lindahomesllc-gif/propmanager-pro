@@ -19,8 +19,8 @@ export default function MortgagePage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('mortgages').select('*, properties(address, city, state)').eq('user_id', USER_ID).order('created_at', { ascending: false }),
-      supabase.from('properties').select('id, address').eq('user_id', USER_ID),
+      supabase.from('mortgages').select('*, properties(address, city, state)').order('created_at', { ascending: false }),
+      supabase.from('properties').select('id, address'),
     ]).then(([m, p]) => {
       setMortgages(m.data || [])
       setProperties(p.data || [])
@@ -40,7 +40,6 @@ export default function MortgagePage() {
     if (!form.start_date) { setError('Start date is required'); return }
     setSaving(true)
     const { error: err } = await supabase.from('mortgages').insert({
-      user_id: USER_ID,
       property_id: form.property_id,
       lender_name: form.lender_name || null,
       loan_number: form.loan_number || null,

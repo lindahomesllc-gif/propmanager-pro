@@ -28,22 +28,22 @@ export type Message = {
   sender: string; body: string; read_at: string | null; created_at: string
 }
 export async function getProperties() {
-  const { data, error } = await supabase.from('properties').select('*').eq('user_id', USER_ID).order('created_at')
+  const { data, error } = await supabase.from('properties').select('*').order('created_at')
   if (error) { console.error(error); return [] }
   return data || []
 }
 export async function getTenants() {
-  const { data, error } = await supabase.from('tenants').select('*').eq('user_id', USER_ID).order('created_at')
+  const { data, error } = await supabase.from('tenants').select('*').order('created_at')
   if (error) { console.error(error); return [] }
   return data || []
 }
 export async function getPayments() {
-  const { data, error } = await supabase.from('payments').select('*').eq('user_id', USER_ID).order('due_date', { ascending: false })
+  const { data, error } = await supabase.from('payments').select('*').order('due_date', { ascending: false })
   if (error) { console.error(error); return [] }
   return data || []
 }
 export async function getMessages() {
-  const { data, error } = await supabase.from('messages').select('*').eq('user_id', USER_ID).order('created_at')
+  const { data, error } = await supabase.from('messages').select('*').order('created_at')
   if (error) { console.error(error); return [] }
   return data || []
 }

@@ -28,7 +28,7 @@ export default function TenantDetailPage({ params }) {
       alert(msg); setSendingLink(false); return
     }
     if (!tenant.portal_access) {
-      await supabase.from('tenants').update({ portal_access: true }).eq('id', params.id).eq('user_id', USER_ID)
+      await supabase.from('tenants').update({ portal_access: true }).eq('id', params.id)
       setTenant(prev => ({ ...prev, portal_access: true }))
     }
     setSendingLink(false)
@@ -37,9 +37,9 @@ export default function TenantDetailPage({ params }) {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('tenants').select('*, properties(address, city, state)').eq('id', params.id).eq('user_id', USER_ID).single(),
-      supabase.from('leases').select('id, rent_amount, start_date, end_date, status, pdf_url, security_deposit, due_day, late_fee_amount').eq('tenant_id', params.id).eq('user_id', USER_ID).order('created_at', { ascending: false }),
-      supabase.from('payments').select('*').eq('tenant_id', params.id).eq('user_id', USER_ID).order('due_date', { ascending: false }),
+      supabase.from('tenants').select('*, properties(address, city, state)').eq('id', params.id).single(),
+      supabase.from('leases').select('id, rent_amount, start_date, end_date, status, pdf_url, security_deposit, due_day, late_fee_amount').eq('tenant_id', params.id).order('created_at', { ascending: false }),
+      supabase.from('payments').select('*').eq('tenant_id', params.id).order('due_date', { ascending: false }),
     ]).then(([t, l, p]) => {
       setTenant(t.data)
       setLeases(l.data || [])
@@ -57,7 +57,7 @@ export default function TenantDetailPage({ params }) {
     if (upErr) { alert('Upload failed: ' + upErr.message); setUploading(false); return }
     const { data: urlData } = supabase.storage.from('lease-documents').getPublicUrl(path)
     const existingDocs = tenant.documents || []
-    await supabase.from('tenants').update({ documents: [...existingDocs, urlData.publicUrl] }).eq('id', params.id).eq('user_id', USER_ID)
+    await supabase.from('tenants').update({ documents: [...existingDocs, urlData.publicUrl] }).eq('id', params.id)
     setTenant(prev => ({ ...prev, documents: [...(prev.documents || []), urlData.publicUrl] }))
     setUploading(false)
   }

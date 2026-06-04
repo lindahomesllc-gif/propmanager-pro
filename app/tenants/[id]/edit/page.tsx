@@ -18,7 +18,7 @@ export default function EditTenantPage({ params }) {
   })
 
   useEffect(() => {
-    supabase.from('tenants').select('*').eq('id', params.id).eq('user_id', USER_ID).single()
+    supabase.from('tenants').select('*').eq('id', params.id).single()
       .then(({ data }) => {
         if (data) setForm({
           unit_address: data.unit_address || '',
@@ -65,7 +65,7 @@ export default function EditTenantPage({ params }) {
       co_tenant_email: form.co_tenant_email || null,
       co_tenant_phone: form.co_tenant_phone || null,
       minor_names: form.minor_names || null,
-    }).eq('id', params.id).eq('user_id', USER_ID)
+    }).eq('id', params.id)
     setSaving(false)
     if (err) { setError('Error: ' + err.message); return }
     window.location.href = '/tenants/' + params.id

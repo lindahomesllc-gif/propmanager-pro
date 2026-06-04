@@ -52,7 +52,6 @@ export default function NewTenantPage() {
     setSaving(true)
     try {
       await dbInsert('tenants', {
-        user_id: USER_ID,
         property_id: form.property_id,
         full_name: form.full_name,
         email: form.email || null,

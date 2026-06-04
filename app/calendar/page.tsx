@@ -14,7 +14,7 @@ export default function CalendarPage() {
   const [view, setView] = useState('month')
 
   useEffect(() => {
-    supabase.from('reminders').select('*').eq('user_id', USER_ID)
+    supabase.from('reminders').select('*')
       .then(({ data }) => setReminders(data || []))
   }, [])
 
@@ -26,10 +26,10 @@ export default function CalendarPage() {
     const dim = new Date(y, mo, 0).getDate()
     const todayStr = new Date().toISOString().split('T')[0]
     Promise.all([
-      supabase.from('leases').select('*, tenants(full_name), properties(address)').eq('user_id', USER_ID).eq('status', 'executed'),
-      supabase.from('payments').select('lease_id, status').eq('user_id', USER_ID).gte('due_date', monthPrefix + '-01').lte('due_date', monthPrefix + '-31'),
-      supabase.from('maintenance').select('*, properties(address)').eq('user_id', USER_ID).not('scheduled_date', 'is', null).in('status', ['open','scheduled','in_progress']),
-      supabase.from('mortgages').select('*, properties(address)').eq('user_id', USER_ID).eq('is_paid_off', false),
+      supabase.from('leases').select('*, tenants(full_name), properties(address)').eq('status', 'executed'),
+      supabase.from('payments').select('lease_id, status').gte('due_date', monthPrefix + '-01').lte('due_date', monthPrefix + '-31'),
+      supabase.from('maintenance').select('*, properties(address)').not('scheduled_date', 'is', null).in('status', ['open','scheduled','in_progress']),
+      supabase.from('mortgages').select('*, properties(address)').eq('is_paid_off', false),
     ]).then(([lea, pay, mai, mor]) => {
       const ev = []
       lea.data?.forEach(l => {
@@ -76,7 +76,7 @@ export default function CalendarPage() {
 
   async function saveReminder() {
     if (!newTitle.trim()) return
-    const { data } = await supabase.from('reminders').insert({ user_id: USER_ID, date: showAdd, title: newTitle, color: '#A78BFA' }).select().single()
+    const { data } = await supabase.from('reminders').insert({ date: showAdd, title: newTitle, color: '#A78BFA' }).select().single()
     if (data) setReminders(prev => [...prev, data])
     setShowAdd(null)
     setNewTitle('')
@@ -91,9 +91,9 @@ export default function CalendarPage() {
   // scheduled maintenance, reminders) and download it for Google/Apple Calendar.
   async function exportICS() {
     const [lea, mor, mai] = await Promise.all([
-      supabase.from('leases').select('*, tenants(full_name), properties(address)').eq('user_id', USER_ID).eq('status', 'executed'),
-      supabase.from('mortgages').select('*, properties(address)').eq('user_id', USER_ID).eq('is_paid_off', false),
-      supabase.from('maintenance').select('*, properties(address)').eq('user_id', USER_ID).not('scheduled_date', 'is', null).in('status', ['open','scheduled','in_progress']),
+      supabase.from('leases').select('*, tenants(full_name), properties(address)').eq('status', 'executed'),
+      supabase.from('mortgages').select('*, properties(address)').eq('is_paid_off', false),
+      supabase.from('maintenance').select('*, properties(address)').not('scheduled_date', 'is', null).in('status', ['open','scheduled','in_progress']),
     ])
     const p2 = n => String(n).padStart(2, '0')
     const esc = s => String(s || '').replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n')

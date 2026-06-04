@@ -10,7 +10,7 @@ export default function TenantsPage() {
   const [search, setSearch] = useState('')
 
   useEffect(() => {
-    supabase.from('tenants').select('*, properties(address)').eq('user_id', USER_ID).order('full_name')
+    supabase.from('tenants').select('*, properties(address)').order('full_name')
       .then(({ data }) => { setTenants(data || []); setLoading(false) })
   }, [])
 
@@ -18,7 +18,7 @@ export default function TenantsPage() {
 
   async function deleteTenant(id, name) {
     if (!confirm('Delete ' + name + '? This cannot be undone.')) return
-    const { error } = await supabase.from('tenants').delete().eq('id', id).eq('user_id', USER_ID)
+    const { error } = await supabase.from('tenants').delete().eq('id', id)
     if (error) { alert('Error: ' + error.message); return }
     setTenants(prev => prev.filter(t => t.id !== id))
   }
@@ -32,7 +32,7 @@ export default function TenantsPage() {
       options: { emailRedirectTo: window.location.origin + '/portal/auth/callback' },
     })
     if (!error && !tenant.portal_access) {
-      await supabase.from('tenants').update({ portal_access: true }).eq('id', tenant.id).eq('user_id', USER_ID)
+      await supabase.from('tenants').update({ portal_access: true }).eq('id', tenant.id)
       setTenants(prev => prev.map(t => t.id === tenant.id ? { ...t, portal_access: true } : t))
     }
     setSendingId(null)

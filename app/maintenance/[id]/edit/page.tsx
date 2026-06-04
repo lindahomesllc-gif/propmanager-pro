@@ -15,7 +15,7 @@ export default function EditMaintenancePage({ params }) {
   })
 
   useEffect(() => {
-    supabase.from('maintenance').select('*').eq('id', params.id).eq('user_id', USER_ID).single()
+    supabase.from('maintenance').select('*').eq('id', params.id).single()
       .then(({ data }) => {
         if (data) setForm({
           title: data.title || '',
@@ -50,7 +50,7 @@ export default function EditMaintenancePage({ params }) {
       actual_cost: form.actual_cost ? parseFloat(form.actual_cost) : null,
       completed_date: form.completed_date || null,
       landlord_notes: form.landlord_notes || null,
-    }).eq('id', params.id).eq('user_id', USER_ID)
+    }).eq('id', params.id)
     setSaving(false)
     if (err) { setError('Error: ' + err.message); return }
     window.location.href = '/maintenance/' + params.id

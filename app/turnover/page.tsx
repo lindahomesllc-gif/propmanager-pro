@@ -21,9 +21,9 @@ export default function TurnoverPage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('condition_reports').select('*, properties(address), tenants(full_name)').eq('user_id', USER_ID).order('created_at', { ascending: false }),
-      supabase.from('properties').select('id, address').eq('user_id', USER_ID),
-      supabase.from('tenants').select('id, full_name, property_id').eq('user_id', USER_ID),
+      supabase.from('condition_reports').select('*, properties(address), tenants(full_name)').order('created_at', { ascending: false }),
+      supabase.from('properties').select('id, address'),
+      supabase.from('tenants').select('id, full_name, property_id'),
     ]).then(([t, p, ten]) => {
       setTurnovers(t.data || [])
       setProperties(p.data || [])
@@ -46,7 +46,6 @@ export default function TurnoverPage() {
     if (!form.property_id) { setError('Please select a property'); return }
     setSaving(true)
     const { error: err } = await supabase.from('condition_reports').insert({
-      user_id: USER_ID,
       property_id: form.property_id,
       tenant_id: form.tenant_id || null,
       report_type: 'move_out',

@@ -21,8 +21,8 @@ export default function NewLeasePage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('properties').select('id, address').eq('user_id', USER_ID),
-      supabase.from('tenants').select('id, full_name, property_id').eq('user_id', USER_ID).eq('status', 'active'),
+      supabase.from('properties').select('id, address'),
+      supabase.from('tenants').select('id, full_name, property_id').eq('status', 'active'),
     ]).then(([p, t]) => {
       setProperties(p.data || [])
       setTenants(t.data || [])
@@ -47,7 +47,6 @@ export default function NewLeasePage() {
     if (!form.end_date) { setError('End date is required'); return }
     setSaving(true)
     const { error: err } = await supabase.from('leases').insert({
-      user_id: USER_ID,
       property_id: form.property_id,
       tenant_id: form.tenant_id,
       rent_amount: parseFloat(form.rent_amount),

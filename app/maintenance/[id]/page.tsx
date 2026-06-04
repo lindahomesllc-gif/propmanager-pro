@@ -9,13 +9,13 @@ export default function MaintenanceDetailPage({ params }) {
 
   useEffect(() => {
     supabase.from('maintenance').select('*, properties(address, city, state), tenants(full_name, email, phone)')
-      .eq('id', params.id).eq('user_id', USER_ID).single()
+      .eq('id', params.id).single()
       .then(({ data }) => { setTicket(data); setLoading(false) })
   }, [params.id])
 
   async function deleteTicket() {
     if (!confirm('Are you sure you want to delete this maintenance request?')) return
-    await supabase.from('maintenance').delete().eq('id', params.id).eq('user_id', USER_ID)
+    await supabase.from('maintenance').delete().eq('id', params.id)
     window.location.href = '/maintenance'
   }
 

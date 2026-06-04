@@ -10,7 +10,7 @@ export default function LeasesPage() {
 
   useEffect(() => {
     supabase.from('leases').select('*, properties(address), tenants(full_name, co_tenant_name, email, phone)')
-      .eq('user_id', USER_ID).order('created_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .then(({ data }) => { setLeases(data || []); setLoading(false) })
   }, [])
 

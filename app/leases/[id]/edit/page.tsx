@@ -17,7 +17,7 @@ export default function EditLeasePage({ params }) {
   })
 
   useEffect(() => {
-    supabase.from('leases').select('*').eq('id', params.id).eq('user_id', USER_ID).single()
+    supabase.from('leases').select('*').eq('id', params.id).single()
       .then(({ data }) => {
         if (data) setForm({
           rent_amount: String(data.rent_amount || ''),
@@ -60,7 +60,7 @@ export default function EditLeasePage({ params }) {
       parking_spaces: parseInt(form.parking_spaces) || 0,
       special_clauses: form.special_clauses || null,
       status: form.status,
-    }).eq('id', params.id).eq('user_id', USER_ID)
+    }).eq('id', params.id)
     setSaving(false)
     if (err) { setError('Error: ' + err.message); return }
     window.location.href = '/leases/' + params.id

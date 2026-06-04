@@ -13,9 +13,9 @@ export default function TaxPage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('expenses').select('*, properties(address)').eq('user_id', USER_ID),
-      supabase.from('payments').select('*, properties(address), tenants(full_name)').eq('user_id', USER_ID).eq('status', 'paid'),
-      supabase.from('properties').select('id, address').eq('user_id', USER_ID),
+      supabase.from('expenses').select('*, properties(address)'),
+      supabase.from('payments').select('*, properties(address), tenants(full_name)').eq('status', 'paid'),
+      supabase.from('properties').select('id, address'),
     ]).then(([e, p, pr]) => {
       setExpenses(e.data || [])
       setPayments(p.data || [])

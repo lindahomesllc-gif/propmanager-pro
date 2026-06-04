@@ -10,7 +10,7 @@ export default function MarketPage() {
   const [searchState, setSearchState] = useState('FL')
 
   useEffect(() => {
-    supabase.from('properties').select('id, address, city, state, bedrooms, bathrooms, market_value, purchase_price, type').eq('user_id', USER_ID)
+    supabase.from('properties').select('id, address, city, state, bedrooms, bathrooms, market_value, purchase_price, type')
       .then(({ data }) => { setProperties(data || []); setLoading(false) })
   }, [])
 

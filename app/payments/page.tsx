@@ -22,8 +22,8 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('payments').select('*, tenants(full_name), properties(address)').eq('user_id', USER_ID).order('due_date', { ascending: false }),
-      supabase.from('tenants').select('id, full_name, property_id, properties(address)').eq('user_id', USER_ID).eq('status', 'active'),
+      supabase.from('payments').select('*, tenants(full_name), properties(address)').order('due_date', { ascending: false }),
+      supabase.from('tenants').select('id, full_name, property_id, properties(address)').eq('status', 'active'),
     ]).then(([p, t]) => {
       setPayments(p.data || [])
       const tdata = t.data || []
@@ -37,7 +37,7 @@ export default function PaymentsPage() {
   useEffect(() => {
     if (!form.tenant_id) return
     supabase.from('leases').select('id, rent_amount, start_date, end_date, due_day')
-      .eq('user_id', USER_ID).eq('tenant_id', form.tenant_id).eq('status', 'executed')
+      .eq('tenant_id', form.tenant_id).eq('status', 'executed')
       .then(({ data }) => {
         setLeases(data || [])
         if (data && data.length > 0) {
@@ -81,7 +81,6 @@ export default function PaymentsPage() {
     if (!form.due_date) { setError('Due date is required'); return }
     setSaving(true)
     const payload = {
-      user_id: USER_ID,
       tenant_id: form.tenant_id,
       lease_id: form.lease_id || null,
       property_id: form.property_id || null,
@@ -94,7 +93,7 @@ export default function PaymentsPage() {
       notes: form.notes || null,
     }
     if (editId) {
-      const { data, error: err } = await supabase.from('payments').update(payload).eq('id', editId).eq('user_id', USER_ID).select('*, tenants(full_name), properties(address)').single()
+      const { data, error: err } = await supabase.from('payments').update(payload).eq('id', editId).select('*, tenants(full_name), properties(address)').single()
       if (err) { setError('Error: ' + err.message); setSaving(false); return }
       setPayments(prev => prev.map(p => p.id === editId ? data : p))
     } else {
@@ -109,7 +108,7 @@ export default function PaymentsPage() {
 
   async function deletePayment(id) {
     if (!confirm('Delete this payment?')) return
-    await supabase.from('payments').delete().eq('id', id).eq('user_id', USER_ID)
+    await supabase.from('payments').delete().eq('id', id)
     setPayments(prev => prev.filter(p => p.id !== id))
   }
 

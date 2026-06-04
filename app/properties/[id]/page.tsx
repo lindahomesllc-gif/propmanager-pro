@@ -16,10 +16,10 @@ export default function PropertyDetailPage({ params }) {
   useEffect(() => {
     const id = params.id
     Promise.all([
-      supabase.from('properties').select('*').eq('id', id).eq('user_id', USER_ID).single(),
-      supabase.from('tenants').select('*').eq('property_id', id).eq('user_id', USER_ID).order('unit_address', { ascending: true }),
-      supabase.from('payments').select('*').eq('property_id', id).eq('user_id', USER_ID).order('due_date', { ascending: false }).limit(10),
-      supabase.from('expenses').select('*').eq('property_id', id).eq('user_id', USER_ID).order('expense_date', { ascending: false }).limit(10),
+      supabase.from('properties').select('*').eq('id', id).single(),
+      supabase.from('tenants').select('*').eq('property_id', id).order('unit_address', { ascending: true }),
+      supabase.from('payments').select('*').eq('property_id', id).order('due_date', { ascending: false }).limit(10),
+      supabase.from('expenses').select('*').eq('property_id', id).order('expense_date', { ascending: false }).limit(10),
     ]).then(([p, t, pay, exp]) => {
       setProperty(p.data)
       setTenants(t.data || [])
@@ -38,7 +38,7 @@ export default function PropertyDetailPage({ params }) {
     if (upErr) { alert('Upload failed: ' + upErr.message); setUploading(false); return }
     const { data: urlData } = supabase.storage.from('lease-documents').getPublicUrl(path)
     const existingDocs = property.photo_urls || []
-    await supabase.from('properties').update({ photo_urls: [...existingDocs, urlData.publicUrl] }).eq('id', params.id).eq('user_id', USER_ID)
+    await supabase.from('properties').update({ photo_urls: [...existingDocs, urlData.publicUrl] }).eq('id', params.id)
     setProperty(p => ({ ...p, photo_urls: [...(p.photo_urls || []), urlData.publicUrl] }))
     setUploading(false)
   }

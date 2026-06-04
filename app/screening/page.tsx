@@ -16,7 +16,7 @@ export default function ScreeningPage() {
   useEffect(() => {
     supabase.from('applications')
       .select('*, properties(address)')
-      .eq('user_id', USER_ID)
+      
       .not('status', 'eq', 'withdrawn')
       .order('submitted_at', { ascending: false })
       .then(({ data }) => { setApplications(data || []); setLoading(false) })
@@ -45,7 +45,7 @@ export default function ScreeningPage() {
       ai_reason: form.ai_reason || null,
       status: 'screening_complete',
       income_verified: true,
-    }).eq('id', id).eq('user_id', USER_ID)
+    }).eq('id', id)
     setSaving(false)
     if (!error) {
       setApplications(prev => prev.map(a => a.id === id ? { ...a, credit_score: parseInt(form.credit_score), criminal_check: form.criminal_check, eviction_check: form.eviction_check, overall_score: parseInt(form.overall_score), ai_recommendation: form.ai_recommendation, status: 'screening_complete' } : a))
@@ -61,7 +61,7 @@ export default function ScreeningPage() {
     const { error: upErr } = await supabase.storage.from('lease-documents').upload(path, file, { upsert: true })
     if (upErr) { alert('Upload failed: ' + upErr.message); setUploading(null); return }
     const { data: urlData } = supabase.storage.from('lease-documents').getPublicUrl(path)
-    await supabase.from('applications').update({ screening_report_url: urlData.publicUrl }).eq('id', appId).eq('user_id', USER_ID)
+    await supabase.from('applications').update({ screening_report_url: urlData.publicUrl }).eq('id', appId)
     setApplications(prev => prev.map(a => a.id === appId ? { ...a, screening_report_url: urlData.publicUrl } : a))
     setUploading(null)
   }

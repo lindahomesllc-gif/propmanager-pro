@@ -33,7 +33,7 @@ export default function EditPropertyPage({ params }) {
   })
 
   useEffect(() => {
-    supabase.from('properties').select('*').eq('id', params.id).eq('user_id', USER_ID).single()
+    supabase.from('properties').select('*').eq('id', params.id).single()
       .then(({ data }) => {
         if (data) setForm({
           address: data.address || '',
@@ -134,7 +134,7 @@ export default function EditPropertyPage({ params }) {
       hoa_fee: form.hoa_fee ? parseFloat(form.hoa_fee) : null,
       hoa_name: form.hoa_name || null,
       hoa_contact: form.hoa_contact || null,
-    }).eq('id', params.id).eq('user_id', USER_ID)
+    }).eq('id', params.id)
     setSaving(false)
     if (err) { setError('Error: ' + err.message); return }
     window.location.href = '/properties/' + params.id

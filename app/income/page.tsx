@@ -13,9 +13,9 @@ export default function IncomePage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('payments').select('*, properties(address), tenants(full_name)').eq('user_id', USER_ID).order('due_date', { ascending: false }),
-      supabase.from('leases').select('*, properties(address), tenants(full_name, co_tenant_name)').eq('user_id', USER_ID).eq('status', 'executed'),
-      supabase.from('expenses').select('*').eq('user_id', USER_ID),
+      supabase.from('payments').select('*, properties(address), tenants(full_name)').order('due_date', { ascending: false }),
+      supabase.from('leases').select('*, properties(address), tenants(full_name, co_tenant_name)').eq('status', 'executed'),
+      supabase.from('expenses').select('*'),
     ]).then(([p, l, e]) => {
       setPayments(p.data || [])
       setLeases(l.data || [])

@@ -19,8 +19,8 @@ export default function ListingsPage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('listings').select('*, properties(address, city, state, bedrooms, bathrooms, type)').eq('user_id', USER_ID).order('created_at', { ascending: false }),
-      supabase.from('properties').select('id, address, bedrooms, bathrooms').eq('user_id', USER_ID).eq('occupancy_status', 'vacant'),
+      supabase.from('listings').select('*, properties(address, city, state, bedrooms, bathrooms, type)').order('created_at', { ascending: false }),
+      supabase.from('properties').select('id, address, bedrooms, bathrooms').eq('occupancy_status', 'vacant'),
     ]).then(([l, p]) => {
       setListings(l.data || [])
       setProperties(p.data || [])
@@ -36,7 +36,6 @@ export default function ListingsPage() {
     if (!form.rent_amount) { setError('Rent amount is required'); return }
     setSaving(true)
     const { error: err } = await supabase.from('listings').insert({
-      user_id: USER_ID,
       property_id: form.property_id,
       rent_amount: parseFloat(form.rent_amount),
       title: form.title || null,
@@ -53,14 +52,14 @@ export default function ListingsPage() {
   }
 
   async function toggleActive(id, isActive) {
-    const { error: err } = await supabase.from('listings').update({ is_active: !isActive }).eq('id', id).eq('user_id', USER_ID)
+    const { error: err } = await supabase.from('listings').update({ is_active: !isActive }).eq('id', id)
     if (err) { alert('Error: ' + err.message); return }
     setListings(prev => prev.map(l => l.id === id ? { ...l, is_active: !isActive } : l))
   }
 
   async function deleteListing(id) {
     if (!confirm('Delete this listing? This cannot be undone.')) return
-    const { error: err } = await supabase.from('listings').delete().eq('id', id).eq('user_id', USER_ID)
+    const { error: err } = await supabase.from('listings').delete().eq('id', id)
     if (err) { alert('Error: ' + err.message); return }
     setListings(prev => prev.filter(l => l.id !== id))
   }

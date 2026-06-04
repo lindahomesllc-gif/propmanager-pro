@@ -14,11 +14,11 @@ export default function AlertsPage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('payments').select('*, properties(address), tenants(full_name)').eq('user_id', USER_ID).in('status', ['due', 'upcoming', 'late']).order('due_date'),
-      supabase.from('leases').select('*, properties(address), tenants(full_name)').eq('user_id', USER_ID).eq('status', 'executed'),
-      supabase.from('maintenance').select('*, properties(address)').eq('user_id', USER_ID).in('status', ['open', 'scheduled']).order('created_at', { ascending: false }),
-      supabase.from('mortgages').select('*, properties(address)').eq('user_id', USER_ID).eq('is_paid_off', false),
-      supabase.from('properties').select('id, address, insurance_expires, insurance_company, annual_tax, tax_due_date, county').eq('user_id', USER_ID),
+      supabase.from('payments').select('*, properties(address), tenants(full_name)').in('status', ['due', 'upcoming', 'late']).order('due_date'),
+      supabase.from('leases').select('*, properties(address), tenants(full_name)').eq('status', 'executed'),
+      supabase.from('maintenance').select('*, properties(address)').in('status', ['open', 'scheduled']).order('created_at', { ascending: false }),
+      supabase.from('mortgages').select('*, properties(address)').eq('is_paid_off', false),
+      supabase.from('properties').select('id, address, insurance_expires, insurance_company, annual_tax, tax_due_date, county'),
     ]).then(([p, l, m, mo, props]) => {
       setPayments(p.data || [])
       setLeases(l.data || [])

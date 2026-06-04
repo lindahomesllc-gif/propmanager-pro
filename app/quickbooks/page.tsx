@@ -11,8 +11,8 @@ export default function QuickBooksPage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('expenses').select('*, properties(address)').eq('user_id', USER_ID).order('expense_date', { ascending: false }),
-      supabase.from('payments').select('*, properties(address), tenants(full_name)').eq('user_id', USER_ID).eq('status', 'paid').order('paid_date', { ascending: false }),
+      supabase.from('expenses').select('*, properties(address)').order('expense_date', { ascending: false }),
+      supabase.from('payments').select('*, properties(address), tenants(full_name)').eq('status', 'paid').order('paid_date', { ascending: false }),
     ]).then(([e, p]) => {
       setExpenses(e.data || [])
       setPayments(p.data || [])

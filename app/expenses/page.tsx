@@ -12,8 +12,8 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('expenses').select('*, properties(address)').eq('user_id', USER_ID).order('expense_date', { ascending: false }),
-      supabase.from('properties').select('id, address').eq('user_id', USER_ID),
+      supabase.from('expenses').select('*, properties(address)').order('expense_date', { ascending: false }),
+      supabase.from('properties').select('id, address'),
     ]).then(([e, p]) => {
       setExpenses(e.data || [])
       setProperties(p.data || [])
@@ -23,7 +23,7 @@ export default function ExpensesPage() {
 
   async function deleteExpense(id) {
     if (!confirm('Delete this expense?')) return
-    await supabase.from('expenses').delete().eq('id', id).eq('user_id', USER_ID)
+    await supabase.from('expenses').delete().eq('id', id)
     setExpenses(prev => prev.filter(e => e.id !== id))
   }
 

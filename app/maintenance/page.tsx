@@ -13,8 +13,8 @@ export default function MaintenancePage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('maintenance').select('*, properties(address), tenants(full_name)').eq('user_id', USER_ID).order('created_at', { ascending: false }),
-      supabase.from('properties').select('id, address').eq('user_id', USER_ID),
+      supabase.from('maintenance').select('*, properties(address), tenants(full_name)').order('created_at', { ascending: false }),
+      supabase.from('properties').select('id, address'),
     ]).then(([m, p]) => {
       setTickets(m.data || [])
       setProperties(p.data || [])
@@ -23,13 +23,13 @@ export default function MaintenancePage() {
   }, [])
 
   async function updateStatus(id, status) {
-    await supabase.from('maintenance').update({ status }).eq('id', id).eq('user_id', USER_ID)
+    await supabase.from('maintenance').update({ status }).eq('id', id)
     setTickets(prev => prev.map(t => t.id === id ? { ...t, status } : t))
   }
 
   async function deleteTicket(id) {
     if (!confirm('Delete this maintenance request?')) return
-    await supabase.from('maintenance').delete().eq('id', id).eq('user_id', USER_ID)
+    await supabase.from('maintenance').delete().eq('id', id)
     setTickets(prev => prev.filter(t => t.id !== id))
   }
 

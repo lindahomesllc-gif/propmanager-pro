@@ -13,9 +13,9 @@ export default function ApplicationsPage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('applications').select('*, properties(address)').eq('user_id', USER_ID).order('submitted_at', { ascending: false }),
-      supabase.from('properties').select('id, address').eq('user_id', USER_ID),
-      supabase.from('tenants').select('id, full_name, property_id').eq('user_id', USER_ID).eq('status', 'active'),
+      supabase.from('applications').select('*, properties(address)').order('submitted_at', { ascending: false }),
+      supabase.from('properties').select('id, address'),
+      supabase.from('tenants').select('id, full_name, property_id').eq('status', 'active'),
     ]).then(([a, p, t]) => {
       setApplications(a.data || [])
       setProperties(p.data || [])
@@ -38,7 +38,7 @@ export default function ApplicationsPage() {
   const recColor = (r) => ({ approve: 'var(--green)', review: 'var(--amber)', decline: 'var(--red)' }[r] || 'var(--text2)')
 
   async function updateStatus(id, status) {
-    await supabase.from('applications').update({ status, decided_at: new Date().toISOString() }).eq('id', id).eq('user_id', USER_ID)
+    await supabase.from('applications').update({ status, decided_at: new Date().toISOString() }).eq('id', id)
     setApplications(prev => prev.map(a => a.id === id ? { ...a, status } : a))
   }
 
@@ -49,7 +49,7 @@ export default function ApplicationsPage() {
       co_tenant_name: a.applicant_name,
       co_tenant_email: a.email || null,
       co_tenant_phone: a.phone || null,
-    }).eq('id', tenantId).eq('user_id', USER_ID)
+    }).eq('id', tenantId)
     if (error) { alert('Error: ' + error.message); return }
     await supabase.from('applications').update({ status: 'approved' }).eq('id', a.id)
     setShowCoTenant(null)
@@ -60,7 +60,6 @@ export default function ApplicationsPage() {
     if (!confirm('Convert ' + a.applicant_name + ' to an active tenant?')) return
     const docs = a.screening_report_url ? [a.screening_report_url] : []
     const { data: tenant, error } = await supabase.from('tenants').insert({
-      user_id: USER_ID,
       property_id: a.property_id,
       full_name: a.applicant_name,
       email: a.email || null,
@@ -71,7 +70,7 @@ export default function ApplicationsPage() {
       documents: docs,
     }).select().single()
     if (error) { alert('Error: ' + error.message); return }
-    await supabase.from('applications').update({ status: 'converted', tenant_id: tenant.id }).eq('id', a.id).eq('user_id', USER_ID)
+    await supabase.from('applications').update({ status: 'converted', tenant_id: tenant.id }).eq('id', a.id)
     setApplications(prev => prev.map(x => x.id === a.id ? { ...x, status: 'converted', tenant_id: tenant.id } : x))
     alert(a.applicant_name + ' has been added as a tenant! Screening report copied to their documents.')
   }

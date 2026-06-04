@@ -16,7 +16,7 @@ export default function RecordPaymentPage() {
 
   useEffect(() => {
     supabase.from('tenants').select('id, full_name, property_id, properties(address)')
-      .eq('user_id', USER_ID).eq('status', 'active')
+      .eq('status', 'active')
       .then(({ data }) => setTenants(data || []))
   }, [])
 
@@ -29,7 +29,6 @@ export default function RecordPaymentPage() {
     if (!form.due_date) { setError('Due date is required'); return }
     setSaving(true)
     const { error: err } = await supabase.from('payments').insert({
-      user_id: USER_ID,
       tenant_id: form.tenant_id,
       property_id: form.property_id || null,
       amount_due: parseFloat(form.amount_due),

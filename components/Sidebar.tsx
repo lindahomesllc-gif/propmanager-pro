@@ -80,10 +80,10 @@ export default function Sidebar() {
       const in30 = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
       const head = { count: 'exact' as const, head: true }
       const [late, unread, maint, expiring] = await Promise.all([
-        supabase.from('payments').select('id', head).eq('user_id', USER_ID).eq('status', 'late'),
-        supabase.from('messages').select('id', head).eq('user_id', USER_ID).eq('sender', 'tenant').is('read_at', null),
-        supabase.from('maintenance').select('id', head).eq('user_id', USER_ID).in('status', ['open', 'scheduled', 'in_progress']),
-        supabase.from('leases').select('id', head).eq('user_id', USER_ID).eq('status', 'executed').gte('end_date', today).lte('end_date', in30),
+        supabase.from('payments').select('id', head).eq('status', 'late'),
+        supabase.from('messages').select('id', head).eq('sender', 'tenant').is('read_at', null),
+        supabase.from('maintenance').select('id', head).in('status', ['open', 'scheduled', 'in_progress']),
+        supabase.from('leases').select('id', head).eq('status', 'executed').gte('end_date', today).lte('end_date', in30),
       ])
       if (cancelled) return
       setCounts({

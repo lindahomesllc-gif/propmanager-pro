@@ -14,7 +14,7 @@ export default function NewExpensePage() {
   })
 
   useEffect(() => {
-    supabase.from('properties').select('id, address').eq('user_id', USER_ID)
+    supabase.from('properties').select('id, address')
       .then(({ data }) => setProperties(data || []))
   }, [])
 
@@ -27,7 +27,6 @@ export default function NewExpensePage() {
     if (!form.expense_date) { setError('Date is required'); return }
     setSaving(true)
     const { error: err } = await supabase.from('expenses').insert({
-      user_id: USER_ID,
       property_id: form.property_id,
       amount: parseFloat(form.amount),
       expense_date: form.expense_date,

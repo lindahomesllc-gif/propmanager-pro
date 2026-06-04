@@ -18,8 +18,8 @@ export default function NewMaintenancePage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('properties').select('id, address').eq('user_id', USER_ID),
-      supabase.from('tenants').select('id, full_name, property_id').eq('user_id', USER_ID).eq('status', 'active'),
+      supabase.from('properties').select('id, address'),
+      supabase.from('tenants').select('id, full_name, property_id').eq('status', 'active'),
     ]).then(([p, t]) => {
       setProperties(p.data || [])
       setTenants(t.data || [])
@@ -41,7 +41,6 @@ export default function NewMaintenancePage() {
     if (!form.title) { setError('Title is required'); return }
     setSaving(true)
     const { error: err } = await supabase.from('maintenance').insert({
-      user_id: USER_ID,
       property_id: form.property_id,
       tenant_id: form.tenant_id || null,
       title: form.title,
