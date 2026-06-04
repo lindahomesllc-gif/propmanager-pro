@@ -55,12 +55,13 @@ export default function TenantsPage() {
 
   const statusColor = (s) => ({ active: 'var(--green)', past: 'var(--text3)', applicant: 'var(--amber)' }[s] || 'var(--text3)')
   const statusBg = (s) => ({ active: 'var(--green-bg)', past: 'var(--bg3)', applicant: 'var(--amber-bg)' }[s] || 'var(--bg3)')
+  const chipClass = (s) => ({ active: 'chip-g', past: 'chip-x', applicant: 'chip-a' }[s] || 'chip-x')
 
   return (
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Tenants</div>
-        <a href='/tenants/new' style={{ background: 'var(--green)', color: '#fff', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>+ Add Tenant</a>
+        <a href='/tenants/new' className='btn btn-primary'>+ Add Tenant</a>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
@@ -77,7 +78,7 @@ export default function TenantsPage() {
       </div>
 
       <div style={{ padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder='🔍 Search by name, address...' style={{ width: '100%', padding: '8px 12px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '8px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder='🔍 Search by name, address...' className='input' />
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
@@ -86,7 +87,7 @@ export default function TenantsPage() {
           <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
             <div style={{ fontSize: '40px', marginBottom: '12px' }}>👥</div>
             <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text2)', marginBottom: '16px' }}>{search ? 'No results found' : 'No tenants yet'}</div>
-            {!search && <a href='/tenants/new' style={{ background: 'var(--green)', color: '#fff', padding: '8px 18px', borderRadius: '7px', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>+ Add Tenant</a>}
+            {!search && <a href='/tenants/new' className='btn btn-primary'>+ Add Tenant</a>}
           </div>
         )}
         {!loading && filtered.length > 0 && (
@@ -110,7 +111,7 @@ export default function TenantsPage() {
                     {t.email && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '1px' }}>{t.email}{t.phone ? ' · ' + t.phone : ''}</div>}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                    <span style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '20px', background: statusBg(t.status), color: statusColor(t.status), fontWeight: 700, textTransform: 'capitalize' }}>{t.status}</span>
+                    <span className={'chip ' + chipClass(t.status)} style={{ textTransform: 'capitalize' }}>{t.status}</span>
                     <button onClick={e => { e.preventDefault(); sendPortalLink(t) }} disabled={sendingId === t.id} title='Send portal login link' style={{ background: 'transparent', color: 'var(--green)', border: '0.5px solid var(--border2)', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', cursor: sendingId === t.id ? 'not-allowed' : 'pointer', opacity: sendingId === t.id ? 0.6 : 1, whiteSpace: 'nowrap' }}>{sendingId === t.id ? '…' : '✉ Portal'}</button>
                     <button onClick={e => { e.preventDefault(); deleteTenant(t.id, t.full_name) }} style={{ background: 'transparent', color: 'var(--text3)', border: '0.5px solid var(--border2)', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', cursor: 'pointer' }}>✕</button>
                   </div>
