@@ -11,7 +11,7 @@ export default function TenantMaintenance() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ title: '', description: '', category: 'repairs_maintenance', priority: 'medium' })
+  const [form, setForm] = useState({ title: '', description: '', category: 'plumbing', priority: 'medium' })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const router = useRouter()
@@ -92,12 +92,16 @@ export default function TenantMaintenance() {
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#555', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '5px' }}>Category</label>
                   <select value={form.category} onChange={e => setForm(f => ({...f, category: e.target.value}))} style={inp}>
-                    <option value='repairs_maintenance'>Repairs & Maintenance</option>
                     <option value='plumbing'>Plumbing</option>
                     <option value='electrical'>Electrical</option>
                     <option value='hvac'>HVAC</option>
-                    <option value='appliances'>Appliances</option>
+                    <option value='appliance'>Appliance</option>
+                    <option value='structural'>Structural</option>
                     <option value='pest_control'>Pest Control</option>
+                    <option value='landscaping'>Landscaping</option>
+                    <option value='cleaning'>Cleaning</option>
+                    <option value='locks'>Locks</option>
+                    <option value='windows'>Windows</option>
                     <option value='other'>Other</option>
                   </select>
                 </div>
