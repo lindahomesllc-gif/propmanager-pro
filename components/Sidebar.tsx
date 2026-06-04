@@ -5,56 +5,45 @@ import { usePathname } from 'next/navigation'
 
 const navGroups = [
   {
-    label: 'Overview',
+    label: 'Manage',
     items: [
-      { href: '/dashboard', label: 'Dashboard', icon: '▣' },
-      { href: '/calendar',  label: 'Calendar',  icon: '📅', badge: '' },
-      { href: '/alerts',    label: 'Due Dates',  icon: '◉', badge: '3', badgeColor: 'nb-r' },
+      { href: '/dashboard',   label: 'Dashboard',   icon: '▣' },
+      { href: '/properties',  label: 'Properties',  icon: '▤' },
+      { href: '/tenants',     label: 'Tenants',     icon: '◎' },
+      { href: '/payments',    label: 'Payments',    icon: '◈' },
+      { href: '/maintenance', label: 'Maintenance', icon: '◧' },
+      { href: '/messages',    label: 'Messages',    icon: '◍' },
     ],
   },
   {
     label: 'Leasing',
     items: [
-      { href: '/listings',     label: 'Listings',     icon: '◈', badge: '2', badgeColor: 'nb-a' },
+      { href: '/listings',     label: 'Listings',     icon: '◈' },
       { href: '/applications', label: 'Applications', icon: '◎' },
       { href: '/screening',    label: 'Screening',    icon: '◉' },
-      { href: '/leases',       label: 'E-Sign Leases',icon: '◈' },
-    ],
-  },
-  {
-    label: 'Properties',
-    items: [
-      { href: '/properties',  label: 'Properties',  icon: '▣' },
-      { href: '/tenants',     label: 'Tenants',     icon: '◎' },
-      { href: '/maintenance', label: 'Maintenance', icon: '◈' },
-      { href: '/turnover',    label: 'Turnover',    icon: '↻' },
+      { href: '/leases',       label: 'E-Sign Leases',icon: '✎' },
+      { href: '/turnover',     label: 'Turnover',     icon: '↻' },
     ],
   },
   {
     label: 'Finances',
     items: [
-      { href: '/payments',  label: 'Payments',   icon: '◈', badge: '3', badgeColor: 'nb-a' },
       { href: '/income',    label: 'Income',     icon: '▣' },
-      { href: '/mortgage',  label: 'Mortgage',   icon: '◉' },
       { href: '/expenses',  label: 'Expenses',   icon: '◎' },
-      { href: '/tax',       label: 'Tax Reports',icon: '◎' },
+      { href: '/mortgage',  label: 'Mortgage',   icon: '◉' },
+      { href: '/tax',       label: 'Tax Reports',icon: '▦' },
       { href: '/quickbooks',label: 'QuickBooks', icon: '↓' },
     ],
   },
   {
-    label: 'Communication',
+    label: 'Planning',
     items: [
-      { href: '/messages',  label: 'Messages',   icon: '◎', badge: '2', badgeColor: 'nb-r' },
-      { href: '/market',    label: 'Market Data',icon: '↗' },
+      { href: '/calendar', label: 'Calendar',   icon: '📅' },
+      { href: '/alerts',   label: 'Due Dates',  icon: '◉' },
+      { href: '/market',   label: 'Market Data',icon: '↗' },
     ],
   },
 ]
-
-const badgeStyles: Record<string, string> = {
-  'nb-r': 'background:rgba(248,113,113,0.1);color:#F87171',
-  'nb-a': 'background:rgba(251,176,64,0.1);color:#FBB040',
-  'nb-g': 'background:rgba(74,222,154,0.1);color:var(--green)',
-}
 
 export default function Sidebar() {
   const pathname = usePathname()
@@ -108,15 +97,6 @@ export default function Sidebar() {
                 }}>
                   <span style={{ fontSize: '13px', width: '16px', textAlign: 'center', opacity: 0.8 }}>{item.icon}</span>
                   <span style={{ flex: 1 }}>{item.label}</span>
-                  {item.badge && (
-                    <span style={{
-                      fontSize: '9px', padding: '1px 5px', borderRadius: '6px',
-                      fontWeight: 700, ...Object.fromEntries(
-                        (badgeStyles[item.badgeColor || ''] || '').split(';')
-                          .filter(Boolean).map(s => s.split(':').map(x => x.trim()))
-                      ) as any
-                    }}>{item.badge}</span>
-                  )}
                 </div>
               </Link>
             )
