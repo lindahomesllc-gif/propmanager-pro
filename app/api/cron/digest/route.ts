@@ -1,19 +1,22 @@
 import { NextResponse } from 'next/server'
-import { supabase, USER_ID, fm, formatDate } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+import { fm, formatDate } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 30
+export const maxDuration = 60
 
-// Daily due-dates digest. Runs via Vercel Cron (see vercel.json).
-// Sends an email through SendGrid when SENDGRID_API_KEY / NOTIFY_EMAIL / NOTIFY_FROM
-// are set; otherwise returns a JSON preview so you can dry-run it in the browser.
+const SUPABASE_URL = 'https://sugfedlfmvmbcnblhnuc.supabase.co'
+
+type Item = { title: string; sub: string; days: number; amount: number }
+
+// Multi-tenant daily due-dates digest. Runs via Vercel Cron (see vercel.json).
+// Uses the service-role key to read every landlord's data (bypassing RLS), then
+// emails each landlord their own digest to their account email via SendGrid.
 export async function GET(request: Request) {
-  // Auth: always require CRON_SECRET so the digest (which contains tenant
-  // names + amounts) is never publicly readable. Vercel Cron automatically
-  // sends it as a Bearer token; manual testing can use ?key=<secret>.
+  // Auth — always require CRON_SECRET (digest contains tenant PII).
   const secret = process.env.CRON_SECRET
   if (!secret) {
-    return NextResponse.json({ status: 'setup_required', message: 'Set a CRON_SECRET env var (any random string) in Vercel to enable this endpoint.' }, { status: 503 })
+    return NextResponse.json({ status: 'setup_required', message: 'Set CRON_SECRET in Vercel.' }, { status: 503 })
   }
   const url = new URL(request.url)
   const auth = request.headers.get('authorization')
@@ -21,115 +24,110 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
+  const apiKey = process.env.SENDGRID_API_KEY?.trim()
+  const from = process.env.NOTIFY_FROM?.trim()
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+  if (!serviceKey) {
+    return NextResponse.json({ status: 'setup_required', message: 'Set SUPABASE_SERVICE_ROLE_KEY in Vercel (server-only).' }, { status: 503 })
+  }
+  const svc = createClient(SUPABASE_URL, serviceKey, { auth: { persistSession: false } })
+
   const today = new Date()
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
   const daysUntil = (d: string) => Math.ceil((new Date(d).getTime() - startOfToday.getTime()) / 86400000)
-
-  const [pay, lea, mai, props] = await Promise.all([
-    supabase.from('payments').select('*, tenants(full_name), properties(address)').eq('user_id', USER_ID).in('status', ['due', 'upcoming', 'late']).order('due_date'),
-    supabase.from('leases').select('*, tenants(full_name), properties(address)').eq('user_id', USER_ID).eq('status', 'executed'),
-    supabase.from('maintenance').select('*, properties(address)').eq('user_id', USER_ID).in('status', ['open', 'scheduled', 'in_progress']),
-    supabase.from('properties').select('id, address, insurance_expires, tax_due_date, annual_tax').eq('user_id', USER_ID),
-  ])
-
-  type Item = { title: string; sub: string; days: number; amount: number }
-  const items: Item[] = []
-
-  ;(pay.data || []).forEach((p: any) => {
-    const d = daysUntil(p.due_date)
-    if (d <= 7) items.push({ title: (p.tenants?.full_name || 'Tenant') + ' — Rent ' + (p.status === 'late' ? 'Overdue' : 'Due'), sub: formatDate(p.due_date) + ' · ' + fm(p.amount_due), days: d, amount: p.amount_due || 0 })
-  })
-  ;(lea.data || []).forEach((l: any) => {
-    if (!l.end_date) return
-    const d = daysUntil(l.end_date)
-    if (d <= 90 && d >= -30) items.push({ title: (l.tenants?.full_name || 'Tenant') + ' — Lease ' + (d < 0 ? 'Expired' : 'Expires'), sub: formatDate(l.end_date) + ' · ' + (l.properties?.address || ''), days: d, amount: 0 })
-  })
-  ;(props.data || []).forEach((p: any) => {
-    if (p.insurance_expires) { const d = daysUntil(p.insurance_expires); if (d <= 30) items.push({ title: 'Insurance — ' + p.address, sub: 'Renews ' + formatDate(p.insurance_expires), days: d, amount: 0 }) }
-    if (p.tax_due_date) { const d = daysUntil(p.tax_due_date); if (d <= 30) items.push({ title: 'Property Tax — ' + p.address, sub: 'Due ' + formatDate(p.tax_due_date) + (p.annual_tax ? ' · ' + fm(p.annual_tax) : ''), days: d, amount: p.annual_tax || 0 }) }
-  })
-  ;(mai.data || []).forEach((m: any) => {
-    if (m.priority === 'emergency' || m.priority === 'high') items.push({ title: '🔧 ' + m.title, sub: (m.properties?.address || '') + ' · ' + m.priority + ' priority', days: 0, amount: 0 })
-  })
-
-  items.sort((a, b) => a.days - b.days)
-
-  const overdue = items.filter(i => i.days < 0).length
-  const dueSoon = items.filter(i => i.days >= 0 && i.days <= 7).length
-  const atRisk = items.filter(i => i.days <= 7).reduce((s, i) => s + i.amount, 0)
   const dateLabel = today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
 
-  const rowHtml = (i: Item) => `<tr>
-    <td style="padding:10px 0;border-bottom:1px solid #eee">
-      <div style="font-weight:600;color:#1A1A1A;font-size:14px">${i.title}</div>
-      <div style="font-size:12px;color:#888;margin-top:2px">${i.sub}</div>
-    </td>
-    <td style="padding:10px 0;border-bottom:1px solid #eee;text-align:right;white-space:nowrap;font-size:12px;font-weight:700;color:${i.days < 0 ? '#DC2626' : i.days <= 7 ? '#D97706' : '#2563EB'}">
-      ${i.days < 0 ? Math.abs(i.days) + 'd overdue' : i.days === 0 ? 'Today' : 'in ' + i.days + 'd'}
-    </td></tr>`
-
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;padding:8px">
-    <div style="font-size:20px;font-weight:800;color:#2D6A4F">PropManager Pro</div>
-    <div style="font-size:13px;color:#888;margin-bottom:14px">Daily Digest · ${dateLabel}</div>
-    <div style="font-size:14px;margin-bottom:16px">
-      <b style="color:#DC2626">${overdue} overdue</b> &middot;
-      <b style="color:#D97706">${dueSoon} due this week</b> &middot;
-      <b style="color:#1A1A1A">${fm(atRisk)} due soon</b>
-    </div>
-    ${items.length ? `<table style="width:100%;border-collapse:collapse">${items.map(rowHtml).join('')}</table>` : '<div style="padding:16px;background:#F0FDF4;border-radius:8px;color:#166534">✅ All clear — nothing due in the next week.</div>'}
-    <div style="margin-top:22px">
-      <a href="https://propmanager-pro-nine.vercel.app/alerts" style="background:#2D6A4F;color:#fff;padding:11px 20px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700">Open Due Dates &rarr;</a>
-    </div>
-  </div>`
-
-  const apiKey = process.env.SENDGRID_API_KEY?.trim()
-  const to = process.env.NOTIFY_EMAIL?.trim()
-  const from = process.env.NOTIFY_FROM?.trim()
-
-  if (!apiKey || !to || !from) {
-    return NextResponse.json({
-      status: 'not_configured',
-      message: 'Set SENDGRID_API_KEY, NOTIFY_EMAIL, and NOTIFY_FROM in Vercel env vars to enable sending. This is a dry-run preview.',
-      summary: { overdue, dueSoon, atRisk, items: items.length },
-      previewHtml: html,
+  function buildItems(pay: any[], lea: any[], mai: any[], props: any[]): Item[] {
+    const items: Item[] = []
+    ;(pay || []).forEach((p: any) => {
+      const d = daysUntil(p.due_date)
+      if (d <= 7) items.push({ title: (p.tenants?.full_name || 'Tenant') + ' — Rent ' + (p.status === 'late' ? 'Overdue' : 'Due'), sub: formatDate(p.due_date) + ' · ' + fm(p.amount_due), days: d, amount: p.amount_due || 0 })
     })
+    ;(lea || []).forEach((l: any) => {
+      if (!l.end_date) return
+      const d = daysUntil(l.end_date)
+      if (d <= 90 && d >= -30) items.push({ title: (l.tenants?.full_name || 'Tenant') + ' — Lease ' + (d < 0 ? 'Expired' : 'Expires'), sub: formatDate(l.end_date) + ' · ' + (l.properties?.address || ''), days: d, amount: 0 })
+    })
+    ;(props || []).forEach((p: any) => {
+      if (p.insurance_expires) { const d = daysUntil(p.insurance_expires); if (d <= 30) items.push({ title: 'Insurance — ' + p.address, sub: 'Renews ' + formatDate(p.insurance_expires), days: d, amount: 0 }) }
+      if (p.tax_due_date) { const d = daysUntil(p.tax_due_date); if (d <= 30) items.push({ title: 'Property Tax — ' + p.address, sub: 'Due ' + formatDate(p.tax_due_date) + (p.annual_tax ? ' · ' + fm(p.annual_tax) : ''), days: d, amount: p.annual_tax || 0 }) }
+    })
+    ;(mai || []).forEach((m: any) => {
+      if (m.priority === 'emergency' || m.priority === 'high') items.push({ title: 'Maintenance — ' + m.title, sub: (m.properties?.address || '') + ' · ' + m.priority + ' priority', days: 0, amount: 0 })
+    })
+    return items.sort((a, b) => a.days - b.days)
   }
 
-  // Guard against a malformed key (e.g. wrong value pasted into the env var).
-  if (!/^SG\.[\w.\-]+$/.test(apiKey)) {
-    return NextResponse.json({
-      status: 'bad_api_key',
-      message: 'SENDGRID_API_KEY does not look valid. It must start with "SG.", contain no spaces/emoji/extra text, and be ~69 characters. Re-check the Vercel env var.',
-      apiKeyLen: apiKey.length,
-    }, { status: 400 })
+  function buildHtml(items: Item[]) {
+    const overdue = items.filter(i => i.days < 0).length
+    const dueSoon = items.filter(i => i.days >= 0 && i.days <= 7).length
+    const atRisk = items.filter(i => i.days <= 7).reduce((s, i) => s + i.amount, 0)
+    const rowHtml = (i: Item) => `<tr>
+      <td style="padding:10px 0;border-bottom:1px solid #eee">
+        <div style="font-weight:600;color:#1A1A1A;font-size:14px">${i.title}</div>
+        <div style="font-size:12px;color:#888;margin-top:2px">${i.sub}</div>
+      </td>
+      <td style="padding:10px 0;border-bottom:1px solid #eee;text-align:right;white-space:nowrap;font-size:12px;font-weight:700;color:${i.days < 0 ? '#DC2626' : i.days <= 7 ? '#D97706' : '#2563EB'}">
+        ${i.days < 0 ? Math.abs(i.days) + 'd overdue' : i.days === 0 ? 'Today' : 'in ' + i.days + 'd'}
+      </td></tr>`
+    const html = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;padding:8px">
+      <div style="font-size:20px;font-weight:800;color:#2D6A4F">PropManager Pro</div>
+      <div style="font-size:13px;color:#888;margin-bottom:14px">Daily Digest · ${dateLabel}</div>
+      <div style="font-size:14px;margin-bottom:16px">
+        <b style="color:#DC2626">${overdue} overdue</b> &middot;
+        <b style="color:#D97706">${dueSoon} due this week</b> &middot;
+        <b style="color:#1A1A1A">${fm(atRisk)} due soon</b>
+      </div>
+      <table style="width:100%;border-collapse:collapse">${items.map(rowHtml).join('')}</table>
+      <div style="margin-top:22px">
+        <a href="https://propmanager-pro-nine.vercel.app/alerts" style="background:#2D6A4F;color:#fff;padding:11px 20px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700">Open Due Dates &rarr;</a>
+      </div>
+    </div>`
+    return { html, overdue, dueSoon }
   }
 
-  // Don't send an empty digest every day — skip when nothing is due.
-  if (items.length === 0) {
-    return NextResponse.json({ status: 'skipped_empty', summary: { overdue, dueSoon, atRisk } })
-  }
-
-  try {
-    const toLatin1 = (s: string) => s.replace(/[–—]/g, '-').replace(/[^\x00-\xFF]/g, '')
+  const toLatin1 = (s: string) => s.replace(/[–—]/g, '-').replace(/[^\x00-\xFF]/g, '')
+  async function sendEmail(to: string, subject: string, html: string) {
     const payload = JSON.stringify({
       personalizations: [{ to: [{ email: to }] }],
       from: { email: from, name: 'PropManager Pro' },
-      subject: toLatin1(`Due Dates: ${overdue} overdue, ${dueSoon} due this week`),
+      subject: toLatin1(subject),
       content: [{ type: 'text/html', value: toLatin1(html) }],
     })
     const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
-      // Encode to UTF-8 bytes so emoji/em-dash in the body don't trip the
-      // runtime's ByteString header coercion.
       body: new TextEncoder().encode(payload),
     })
-    if (!res.ok) {
-      const detail = await res.text()
-      return NextResponse.json({ status: 'send_failed', code: res.status, detail }, { status: 502 })
-    }
-    return NextResponse.json({ status: 'sent', to, summary: { overdue, dueSoon, atRisk, items: items.length } })
-  } catch (e: any) {
-    return NextResponse.json({ status: 'error', message: String(e?.message || e) }, { status: 500 })
+    return res.ok ? { ok: true } : { ok: false, code: res.status, detail: await res.text() }
   }
+
+  // Every landlord
+  const { data: landlords, error: lErr } = await svc.from('users').select('id, email, full_name')
+  if (lErr) return NextResponse.json({ status: 'error', message: lErr.message }, { status: 500 })
+
+  const configured = !!(apiKey && from && /^SG\.[\w.\-]+$/.test(apiKey || ''))
+  const results: any[] = []
+
+  for (const u of (landlords || [])) {
+    if (!u.email) continue
+    const [pay, lea, mai, props] = await Promise.all([
+      svc.from('payments').select('*, tenants(full_name), properties(address)').eq('user_id', u.id).in('status', ['due', 'upcoming', 'late']).order('due_date'),
+      svc.from('leases').select('*, tenants(full_name), properties(address)').eq('user_id', u.id).eq('status', 'executed'),
+      svc.from('maintenance').select('*, properties(address)').eq('user_id', u.id).in('status', ['open', 'scheduled', 'in_progress']),
+      svc.from('properties').select('id, address, insurance_expires, tax_due_date, annual_tax').eq('user_id', u.id),
+    ])
+    const items = buildItems(pay.data || [], lea.data || [], mai.data || [], props.data || [])
+    if (items.length === 0) { results.push({ to: u.email, status: 'skipped_empty' }); continue }
+    const { html, overdue, dueSoon } = buildHtml(items)
+    if (!configured) { results.push({ to: u.email, status: 'not_configured', items: items.length }); continue }
+    try {
+      const r = await sendEmail(u.email, `Due Dates: ${overdue} overdue, ${dueSoon} due this week`, html)
+      results.push({ to: u.email, status: r.ok ? 'sent' : 'send_failed', ...(r.ok ? {} : { code: r.code }) })
+    } catch (e: any) {
+      results.push({ to: u.email, status: 'error', message: String(e?.message || e) })
+    }
+  }
+
+  return NextResponse.json({ status: 'done', landlords: (landlords || []).length, sent: results.filter(r => r.status === 'sent').length, results })
 }

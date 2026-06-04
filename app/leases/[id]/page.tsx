@@ -22,7 +22,8 @@ export default function LeaseDetailPage({ params }) {
     if (file.type !== 'application/pdf') { setUploadError('Please upload a PDF file'); return }
     setUploading(true)
     setUploadError('')
-    const path = USER_ID + '/' + params.id + '/' + Date.now() + '.pdf'
+    const { data: { user: _u } } = await supabase.auth.getUser()
+    const path = (_u?.id || 'unknown') + '/' + params.id + '/' + Date.now() + '.pdf'
     const { error: upErr } = await supabase.storage.from('lease-documents').upload(path, file, { upsert: true })
     if (upErr) { setUploadError('Upload failed: ' + upErr.message); setUploading(false); return }
     const { data: urlData } = supabase.storage.from('lease-documents').getPublicUrl(path)

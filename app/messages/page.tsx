@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import { getMessages, sendMessage, getTenants, type Message, type Tenant } from '@/lib/supabase'
 
-const USER_ID = 'cacb3a74-75d7-4e07-af71-6db4fdde9a92'
-
 export default function MessagesPage() {
   const [messages, setMessages]   = useState<Message[]>([])
   const [tenants, setTenants]     = useState<Tenant[]>([])
@@ -14,7 +12,7 @@ export default function MessagesPage() {
   const [loading, setLoading]     = useState(true)
 
   useEffect(() => {
-    Promise.all([getMessages(USER_ID), getTenants(USER_ID)]).then(([msgs, tens]) => {
+    Promise.all([getMessages(), getTenants()]).then(([msgs, tens]) => {
       setMessages(msgs)
       setTenants(tens)
       if (tens.length > 0) setActiveId(tens[0].id)

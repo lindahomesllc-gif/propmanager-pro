@@ -57,7 +57,8 @@ export default function ScreeningPage() {
     const file = e.target.files[0]
     if (!file) return
     setUploading(appId)
-    const path = USER_ID + '/screening/' + appId + '/' + Date.now() + '.pdf'
+    const { data: { user: _u } } = await supabase.auth.getUser()
+    const path = (_u?.id || 'unknown') + '/screening/' + appId + '/' + Date.now() + '.pdf'
     const { error: upErr } = await supabase.storage.from('lease-documents').upload(path, file, { upsert: true })
     if (upErr) { alert('Upload failed: ' + upErr.message); setUploading(null); return }
     const { data: urlData } = supabase.storage.from('lease-documents').getPublicUrl(path)

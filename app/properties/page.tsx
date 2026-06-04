@@ -3,8 +3,6 @@ import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import { getProperties, fm, type Property } from '@/lib/supabase'
 
-const USER_ID = 'cacb3a74-75d7-4e07-af71-6db4fdde9a92'
-
 const typeIcon = (t) => ({ single_family: '🏠', condo: '🏢', duplex: '🏘', triplex: '🏘', quadplex: '🏘', multi_family: '🏗', commercial: '🏬' }[t] || '🏠')
 const typeLabel = (t) => (t || 'property').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 
@@ -14,7 +12,7 @@ export default function PropertiesPage() {
   const [view, setView] = useState<'cards' | 'table'>('cards')
 
   useEffect(() => {
-    getProperties(USER_ID).then(data => { setProperties(data); setLoading(false) })
+    getProperties().then(data => { setProperties(data); setLoading(false) })
   }, [])
 
   const portfolioValue = properties.reduce((s, p) => s + (p.market_value || 0), 0)

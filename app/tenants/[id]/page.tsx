@@ -52,7 +52,8 @@ export default function TenantDetailPage({ params }) {
     const file = e.target.files[0]
     if (!file) return
     setUploading(true)
-    const path = USER_ID + '/tenants/' + params.id + '/' + Date.now() + '_' + file.name
+    const { data: { user: _u } } = await supabase.auth.getUser()
+    const path = (_u?.id || 'unknown') + '/tenants/' + params.id + '/' + Date.now() + '_' + file.name
     const { error: upErr } = await supabase.storage.from('lease-documents').upload(path, file, { upsert: true })
     if (upErr) { alert('Upload failed: ' + upErr.message); setUploading(false); return }
     const { data: urlData } = supabase.storage.from('lease-documents').getPublicUrl(path)
