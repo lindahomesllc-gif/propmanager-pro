@@ -95,6 +95,15 @@ export async function GET(request: Request) {
     })
   }
 
+  // Guard against a malformed key (e.g. wrong value pasted into the env var).
+  if (!/^SG\.[\w.\-]+$/.test(apiKey)) {
+    return NextResponse.json({
+      status: 'bad_api_key',
+      message: 'SENDGRID_API_KEY does not look valid. It must start with "SG.", contain no spaces/emoji/extra text, and be ~69 characters. Re-check the Vercel env var.',
+      apiKeyLen: apiKey.length,
+    }, { status: 400 })
+  }
+
   // Don't send an empty digest every day — skip when nothing is due.
   if (items.length === 0) {
     return NextResponse.json({ status: 'skipped_empty', summary: { overdue, dueSoon, atRisk } })
