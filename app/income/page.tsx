@@ -64,7 +64,7 @@ export default function IncomePage() {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-        {loading && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading...</div>}
+        {loading && <div style={{ display: 'grid', gap: '8px' }}>{[0, 1, 2, 3].map(i => <div key={i} className='skeleton' style={{ height: '64px' }} />)}</div>}
         {!loading && (
           <>
             <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '16px' }}>

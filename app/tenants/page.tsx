@@ -81,7 +81,7 @@ export default function TenantsPage() {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-        {loading && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading...</div>}
+        {loading && <div style={{ display: 'grid', gap: '8px' }}>{[0, 1, 2, 3].map(i => <div key={i} className='skeleton' style={{ height: '64px' }} />)}</div>}
         {!loading && filtered.length === 0 && (
           <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
             <div style={{ fontSize: '40px', marginBottom: '12px' }}>👥</div>

@@ -174,7 +174,7 @@ export default function TurnoverPage() {
           </div>
         )}
 
-        {loading && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading...</div>}
+        {loading && <div style={{ display: 'grid', gap: '8px' }}>{[0, 1, 2, 3].map(i => <div key={i} className='skeleton' style={{ height: '64px' }} />)}</div>}
         {!loading && turnovers.length === 0 && !showAdd && (
           <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
             <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔄</div>

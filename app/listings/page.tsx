@@ -129,7 +129,7 @@ export default function ListingsPage() {
             <button onClick={save} disabled={saving} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving…' : 'Save Listing'}</button>
           </div>
         )}
-        {loading && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading...</div>}
+        {loading && <div style={{ display: 'grid', gap: '8px' }}>{[0, 1, 2, 3].map(i => <div key={i} className='skeleton' style={{ height: '64px' }} />)}</div>}
         {!loading && listings.length === 0 && !showAdd && (
           <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
             <div style={{ fontSize: '40px', marginBottom: '12px' }}>🏠</div>

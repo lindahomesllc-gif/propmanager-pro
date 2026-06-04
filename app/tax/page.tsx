@@ -57,7 +57,7 @@ export default function TaxPage() {
         </div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-        {loading && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading...</div>}
+        {loading && <div style={{ display: 'grid', gap: '8px' }}>{[0, 1, 2, 3].map(i => <div key={i} className='skeleton' style={{ height: '64px' }} />)}</div>}
         {!loading && (
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden', marginBottom: '20px' }}>
