@@ -2,31 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/AppShell'
-
-const SUPABASE_URL = 'https://sugfedlfmvmbcnblhnuc.supabase.co'
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1Z2ZlZGxmbXZtYmNuYmxobnVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzAxNDMsImV4cCI6MjA5MzE0NjE0M30.H5XZES1K9abTV2QVYYi0NG6SfGFSJEq-lfmKiva8ihw'
-const USER_ID = 'cacb3a74-75d7-4e07-af71-6db4fdde9a92'
-
-async function dbGet(table: string, filters = '') {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filters}&apikey=${SUPABASE_KEY}`, {
-    headers: { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }
-  })
-  return res.json()
-}
-
-async function dbInsert(table: string, data: any) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?apikey=${SUPABASE_KEY}`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-    body: JSON.stringify(data)
-  })
-  const json = await res.json()
-  if (!res.ok) {
-    console.error('Insert error:', JSON.stringify(json))
-    throw new Error(json?.message || json?.[0]?.message || 'Insert failed')
-  }
-  return json
-}
+import { supabase } from '@/lib/supabase'
 
 export default function NewTenantPage() {
   const [properties, setProperties] = useState<any[]>([])
@@ -38,7 +14,7 @@ export default function NewTenantPage() {
   })
 
   useEffect(() => {
-    dbGet('properties', `user_id=eq.${USER_ID}&select=id,address`).then(data => {
+    supabase.from('properties').select('id, address').then(({ data }) => {
       if (Array.isArray(data)) setProperties(data)
     })
   }, [])
@@ -50,22 +26,18 @@ export default function NewTenantPage() {
     if (!form.full_name) { setError('Name is required'); return }
     if (!form.property_id) { setError('Please select a property'); return }
     setSaving(true)
-    try {
-      await dbInsert('tenants', {
-        property_id: form.property_id,
-        full_name: form.full_name,
-        email: form.email || null,
-        phone: form.phone || null,
-        move_in_date: form.move_in_date || null,
-        status: 'active',
-        portal_access: true,
-        notes: form.notes || null,
-      })
-      window.location.href = '/tenants'
-    } catch (e: any) {
-      setError(e.message || 'Error saving tenant. Please try again.')
-      setSaving(false)
-    }
+    const { error: err } = await supabase.from('tenants').insert({
+      property_id: form.property_id,
+      full_name: form.full_name,
+      email: form.email || null,
+      phone: form.phone || null,
+      move_in_date: form.move_in_date || null,
+      status: 'active',
+      portal_access: true,
+      notes: form.notes || null,
+    })
+    if (err) { setError(err.message || 'Error saving tenant. Please try again.'); setSaving(false); return }
+    window.location.href = '/tenants'
   }
 
   const lbl: any = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
