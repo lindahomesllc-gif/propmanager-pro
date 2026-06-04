@@ -130,14 +130,6 @@ export async function GET(request: Request) {
     }
     return NextResponse.json({ status: 'sent', to, summary: { overdue, dueSoon, atRisk, items: items.length } })
   } catch (e: any) {
-    return NextResponse.json({
-      status: 'error', build: 'v3', message: String(e?.message || e),
-      diag: {
-        apiKeyLen: apiKey?.length || 0,
-        authAscii: /^[\x00-\xFF]*$/.test('Bearer ' + (apiKey || '')),
-        fromAscii: /^[\x00-\xFF]*$/.test(from || ''),
-        toAscii: /^[\x00-\xFF]*$/.test(to || ''),
-      },
-    }, { status: 500 })
+    return NextResponse.json({ status: 'error', message: String(e?.message || e) }, { status: 500 })
   }
 }
