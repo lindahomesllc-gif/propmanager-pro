@@ -69,12 +69,9 @@ export default function NewTenantPage() {
     }
   }
 
-  const inp: any = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', fontFamily: 'Plus Jakarta Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }
   const lbl: any = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
   const card: any = { background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
   const g2: any = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }
-  const btnP: any = { background: 'var(--green)', color: 'var(--bg)', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }
-  const btnG: any = { background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '8px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }
   const secTtl: any = { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', marginBottom: '12px' }
 
   return (
@@ -82,8 +79,8 @@ export default function NewTenantPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Add New Tenant</div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <a href="/tenants" style={btnG}>Cancel</a>
-          <button style={btnP} onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Tenant'}</button>
+          <a href="/tenants" className='btn btn-ghost'>Cancel</a>
+          <button className='btn btn-primary' onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Tenant'}</button>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
@@ -91,7 +88,7 @@ export default function NewTenantPage() {
         <div style={card}>
           <div style={secTtl}>Assign to Property</div>
           <label style={lbl}>Property *</label>
-          <select style={inp} value={form.property_id} onChange={e => set('property_id', e.target.value)}>
+          <select className='input' value={form.property_id} onChange={e => set('property_id', e.target.value)}>
             <option value="">Select a property...</option>
             {properties.map((p: any) => <option key={p.id} value={p.id}>{p.address}</option>)}
           </select>
@@ -101,24 +98,24 @@ export default function NewTenantPage() {
           <div style={secTtl}>Tenant Information</div>
           <div style={{ marginBottom: '12px' }}>
             <label style={lbl}>Full Name *</label>
-            <input style={inp} placeholder="John Smith" value={form.full_name} onChange={e => set('full_name', e.target.value)} />
+            <input className='input' placeholder="John Smith" value={form.full_name} onChange={e => set('full_name', e.target.value)} />
           </div>
           <div style={{ ...g2, marginBottom: '12px' }}>
-            <div><label style={lbl}>Email</label><input style={inp} type="email" placeholder="john@email.com" value={form.email} onChange={e => set('email', e.target.value)} /></div>
-            <div><label style={lbl}>Phone</label><input style={inp} placeholder="407-555-0100" value={form.phone} onChange={e => set('phone', e.target.value)} /></div>
+            <div><label style={lbl}>Email</label><input className='input' type="email" placeholder="john@email.com" value={form.email} onChange={e => set('email', e.target.value)} /></div>
+            <div><label style={lbl}>Phone</label><input className='input' placeholder="407-555-0100" value={form.phone} onChange={e => set('phone', e.target.value)} /></div>
           </div>
           <div>
             <label style={lbl}>Move In Date</label>
-            <input style={inp} type="date" value={form.move_in_date} onChange={e => set('move_in_date', e.target.value)} />
+            <input className='input' type="date" value={form.move_in_date} onChange={e => set('move_in_date', e.target.value)} />
           </div>
         </div>
         <div style={card}>
           <div style={secTtl}>Notes</div>
-          <textarea style={{ ...inp, resize: 'vertical' }} rows={3} placeholder="Any notes about this tenant..." value={form.notes} onChange={e => set('notes', e.target.value)} />
+          <textarea className='input' style={{ resize: 'vertical' }} rows={3} placeholder="Any notes about this tenant..." value={form.notes} onChange={e => set('notes', e.target.value)} />
         </div>
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-          <a href="/tenants" style={btnG}>Cancel</a>
-          <button style={btnP} onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Tenant'}</button>
+          <a href="/tenants" className='btn btn-ghost'>Cancel</a>
+          <button className='btn btn-primary' onClick={save} disabled={saving}>{saving ? 'Saving...' : '+ Save Tenant'}</button>
         </div>
       </div>
     </AppShell>
