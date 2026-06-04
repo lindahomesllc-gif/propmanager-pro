@@ -114,7 +114,7 @@ export default function PaymentsPage() {
   }
 
   const statusColor = (s) => ({ paid: 'var(--green)', late: 'var(--red)', partial: 'var(--amber)', due: 'var(--amber)', upcoming: 'var(--blue)', waived: 'var(--text3)' }[s] || 'var(--text3)')
-  const statusBg = (s) => ({ paid: 'var(--green-bg)', late: 'var(--red-bg)', partial: 'var(--amber-bg)', due: 'var(--amber-bg)', upcoming: 'var(--bg3)', waived: 'var(--bg3)' }[s] || 'var(--bg3)')
+  const chipClass = (s) => ({ paid: 'chip-g', late: 'chip-r', partial: 'chip-a', due: 'chip-a', upcoming: 'chip-b', waived: 'chip-x' }[s] || 'chip-x')
 
   const filtered = filter === 'all' ? payments : payments.filter(p => p.status === filter)
 
@@ -176,7 +176,7 @@ export default function PaymentsPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                     <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{p.tenants?.full_name || '—'}</div>
-                    <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: statusBg(p.status), color: statusColor(p.status), fontWeight: 600, textTransform: 'capitalize' }}>{p.status}</span>
+                    <span className={'chip ' + chipClass(p.status)} style={{ textTransform: 'capitalize' }}>{p.status}</span>
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--text3)' }}>{p.properties?.address || '—'} · Due {formatDate(p.due_date)}{p.paid_date ? ' · Paid ' + formatDate(p.paid_date) : ''}</div>
                   <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>{p.payment_method ? p.payment_method.replace('_', ' ') : ''}{p.notes ? ' · ' + p.notes : ''}</div>

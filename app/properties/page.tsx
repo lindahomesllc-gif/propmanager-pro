@@ -68,7 +68,7 @@ export default function PropertiesPage() {
                       <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.address}</div>
                       <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>{p.city}, {p.state} · {typeLabel(p.type)}</div>
                     </div>
-                    <span style={{ fontSize: '11px', padding: '3px 9px', borderRadius: '20px', background: isOccupied ? 'var(--green-bg)' : 'var(--amber-bg)', color: isOccupied ? 'var(--green)' : 'var(--amber)', fontWeight: 700, flexShrink: 0 }}>
+                    <span className={'chip ' + (isOccupied ? 'chip-g' : 'chip-a')} style={{ flexShrink: 0 }}>
                       {isOccupied ? 'Occupied' : 'Vacant'}
                     </span>
                   </div>
@@ -124,7 +124,7 @@ export default function PropertiesPage() {
                     <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{fm(p.purchase_price)}</td>
                     <td style={{ padding: '10px 14px', color: 'var(--green)', fontWeight: 600 }}>{fm(p.market_value)}</td>
                     <td style={{ padding: '10px 14px', color: (p.market_value || 0) - (p.purchase_price || 0) >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>{fm((p.market_value || 0) - (p.purchase_price || 0))}</td>
-                    <td style={{ padding: '10px 14px' }}><span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: p.occupancy_status === 'occupied' ? 'var(--green-bg)' : 'var(--amber-bg)', color: p.occupancy_status === 'occupied' ? 'var(--green)' : 'var(--amber)', fontWeight: 600 }}>{p.occupancy_status}</span></td>
+                    <td style={{ padding: '10px 14px' }}><span className={'chip ' + (p.occupancy_status === 'occupied' ? 'chip-g' : 'chip-a')} style={{ textTransform: 'capitalize' }}>{p.occupancy_status}</span></td>
                   </tr>
                 ))}
               </tbody>

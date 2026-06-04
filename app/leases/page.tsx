@@ -15,7 +15,7 @@ export default function LeasesPage() {
   }, [])
 
   const statusColor = (s) => ({ executed: 'var(--green)', draft: 'var(--text3)', sent: 'var(--blue)', tenant_signed: 'var(--amber)', expired: 'var(--red)', terminated: 'var(--red)' }[s] || 'var(--text3)')
-  const statusBg = (s) => ({ executed: 'var(--green-bg)', draft: 'var(--bg3)', sent: 'var(--bg3)', tenant_signed: 'var(--amber-bg)', expired: 'var(--red-bg)', terminated: 'var(--red-bg)' }[s] || 'var(--bg3)')
+  const chipClass = (s) => ({ executed: 'chip-g', draft: 'chip-x', sent: 'chip-b', tenant_signed: 'chip-a', expired: 'chip-r', terminated: 'chip-r' }[s] || 'chip-x')
 
   const active = leases.filter(l => l.status === 'executed')
   const inProgress = leases.filter(l => l.status === 'draft' || l.status === 'sent' || l.status === 'tenant_signed')
@@ -37,7 +37,7 @@ export default function LeasesPage() {
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
               <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>{tenantName || 'Unknown Tenant'}</div>
-              <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '20px', background: statusBg(l.status), color: statusColor(l.status), fontWeight: 700, textTransform: 'uppercase' }}>{l.status?.replace('_', ' ')}</span>
+              <span className={'chip ' + chipClass(l.status)} style={{ textTransform: 'uppercase' }}>{l.status?.replace('_', ' ')}</span>
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text3)' }}>📍 {l.properties?.address || 'No property'}</div>
             <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '3px' }}>📅 {formatDate(l.start_date)} → <span style={{ color: days !== null ? expiryColor(days) : 'var(--text3)', fontWeight: days !== null && days <= 90 ? 600 : 400 }}>{formatDate(l.end_date)}{days !== null && days > 0 && days <= 90 ? ' (' + days + 'd)' : ''}</span></div>

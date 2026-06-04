@@ -46,8 +46,7 @@ export default function MaintenancePage() {
 
   const priorityColor = (p) => ({ emergency: 'var(--red)', high: 'var(--amber)', medium: 'var(--blue)', low: 'var(--green)' }[p] || 'var(--text3)')
   const priorityBg = (p) => ({ emergency: 'var(--red-bg)', high: 'var(--amber-bg)', medium: 'var(--bg3)', low: 'var(--green-bg)' }[p] || 'var(--bg3)')
-  const statusColor = (s) => ({ open: 'var(--amber)', scheduled: 'var(--blue)', in_progress: '#A78BFA', completed: 'var(--green)', cancelled: 'var(--text3)' }[s] || 'var(--text3)')
-  const statusBg = (s) => ({ open: 'var(--amber-bg)', scheduled: 'var(--bg3)', in_progress: '#A78BFA22', completed: 'var(--green-bg)', cancelled: 'var(--bg3)' }[s] || 'var(--bg3)')
+  const chipClass = (s) => ({ open: 'chip-a', scheduled: 'chip-b', in_progress: 'chip-b', completed: 'chip-g', cancelled: 'chip-x' }[s] || 'chip-x')
 
   const TicketCard = ({ t, compact = false }) => (
     <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + priorityColor(t.priority), borderRadius: '10px', padding: compact ? '12px 14px' : '16px 18px', marginBottom: compact ? '8px' : '0' }}>
@@ -58,7 +57,7 @@ export default function MaintenancePage() {
         </div>
         <div style={{ display: 'flex', gap: '5px', flexShrink: 0, marginLeft: '8px' }}>
           <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '20px', background: priorityBg(t.priority), color: priorityColor(t.priority), fontWeight: 700, textTransform: 'uppercase' }}>{t.priority}</span>
-          <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '20px', background: statusBg(t.status), color: statusColor(t.status), fontWeight: 700, textTransform: 'capitalize' }}>{t.status?.replace('_', ' ')}</span>
+          <span className={'chip ' + chipClass(t.status)} style={{ textTransform: 'capitalize' }}>{t.status?.replace('_', ' ')}</span>
         </div>
       </div>
       {!compact && t.description && <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px', lineHeight: 1.5 }}>{t.description}</div>}
