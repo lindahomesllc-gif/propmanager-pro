@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { supabase, USER_ID } from '@/lib/supabase'
 
@@ -57,7 +57,21 @@ const BADGE_STYLE: Record<string, { bg: string; fg: string }> = {
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const [counts, setCounts] = useState<Record<string, number>>({})
+  const [userLabel, setUserLabel] = useState('')
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const u = data.user
+      if (u) setUserLabel(u.user_metadata?.full_name || u.email || '')
+    })
+  }, [])
+
+  async function logout() {
+    await supabase.auth.signOut()
+    router.replace('/login')
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -106,7 +120,7 @@ export default function Sidebar() {
         }}>P</div>
         <div>
           <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '13px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.1 }}>PropManager</div>
-          <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '1px' }}>Pro · Linda Rodriguez</div>
+          <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '130px' }}>{userLabel || 'Pro'}</div>
         </div>
       </div>
 
@@ -147,6 +161,15 @@ export default function Sidebar() {
           })}
         </div>
       ))}
+
+      <div style={{ marginTop: 'auto', padding: '10px 12px', borderTop: '0.5px solid var(--border)' }}>
+        <button onClick={logout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '9px', padding: '7px 8px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '12.5px', color: 'var(--text2)', borderRadius: '6px', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+          <span style={{ fontSize: '13px', width: '16px', textAlign: 'center', opacity: 0.8 }}>⎋</span>
+          <span>Sign out</span>
+        </button>
+      </div>
     </nav>
   )
 }
