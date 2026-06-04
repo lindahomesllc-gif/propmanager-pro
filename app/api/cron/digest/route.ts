@@ -101,15 +101,18 @@ export async function GET(request: Request) {
   }
 
   try {
+    const payload = JSON.stringify({
+      personalizations: [{ to: [{ email: to }] }],
+      from: { email: from, name: 'PropManager Pro' },
+      subject: `Due Dates: ${overdue} overdue, ${dueSoon} due this week`,
+      content: [{ type: 'text/html', value: html }],
+    })
     const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: to }] }],
-        from: { email: from, name: 'PropManager Pro' },
-        subject: `Due Dates: ${overdue} overdue · ${dueSoon} due this week`,
-        content: [{ type: 'text/html', value: html }],
-      }),
+      // Encode to UTF-8 bytes so emoji/em-dash in the body don't trip the
+      // runtime's ByteString header coercion.
+      body: new TextEncoder().encode(payload),
     })
     if (!res.ok) {
       const detail = await res.text()
