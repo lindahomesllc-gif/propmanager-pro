@@ -15,6 +15,7 @@ export default function TenantDetailPage({ params }) {
 
   async function sendPortalLink() {
     if (!tenant?.email) { alert('This tenant has no email address on file. Add one via Edit before sending a portal link.'); return }
+    if (!confirm('Send a portal login link to ' + tenant.full_name + ' (' + tenant.email + ')?\n\nThey will get an email to access the tenant portal.')) return
     setSendingLink(true)
     const { error } = await supabase.auth.signInWithOtp({
       email: tenant.email,
