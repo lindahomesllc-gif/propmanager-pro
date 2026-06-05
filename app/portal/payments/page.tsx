@@ -30,19 +30,28 @@ export default function PaymentsPage() {
   }
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('paid') === '1') {
-      setPaidBanner(true)
-    }
-    async function load() {
+    async function run() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/portal'); return }
+      // Returning from Stripe Checkout? Confirm + mark the payment paid.
+      const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+      const p = params?.get('p'), s = params?.get('s')
+      if (p && s) {
+        setPaidBanner(true)
+        const { data: sess } = await supabase.auth.getSession()
+        await fetch('/api/stripe/confirm', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + (sess.session?.access_token || ''), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentId: p, sessionId: s }),
+        }).catch(() => {})
+      }
       const { data: t } = await supabase.from('tenants').select('*').eq('email', user.email).eq('status', 'active').single()
       if (!t) { router.push('/portal'); return }
-      const { data: p } = await supabase.from('payments').select('*').eq('tenant_id', t.id).order('due_date', { ascending: false })
-      setPayments(p || [])
+      const { data: pay } = await supabase.from('payments').select('*').eq('tenant_id', t.id).order('due_date', { ascending: false })
+      setPayments(pay || [])
       setLoading(false)
     }
-    load()
+    run()
   }, [])
 
   const statusColor = (s: string) => ({ paid: '#2D6A4F', late: '#DC2626', due: '#D97706', upcoming: '#D97706' }[s] || '#6B7280')

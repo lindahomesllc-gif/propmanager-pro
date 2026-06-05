@@ -47,7 +47,7 @@ export async function POST(request: Request) {
             product_data: { name: 'Rent — ' + ((pay as any).properties?.address || 'Property') },
           },
         }],
-        success_url: origin + '/portal/payments?paid=1',
+        success_url: origin + '/portal/payments?p=' + pay.id + '&s={CHECKOUT_SESSION_ID}',
         cancel_url: origin + '/portal/payments',
         metadata: { payment_id: pay.id },
       },
