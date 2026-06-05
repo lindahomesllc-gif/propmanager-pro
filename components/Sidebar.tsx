@@ -31,6 +31,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   {
     label: 'Finances',
     items: [
+      { href: '/get-paid',  label: 'Get Paid',   icon: '◆' },
       { href: '/income',    label: 'Income',     icon: '▣' },
       { href: '/expenses',  label: 'Expenses',   icon: '◎' },
       { href: '/mortgage',  label: 'Mortgage',   icon: '◉' },
