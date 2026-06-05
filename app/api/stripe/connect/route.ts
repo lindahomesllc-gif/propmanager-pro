@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { stripe, svc, getUserFromRequest } from '@/lib/stripe'
+import { stripe, getAuth } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -7,13 +7,13 @@ export const maxDuration = 30
 // Create (or reuse) the landlord's Stripe Connect Express account and return a
 // hosted onboarding link. The landlord collects bank/identity info on Stripe.
 export async function POST(request: Request) {
-  const user = await getUserFromRequest(request)
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  const { user, db } = await getAuth(request)
+  if (!user || !db) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: 'Stripe is not configured (missing STRIPE_SECRET_KEY).' }, { status: 503 })
   }
   try {
-    const { data: profile } = await svc.from('users').select('stripe_account_id').eq('id', user.id).single()
+    const { data: profile } = await db.from('users').select('stripe_account_id').eq('id', user.id).single()
     let accountId = profile?.stripe_account_id as string | null
 
     if (!accountId) {
@@ -28,7 +28,8 @@ export async function POST(request: Request) {
         },
       })
       accountId = account.id
-      await svc.from('users').update({ stripe_account_id: accountId }).eq('id', user.id)
+      const { error: upErr } = await db.from('users').update({ stripe_account_id: accountId }).eq('id', user.id)
+      if (upErr) return NextResponse.json({ error: 'Could not save account: ' + upErr.message }, { status: 500 })
     }
 
     const origin = new URL(request.url).origin

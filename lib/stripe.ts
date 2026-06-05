@@ -21,3 +21,17 @@ export async function getUserFromRequest(request: Request) {
   if (error || !data.user) return null
   return data.user
 }
+
+// Returns the authenticated user PLUS a Supabase client that acts AS that user
+// (so RLS lets it read/write the user's own rows — no service key needed).
+export async function getAuth(request: Request) {
+  const token = (request.headers.get('authorization') || '').replace('Bearer ', '').trim()
+  if (!token) return { user: null, db: null }
+  const db = createClient(SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '', {
+    global: { headers: { Authorization: 'Bearer ' + token } },
+    auth: { persistSession: false },
+  })
+  const { data, error } = await db.auth.getUser(token)
+  if (error || !data.user) return { user: null, db: null }
+  return { user: data.user, db }
+}
