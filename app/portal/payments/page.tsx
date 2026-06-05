@@ -12,8 +12,27 @@ export default function PaymentsPage() {
   const router = useRouter()
   const [payments, setPayments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [paying, setPaying] = useState<string | null>(null)
+  const [paidBanner, setPaidBanner] = useState(false)
+
+  async function payNow(paymentId: string) {
+    setPaying(paymentId)
+    const { data } = await supabase.auth.getSession()
+    const res = await fetch('/api/stripe/checkout', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + (data.session?.access_token || ''), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentId }),
+    })
+    const json = await res.json()
+    if (json.url) { window.location.href = json.url; return }
+    alert(json.error || 'Could not start payment. Please try again.')
+    setPaying(null)
+  }
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('paid') === '1') {
+      setPaidBanner(true)
+    }
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/portal'); return }
@@ -45,11 +64,15 @@ export default function PaymentsPage() {
           </div>
         ) : (
           <>
+            {paidBanner && (
+              <div style={{ background: '#DCFCE7', color: '#166534', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px', fontSize: '14px', fontWeight: 600 }}>✅ Payment received — thank you! It may take a moment to show as paid below.</div>
+            )}
             {nextDue && (
               <div style={{ background: '#2D6A4F', borderRadius: '14px', padding: '20px 22px', marginBottom: '20px', color: '#fff' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.85 }}>Next Payment Due</div>
                 <div style={{ fontSize: '30px', fontWeight: 800, fontFamily: 'Syne, sans-serif', margin: '6px 0 2px' }}>{fmtMoney(nextDue.amount_due)}</div>
                 <div style={{ fontSize: '13px', opacity: 0.9 }}>Due {fmtDate(nextDue.due_date)}</div>
+                <button onClick={() => payNow(nextDue.id)} disabled={!!paying} style={{ marginTop: '14px', background: '#fff', color: '#2D6A4F', border: 'none', borderRadius: '10px', padding: '11px 20px', fontSize: '14px', fontWeight: 800, cursor: paying ? 'not-allowed' : 'pointer', opacity: paying ? 0.7 : 1 }}>{paying === nextDue.id ? 'Opening…' : 'Pay ' + fmtMoney(nextDue.amount_due)}</button>
               </div>
             )}
             <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
@@ -78,7 +101,10 @@ export default function PaymentsPage() {
                       <div style={{ fontSize: '16px', fontWeight: 700, color: '#1A1A1A' }}>{fmtMoney(p.status === 'paid' ? p.amount_paid : p.amount_due)}</div>
                       <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>Due {fmtDate(p.due_date)}{p.paid_date ? ' · Paid ' + fmtDate(p.paid_date) : ''}</div>
                     </div>
-                    <span style={{ fontSize: '11px', padding: '4px 12px', borderRadius: '20px', background: statusBg(p.status), color: statusColor(p.status), fontWeight: 700, textTransform: 'capitalize' }}>{p.status}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '11px', padding: '4px 12px', borderRadius: '20px', background: statusBg(p.status), color: statusColor(p.status), fontWeight: 700, textTransform: 'capitalize' }}>{p.status}</span>
+                      {p.status !== 'paid' && <button onClick={() => payNow(p.id)} disabled={!!paying} style={{ background: '#2D6A4F', color: '#fff', border: 'none', borderRadius: '8px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: paying ? 'not-allowed' : 'pointer', opacity: paying ? 0.7 : 1 }}>{paying === p.id ? '…' : 'Pay'}</button>}
+                    </div>
                   </div>
                 ))}
               </div>
