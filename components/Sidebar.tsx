@@ -12,6 +12,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     items: [
       { href: '/dashboard',   label: 'Dashboard',   icon: '▣' },
       { href: '/properties',  label: 'Properties',  icon: '▤' },
+      { href: '/entities',    label: 'Entities',    icon: '▦' },
       { href: '/tenants',     label: 'Tenants',     icon: '◎' },
       { href: '/payments',    label: 'Payments',    icon: '◈', badgeKey: 'latePayments' },
       { href: '/maintenance', label: 'Maintenance', icon: '◧', badgeKey: 'openMaint' },
