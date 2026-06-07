@@ -6,10 +6,11 @@ import { supabase } from '@/lib/supabase'
 
 export default function NewTenantPage() {
   const [properties, setProperties] = useState<any[]>([])
+  const [units, setUnits] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
-    property_id: '', full_name: '', email: '',
+    property_id: '', unit_id: '', full_name: '', email: '',
     phone: '', move_in_date: '', notes: ''
   })
 
@@ -17,7 +18,18 @@ export default function NewTenantPage() {
     supabase.from('properties').select('id, address').then(({ data }) => {
       if (Array.isArray(data)) setProperties(data)
     })
+    const sp = new URLSearchParams(window.location.search)
+    const pid = sp.get('property') || ''
+    const uid = sp.get('unit') || ''
+    if (pid) setForm(f => ({ ...f, property_id: pid, unit_id: uid }))
   }, [])
+
+  // load the chosen property's units (if any)
+  useEffect(() => {
+    if (!form.property_id) { setUnits([]); return }
+    supabase.from('units').select('id, label, kind').eq('property_id', form.property_id).order('label')
+      .then(({ data }) => setUnits(data || []))
+  }, [form.property_id])
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
@@ -28,6 +40,8 @@ export default function NewTenantPage() {
     setSaving(true)
     const { error: err } = await supabase.from('tenants').insert({
       property_id: form.property_id,
+      unit_id: form.unit_id || null,
+      unit_address: units.find(u => u.id === form.unit_id)?.label || null,
       full_name: form.full_name,
       email: form.email || null,
       phone: form.phone || null,
@@ -37,6 +51,7 @@ export default function NewTenantPage() {
       notes: form.notes || null,
     })
     if (err) { setError(err.message || 'Error saving tenant. Please try again.'); setSaving(false); return }
+    if (form.unit_id) await supabase.from('units').update({ status: 'occupied' }).eq('id', form.unit_id)
     window.location.href = '/tenants'
   }
 
@@ -59,11 +74,20 @@ export default function NewTenantPage() {
         <div style={card}>
           <div style={secTtl}>Assign to Property</div>
           <label style={lbl}>Property *</label>
-          <select className='input' value={form.property_id} onChange={e => set('property_id', e.target.value)}>
+          <select className='input' value={form.property_id} onChange={e => setForm(f => ({ ...f, property_id: e.target.value, unit_id: '' }))}>
             <option value="">Select a property...</option>
             {properties.map((p: any) => <option key={p.id} value={p.id}>{p.address}</option>)}
           </select>
           {properties.length === 0 && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '6px' }}>Loading properties...</div>}
+          {units.length > 0 && (
+            <div style={{ marginTop: '12px' }}>
+              <label style={lbl}>Unit / Room</label>
+              <select className='input' value={form.unit_id} onChange={e => set('unit_id', e.target.value)}>
+                <option value="">— Whole property —</option>
+                {units.map((u: any) => <option key={u.id} value={u.id}>{u.label}{u.kind === 'room' ? ' (room)' : ''}</option>)}
+              </select>
+            </div>
+          )}
         </div>
         <div style={card}>
           <div style={secTtl}>Tenant Information</div>

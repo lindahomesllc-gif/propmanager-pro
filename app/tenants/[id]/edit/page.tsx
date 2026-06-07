@@ -7,8 +7,10 @@ export default function EditTenantPage({ params }) {
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [units, setUnits] = useState<any[]>([])
+  const [origUnitId, setOrigUnitId] = useState('')
   const [form, setForm] = useState({
-    unit_address: '', full_name: '', email: '', phone: '',
+    unit_id: '', unit_address: '', full_name: '', email: '', phone: '',
     move_in_date: '', move_out_date: '',
     status: 'active', portal_access: true,
     emergency_contact_name: '', emergency_contact_phone: '',
@@ -20,24 +22,31 @@ export default function EditTenantPage({ params }) {
   useEffect(() => {
     supabase.from('tenants').select('*').eq('id', params.id).single()
       .then(({ data }) => {
-        if (data) setForm({
-          unit_address: data.unit_address || '',
-          unit_address: data.unit_address || '',
-          full_name: data.full_name || '',
-          email: data.email || '',
-          phone: data.phone || '',
-          move_in_date: data.move_in_date || '',
-          move_out_date: data.move_out_date || '',
-          status: data.status || 'active',
-          portal_access: data.portal_access ?? true,
-          emergency_contact_name: data.emergency_contact_name || '',
-          emergency_contact_phone: data.emergency_contact_phone || '',
-          notes: data.notes || '',
-          co_tenant_name: data.co_tenant_name || '',
-          co_tenant_email: data.co_tenant_email || '',
-          co_tenant_phone: data.co_tenant_phone || '',
-          minor_names: data.minor_names || '',
-        })
+        if (data) {
+          setOrigUnitId(data.unit_id || '')
+          setForm({
+            unit_id: data.unit_id || '',
+            unit_address: data.unit_address || '',
+            full_name: data.full_name || '',
+            email: data.email || '',
+            phone: data.phone || '',
+            move_in_date: data.move_in_date || '',
+            move_out_date: data.move_out_date || '',
+            status: data.status || 'active',
+            portal_access: data.portal_access ?? true,
+            emergency_contact_name: data.emergency_contact_name || '',
+            emergency_contact_phone: data.emergency_contact_phone || '',
+            notes: data.notes || '',
+            co_tenant_name: data.co_tenant_name || '',
+            co_tenant_email: data.co_tenant_email || '',
+            co_tenant_phone: data.co_tenant_phone || '',
+            minor_names: data.minor_names || '',
+          })
+          if (data.property_id) {
+            supabase.from('units').select('id, label, kind').eq('property_id', data.property_id).order('label')
+              .then(({ data: us }) => setUnits(us || []))
+          }
+        }
         setLoading(false)
       })
   }, [params.id])
@@ -48,9 +57,12 @@ export default function EditTenantPage({ params }) {
     setError('')
     if (!form.full_name) { setError('Name is required'); return }
     setSaving(true)
+    const selUnit = units.find(u => u.id === form.unit_id)
+    // property has units → label follows the chosen unit; otherwise keep legacy free-text
+    const unitAddress = units.length > 0 ? (selUnit?.label || null) : (form.unit_address || null)
     const { error: err } = await supabase.from('tenants').update({
-      unit_address: form.unit_address || null,
-      unit_address: form.unit_address || null,
+      unit_id: units.length > 0 ? (form.unit_id || null) : (origUnitId || null),
+      unit_address: unitAddress,
       full_name: form.full_name,
       email: form.email || null,
       phone: form.phone || null,
@@ -66,8 +78,13 @@ export default function EditTenantPage({ params }) {
       co_tenant_phone: form.co_tenant_phone || null,
       minor_names: form.minor_names || null,
     }).eq('id', params.id)
+    if (err) { setSaving(false); setError('Error: ' + err.message); return }
+    // keep unit occupancy in sync when the assignment changed
+    if (units.length > 0 && form.unit_id !== origUnitId) {
+      if (origUnitId) await supabase.from('units').update({ status: 'vacant' }).eq('id', origUnitId)
+      if (form.unit_id) await supabase.from('units').update({ status: 'occupied' }).eq('id', form.unit_id)
+    }
     setSaving(false)
-    if (err) { setError('Error: ' + err.message); return }
     window.location.href = '/tenants/' + params.id
   }
 
@@ -96,7 +113,16 @@ export default function EditTenantPage({ params }) {
           <div style={secTtl}>Tenant Information</div>
           <div style={{ ...g2, marginBottom: '12px' }}>
             <div><label style={lbl}>Full Name *</label><input className='input' value={form.full_name} onChange={e => set('full_name', e.target.value)} /></div>
-            <div><label style={lbl}>Unit Address</label><input className='input' placeholder='e.g. 2515 Ridgewood Ave' value={form.unit_address} onChange={e => set('unit_address', e.target.value)} /></div>
+            <div><label style={lbl}>{units.length > 0 ? 'Unit / Room' : 'Unit Address'}</label>
+              {units.length > 0 ? (
+                <select className='input' value={form.unit_id} onChange={e => set('unit_id', e.target.value)}>
+                  <option value=''>— Whole property —</option>
+                  {units.map((u: any) => <option key={u.id} value={u.id}>{u.label}{u.kind === 'room' ? ' (room)' : ''}</option>)}
+                </select>
+              ) : (
+                <input className='input' placeholder='e.g. 2515 Ridgewood Ave' value={form.unit_address} onChange={e => set('unit_address', e.target.value)} />
+              )}
+            </div>
           </div>
           <div style={{ ...g2, marginBottom: '12px' }}>
             <div><label style={lbl}>Email</label><input className='input' type='email' value={form.email} onChange={e => set('email', e.target.value)} /></div>

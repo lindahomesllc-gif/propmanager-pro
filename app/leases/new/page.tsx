@@ -6,10 +6,11 @@ import { supabase, USER_ID } from '@/lib/supabase'
 export default function NewLeasePage() {
   const [tenants, setTenants] = useState([])
   const [properties, setProperties] = useState([])
+  const [units, setUnits] = useState([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
-    property_id: '', tenant_id: '',
+    property_id: '', unit_id: '', tenant_id: '',
     rent_amount: '', security_deposit: '', pet_deposit: '0',
     start_date: '', end_date: '',
     due_day: '1', grace_period_days: '5',
@@ -22,7 +23,7 @@ export default function NewLeasePage() {
   useEffect(() => {
     Promise.all([
       supabase.from('properties').select('id, address'),
-      supabase.from('tenants').select('id, full_name, property_id').eq('status', 'active'),
+      supabase.from('tenants').select('id, full_name, property_id, unit_id').eq('status', 'active'),
     ]).then(([p, t]) => {
       setProperties(p.data || [])
       setTenants(t.data || [])
@@ -32,11 +33,21 @@ export default function NewLeasePage() {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   useEffect(() => {
-    if (form.property_id) {
-      const t = tenants.find(x => x.property_id === form.property_id)
-      if (t) set('tenant_id', t.id)
-    }
+    if (!form.property_id) { setUnits([]); return }
+    supabase.from('units').select('id, label, kind, market_rent').eq('property_id', form.property_id).order('label')
+      .then(({ data }) => setUnits(data || []))
+    const t = tenants.find(x => x.property_id === form.property_id)
+    if (t) set('tenant_id', t.id)
   }, [form.property_id])
+
+  // when a unit is chosen, pick its tenant + prefill rent from the unit's target
+  useEffect(() => {
+    if (!form.unit_id) return
+    const t = tenants.find(x => x.unit_id === form.unit_id)
+    if (t) set('tenant_id', t.id)
+    const u = units.find(x => x.id === form.unit_id)
+    if (u && u.market_rent && !form.rent_amount) set('rent_amount', String(u.market_rent))
+  }, [form.unit_id])
 
   async function save() {
     setError('')
@@ -48,6 +59,7 @@ export default function NewLeasePage() {
     setSaving(true)
     const { error: err } = await supabase.from('leases').insert({
       property_id: form.property_id,
+      unit_id: form.unit_id || null,
       tenant_id: form.tenant_id,
       rent_amount: parseFloat(form.rent_amount),
       security_deposit: form.security_deposit ? parseFloat(form.security_deposit) : null,
@@ -93,17 +105,26 @@ export default function NewLeasePage() {
           <div style={secTtl}>Property & Tenant</div>
           <div style={{ ...g2, marginBottom: '12px' }}>
             <div><label style={lbl}>Property *</label>
-              <select className='input' value={form.property_id} onChange={e => set('property_id', e.target.value)}>
+              <select className='input' value={form.property_id} onChange={e => setForm(f => ({ ...f, property_id: e.target.value, unit_id: '' }))}>
                 <option value=''>Select property...</option>
                 {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
               </select>
             </div>
-            <div><label style={lbl}>Tenant *</label>
-              <select className='input' value={form.tenant_id} onChange={e => set('tenant_id', e.target.value)}>
-                <option value=''>Select tenant...</option>
-                {tenants.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
-              </select>
-            </div>
+            {units.length > 0 ? (
+              <div><label style={lbl}>Unit / Room</label>
+                <select className='input' value={form.unit_id} onChange={e => set('unit_id', e.target.value)}>
+                  <option value=''>— Whole property —</option>
+                  {units.map(u => <option key={u.id} value={u.id}>{u.label}{u.kind === 'room' ? ' (room)' : ''}</option>)}
+                </select>
+              </div>
+            ) : <div />}
+          </div>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={lbl}>Tenant *</label>
+            <select className='input' value={form.tenant_id} onChange={e => set('tenant_id', e.target.value)}>
+              <option value=''>Select tenant...</option>
+              {tenants.filter(t => !form.property_id || t.property_id === form.property_id).map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+            </select>
           </div>
         </div>
         <div style={card}>
