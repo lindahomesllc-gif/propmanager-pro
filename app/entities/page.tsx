@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase } from '@/lib/supabase'
 
@@ -22,6 +22,9 @@ export default function EntitiesPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({ name: '', type: 'llc', ein: '', notes: '' })
+  const [docEntity, setDocEntity] = useState(null)
+  const [docUploading, setDocUploading] = useState(false)
+  const fileRef = useRef(null)
 
   async function load() {
     const [{ data: ents }, { data: props }] = await Promise.all([
@@ -58,6 +61,35 @@ export default function EntitiesPage() {
     if (err) { alert('Error: ' + err.message); return }
     load()
   }
+
+  async function uploadDoc(ev) {
+    const file = ev.target.files?.[0]
+    if (!file || !docEntity) return
+    setDocUploading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    const path = (user?.id || 'unknown') + '/entities/' + docEntity.id + '/' + Date.now() + '_' + file.name
+    const { error: upErr } = await supabase.storage.from('lease-documents').upload(path, file, { upsert: true })
+    if (upErr) { alert('Upload failed: ' + upErr.message); setDocUploading(false); return }
+    const { data: urlData } = supabase.storage.from('lease-documents').getPublicUrl(path)
+    const next = [...(docEntity.doc_urls || []), urlData.publicUrl]
+    const { error: updErr } = await supabase.from('entities').update({ doc_urls: next }).eq('id', docEntity.id)
+    if (updErr) { alert('Error: ' + updErr.message); setDocUploading(false); return }
+    setDocEntity(d => ({ ...d, doc_urls: next }))
+    setEntities(list => list.map(x => x.id === docEntity.id ? { ...x, doc_urls: next } : x))
+    setDocUploading(false)
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
+  async function removeDoc(url) {
+    if (!docEntity || !confirm('Remove this document?')) return
+    const next = (docEntity.doc_urls || []).filter(u => u !== url)
+    const { error: updErr } = await supabase.from('entities').update({ doc_urls: next }).eq('id', docEntity.id)
+    if (updErr) { alert('Error: ' + updErr.message); return }
+    setDocEntity(d => ({ ...d, doc_urls: next }))
+    setEntities(list => list.map(x => x.id === docEntity.id ? { ...x, doc_urls: next } : x))
+  }
+
+  const docName = (url) => { try { return decodeURIComponent(url.split('/').pop().split('_').slice(1).join('_')) || 'Document' } catch { return 'Document' } }
 
   const inp = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' as const }
   const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
@@ -96,7 +128,8 @@ export default function EntitiesPage() {
                 {e.notes && <div style={{ fontSize: '12px', color: 'var(--text2)', marginTop: '8px', lineHeight: 1.5 }}>{e.notes}</div>}
                 <div style={{ display: 'flex', gap: '6px', marginTop: '12px' }}>
                   <button onClick={() => openEdit(e)} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 12px' }}>Edit</button>
-                  <button onClick={() => del(e)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '5px 12px', fontSize: '11px', cursor: 'pointer' }}>Delete</button>
+                  <button onClick={() => setDocEntity(e)} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 12px' }}>📄 Docs{(e.doc_urls || []).length ? ' (' + e.doc_urls.length + ')' : ''}</button>
+                  <button onClick={() => del(e)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '5px 12px', fontSize: '11px', cursor: 'pointer', marginLeft: 'auto' }}>Delete</button>
                 </div>
               </div>
             ))}
@@ -133,6 +166,38 @@ export default function EntitiesPage() {
               <button onClick={() => setShowForm(false)} className='btn btn-ghost'>Cancel</button>
               <button onClick={save} disabled={saving} className='btn btn-primary'>{saving ? 'Saving…' : editId ? 'Save' : 'Add Entity'}</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {docEntity && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setDocEntity(null)}>
+          <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '24px', width: '480px', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>{docEntity.name} — Documents</div>
+              <button onClick={() => setDocEntity(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: '20px', cursor: 'pointer', lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '16px' }}>Operating agreement, IRS EIN/TIN letter, formation docs, etc.</div>
+            <input ref={fileRef} type='file' accept='.pdf,.jpg,.jpeg,.png,.doc,.docx' style={{ display: 'none' }} onChange={uploadDoc} />
+            <button className='btn btn-primary' onClick={() => fileRef.current?.click()} disabled={docUploading} style={{ marginBottom: '14px' }}>{docUploading ? 'Uploading…' : '⬆ Upload Document'}</button>
+            {(!docEntity.doc_urls || docEntity.doc_urls.length === 0) ? (
+              <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text3)' }}>
+                <div style={{ fontSize: '28px', marginBottom: '8px' }}>📄</div>
+                <div style={{ fontSize: '13px' }}>No documents yet.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: '8px' }}>
+                {docEntity.doc_urls.map((url, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg3)', borderRadius: '8px', border: '0.5px solid var(--border)' }}>
+                    <div style={{ fontSize: '13px', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '260px' }}>📄 {docName(url)}</div>
+                    <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                      <a href={url} target='_blank' className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 10px' }}>View</a>
+                      <button onClick={() => removeDoc(url)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '5px 10px', fontSize: '11px', cursor: 'pointer' }}>Remove</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
