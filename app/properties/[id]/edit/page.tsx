@@ -146,6 +146,24 @@ export default function EditPropertyPage({ params }) {
     window.location.href = '/properties/' + params.id
   }
 
+  async function delProperty() {
+    // Block deletion while records are attached — protects financial/tenant history.
+    const [{ count: tCount }, { count: lCount }, { count: mCount }] = await Promise.all([
+      supabase.from('tenants').select('id', { count: 'exact', head: true }).eq('property_id', params.id),
+      supabase.from('leases').select('id', { count: 'exact', head: true }).eq('property_id', params.id),
+      supabase.from('mortgages').select('id', { count: 'exact', head: true }).eq('property_id', params.id),
+    ])
+    const t = tCount || 0, l = lCount || 0, m = mCount || 0
+    if (t > 0 || l > 0 || m > 0) {
+      alert('This property has ' + t + ' tenant(s), ' + l + ' lease(s), and ' + m + ' mortgage(s) attached.\n\nReassign or remove those first — a property with active records can’t be deleted, to protect your data.')
+      return
+    }
+    if (!confirm('Delete this property? This cannot be undone.')) return
+    const { error } = await supabase.from('properties').delete().eq('id', params.id)
+    if (error) { alert('Error: ' + error.message); return }
+    window.location.href = '/properties'
+  }
+
   const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
   const card = { background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }
   const g2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }
@@ -164,6 +182,7 @@ export default function EditPropertyPage({ params }) {
           <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginTop: '2px' }}>Edit Property</div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={delProperty} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '8px', padding: '7px 14px', fontSize: '13px', cursor: 'pointer' }}>Delete</button>
           <a href={'/properties/' + params.id} className='btn btn-ghost'>Cancel</a>
           <button className='btn btn-primary' onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
         </div>

@@ -34,9 +34,9 @@ export default function ExpensesPage() {
   })
 
   const thisYear = new Date().getFullYear().toString()
-  const total = expenses.reduce((s, e) => s + e.amount, 0)
-  const ytd = expenses.filter(e => e.expense_date?.startsWith(thisYear)).reduce((s, e) => s + e.amount, 0)
-  const deductible = expenses.filter(e => e.is_deductible).reduce((s, e) => s + e.amount, 0)
+  const total = expenses.reduce((s, e) => s + (e.amount || 0), 0)
+  const ytd = expenses.filter(e => e.expense_date?.startsWith(thisYear)).reduce((s, e) => s + (e.amount || 0), 0)
+  const deductible = expenses.filter(e => e.is_deductible).reduce((s, e) => s + (e.amount || 0), 0)
 
   const catIcon = (c) => ({ mortgage: '🏦', property_tax: '🧾', insurance: '🛡', repairs_maintenance: '🔧', utilities: '⚡', management_fees: '👔', advertising: '📢', legal_professional: '⚖️', depreciation: '📉', supplies: '🛒', travel: '✈️', other: '📋' }[c] || '📋')
   const catColor = (c) => ({ mortgage: 'var(--blue)', property_tax: 'var(--red)', insurance: 'var(--amber)', repairs_maintenance: '#A78BFA', utilities: '#34D399', management_fees: '#F472B6', advertising: 'var(--blue)', other: 'var(--text2)' }[c] || 'var(--text2)')

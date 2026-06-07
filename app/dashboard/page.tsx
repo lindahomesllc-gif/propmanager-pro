@@ -32,8 +32,8 @@ export default function DashboardPage() {
   const latePayments = payments.filter(p => p.status === 'late')
   const duePayments = payments.filter(p => p.status === 'due' || p.status === 'upcoming')
   const totalRentRoll = leases.reduce((s, l) => s + (l.rent_amount || 0), 0)
-  const totalExpYTD = expenses.filter(e => e.expense_date?.startsWith(thisYear)).reduce((s, e) => s + e.amount, 0)
-  const totalCollectedYTD = paidYTD.reduce((s, p) => s + p.amount_paid, 0)
+  const totalExpYTD = expenses.filter(e => e.expense_date?.startsWith(thisYear)).reduce((s, e) => s + (e.amount || 0), 0)
+  const totalCollectedYTD = paidYTD.reduce((s, p) => s + (p.amount_paid || 0), 0)
   // portfolio value & equity reflect YOUR share (ownership %); rent/collected/expenses stay full
   const portfolioValue = properties.reduce((s, p) => s + share(p.market_value, p), 0)
   const totalEquity = properties.reduce((s, p) => s + (share(p.market_value, p) - share(p.purchase_price, p)), 0)
@@ -49,11 +49,13 @@ export default function DashboardPage() {
   const monthLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const curMonthIdx = new Date().getMonth()
   const chartData = monthNames.map((month, i) => {
     const monthStr = String(i + 1).padStart(2, '0')
     const monthPayments = payments.filter(p => p.paid_date?.startsWith(thisYear + '-' + monthStr))
     const collected = monthPayments.filter(p => p.status === 'paid').reduce((s, p) => s + (p.amount_paid || 0), 0)
-    return { month, collected, due: totalRentRoll }
+    // don't project expected rent into future months — only up to the current month
+    return { month, collected, due: i <= curMonthIdx ? totalRentRoll : 0 }
   })
 
   return (

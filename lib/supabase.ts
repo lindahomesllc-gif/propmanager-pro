@@ -63,5 +63,5 @@ export const ownPct = (p: { ownership_percentage?: number | null } | null | unde
 // "Your share" of an amount, scaled by the property's ownership percentage.
 export const share = (n: number | null | undefined, p: { ownership_percentage?: number | null } | null | undefined) =>
   (n || 0) * ownPct(p)
-export const fm = (n: number | null | undefined) => '$' + Math.abs(Math.round(n || 0)).toLocaleString()
+export const fm = (n: number | null | undefined) => { const v = Math.round(n || 0); return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString() }
 export const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'

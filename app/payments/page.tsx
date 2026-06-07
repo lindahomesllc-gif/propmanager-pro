@@ -119,10 +119,10 @@ export default function PaymentsPage() {
   const filtered = filter === 'all' ? payments : payments.filter(p => p.status === filter)
 
   const summary = {
-    paid: payments.filter(p => p.status === 'paid').reduce((s, p) => s + p.amount_paid, 0),
-    due: payments.filter(p => p.status === 'due' || p.status === 'upcoming').reduce((s, p) => s + p.amount_due, 0),
-    late: payments.filter(p => p.status === 'late').reduce((s, p) => s + p.amount_due, 0),
-    partial: payments.filter(p => p.status === 'partial').reduce((s, p) => s + p.amount_paid, 0),
+    paid: payments.filter(p => p.status === 'paid').reduce((s, p) => s + (p.amount_paid || 0), 0),
+    due: payments.filter(p => p.status === 'due' || p.status === 'upcoming').reduce((s, p) => s + (p.amount_due || 0), 0),
+    late: payments.filter(p => p.status === 'late').reduce((s, p) => s + (p.amount_due || 0), 0),
+    partial: payments.filter(p => p.status === 'partial').reduce((s, p) => s + (p.amount_paid || 0), 0),
     paidCount: payments.filter(p => p.status === 'paid').length,
     dueCount: payments.filter(p => p.status === 'due' || p.status === 'upcoming').length,
     lateCount: payments.filter(p => p.status === 'late').length,

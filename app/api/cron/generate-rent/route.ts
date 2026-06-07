@@ -56,8 +56,13 @@ export async function GET(request: Request) {
     })
   }
 
+  // Overdue unpaid charges (status 'due', due_date in the past) should become 'late'
+  // so the sidebar badge, dashboard "Late" stat, and alerts actually reflect reality.
+  const { data: overdueRows } = await svc.from('payments').select('id').eq('status', 'due').lt('due_date', todayStr)
+  const overdueCount = (overdueRows || []).length
+
   if (dryRun) {
-    return NextResponse.json({ status: 'dry_run', month: monthPrefix, activeLeases: (leases || []).length, wouldCreate: toInsert.length, preview: toInsert })
+    return NextResponse.json({ status: 'dry_run', month: monthPrefix, activeLeases: (leases || []).length, wouldCreate: toInsert.length, wouldMarkLate: overdueCount, preview: toInsert })
   }
 
   let created = 0
@@ -66,5 +71,12 @@ export async function GET(request: Request) {
     if (error) return NextResponse.json({ status: 'error', message: error.message }, { status: 500 })
     created = data?.length || 0
   }
-  return NextResponse.json({ status: 'done', month: monthPrefix, activeLeases: (leases || []).length, created })
+
+  let markedLate = 0
+  if (overdueCount > 0) {
+    const { data: lated } = await svc.from('payments').update({ status: 'late' }).eq('status', 'due').lt('due_date', todayStr).select('id')
+    markedLate = lated?.length || 0
+  }
+
+  return NextResponse.json({ status: 'done', month: monthPrefix, activeLeases: (leases || []).length, created, markedLate })
 }

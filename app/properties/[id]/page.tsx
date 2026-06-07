@@ -49,8 +49,8 @@ export default function PropertyDetailPage({ params }) {
   if (!property) return <AppShell><div style={{ padding: '40px', color: 'var(--text3)', textAlign: 'center' }}>Property not found.</div></AppShell>
 
   const p = property
-  const totalRent = payments.filter(x => x.status === 'paid').reduce((s, x) => s + x.amount_paid, 0)
-  const totalExp = expenses.reduce((s, x) => s + x.amount, 0)
+  const totalRent = payments.filter(x => x.status === 'paid').reduce((s, x) => s + (x.amount_paid || 0), 0)
+  const totalExp = expenses.reduce((s, x) => s + (x.amount || 0), 0)
   const equity = (p.market_value || 0) - (p.purchase_price || 0)
   const extra = p.notes ? JSON.parse(p.notes.startsWith('{') ? p.notes : '{}') : {}
   const isDuplex = p.type === 'duplex' || p.type === 'multi_family'
