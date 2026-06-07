@@ -44,8 +44,14 @@ export default function LeasesPage() {
             <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '3px' }}>📅 {formatDate(l.start_date)} → <span style={{ color: days !== null ? expiryColor(days) : 'var(--text3)', fontWeight: days !== null && days <= 90 ? 600 : 400 }}>{formatDate(l.end_date)}{days !== null && days > 0 && days <= 90 ? ' (' + days + 'd)' : ''}</span></div>
           </div>
           <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '16px' }}>
+            <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>Monthly Rent</div>
             <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: 'var(--green)' }}>{fm(l.rent_amount)}<span style={{ fontSize: '11px', color: 'var(--text3)', fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 400 }}>/mo</span></div>
-            {l.security_deposit && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Deposit: {fm(l.security_deposit)}</div>}
+            {l.security_deposit ? (
+              <div style={{ marginTop: '8px', display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', padding: '5px 11px', borderRadius: '8px', background: 'var(--green-bg)', border: '0.5px solid var(--green)' }}>
+                <span style={{ fontSize: '9px', color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>🏦 Deposit Held</span>
+                <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--green)' }}>{fm(l.security_deposit)}</span>
+              </div>
+            ) : null}
           </div>
         </div>
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
