@@ -48,6 +48,12 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { href: '/market',   label: 'Market Data',icon: '↗' },
     ],
   },
+  {
+    label: 'Account',
+    items: [
+      { href: '/billing', label: 'Billing', icon: '◆' },
+    ],
+  },
 ]
 
 const BADGE_STYLE: Record<string, { bg: string; fg: string }> = {

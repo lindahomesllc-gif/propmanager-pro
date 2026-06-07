@@ -1,5 +1,6 @@
 import Sidebar from '@/components/Sidebar'
 import AuthGate from '@/components/AuthGate'
+import TrialBanner from '@/components/TrialBanner'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,6 +14,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           flex: 1, display: 'flex', flexDirection: 'column',
           overflow: 'hidden', minWidth: 0,
         }}>
+          <TrialBanner />
           {children}
         </main>
       </div>
