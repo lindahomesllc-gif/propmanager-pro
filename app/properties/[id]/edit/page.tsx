@@ -8,6 +8,9 @@ export default function EditPropertyPage({ params }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [tab, setTab] = useState('basic')
+  const [entities, setEntities] = useState<any[]>([])
+
+  useEffect(() => { supabase.from('entities').select('id, name').order('name').then(({ data }) => setEntities(data || [])) }, [])
 
   useEffect(() => {
     const hash = document.location.hash.replace('#', '')
@@ -19,7 +22,7 @@ export default function EditPropertyPage({ params }) {
   const [form, setForm] = useState({
     address: '', city: '', state: 'FL', zip: '', num_units: '1',
     type: 'single_family', bedrooms: '', bathrooms: '',
-    sqft: '', year_built: '', owner_entity: 'Self',
+    sqft: '', year_built: '', entity_id: '',
     purchase_price: '', purchase_date: '', market_value: '',
     occupancy_status: 'vacant', notes: '',
     county: '', parcel_id: '', alt_key: '', prop_description: '',
@@ -45,7 +48,7 @@ export default function EditPropertyPage({ params }) {
           bathrooms: data.bathrooms ? String(data.bathrooms) : '',
           sqft: data.sqft ? String(data.sqft) : '',
           year_built: data.year_built ? String(data.year_built) : '',
-          owner_entity: data.owner_entity || 'Self',
+          entity_id: data.entity_id || '',
           purchase_price: data.purchase_price ? String(data.purchase_price) : '',
           purchase_date: data.purchase_date || '',
           market_value: data.market_value ? String(data.market_value) : '',
@@ -100,7 +103,8 @@ export default function EditPropertyPage({ params }) {
       bathrooms: form.bathrooms ? parseFloat(form.bathrooms) : null,
       sqft: form.sqft ? parseInt(form.sqft) : null,
       year_built: form.year_built ? parseInt(form.year_built) : null,
-      owner_entity: form.owner_entity || 'Self',
+      entity_id: form.entity_id || null,
+      owner_entity: entities.find(e => e.id === form.entity_id)?.name || null,
       purchase_price: form.purchase_price ? parseFloat(form.purchase_price) : null,
       purchase_date: form.purchase_date || null,
       market_value: form.market_value ? parseFloat(form.market_value) : null,
@@ -197,12 +201,10 @@ export default function EditPropertyPage({ params }) {
                     <option value='commercial'>Commercial</option>
                   </select>
                 </div>
-                <div><label style={lbl}>Ownership</label>
-                  <select className='input' value={form.owner_entity} onChange={e => set('owner_entity', e.target.value)}>
-                    <option value='Self'>Self</option>
-                    <option value='LLC - PropCo'>LLC - PropCo</option>
-                    <option value='Trust'>Trust</option>
-                    <option value='Partnership'>Partnership</option>
+                <div><label style={lbl}>Owned by (Entity)</label>
+                  <select className='input' value={form.entity_id} onChange={e => set('entity_id', e.target.value)}>
+                    <option value=''>— Unassigned —</option>
+                    {entities.map(en => <option key={en.id} value={en.id}>{en.name}</option>)}
                   </select>
                 </div>
               </div>

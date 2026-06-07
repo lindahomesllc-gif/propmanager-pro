@@ -1,31 +1,45 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { getProperties, fm, type Property } from '@/lib/supabase'
+import { getProperties, fm, supabase, type Property } from '@/lib/supabase'
 
 const typeIcon = (t) => ({ single_family: '🏠', condo: '🏢', duplex: '🏘', triplex: '🏘', quadplex: '🏘', multi_family: '🏗', commercial: '🏬' }[t] || '🏠')
 const typeLabel = (t) => (t || 'property').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 
 export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([])
+  const [entities, setEntities] = useState<any[]>([])
+  const [filterEntity, setFilterEntity] = useState('all')
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'cards' | 'table'>('cards')
 
   useEffect(() => {
     getProperties().then(data => { setProperties(data); setLoading(false) })
+    supabase.from('entities').select('id, name').order('name').then(({ data }) => setEntities(data || []))
   }, [])
 
-  const portfolioValue = properties.reduce((s, p) => s + (p.market_value || 0), 0)
-  const totalPurchased = properties.reduce((s, p) => s + (p.purchase_price || 0), 0)
+  const filtered = filterEntity === 'all' ? properties
+    : filterEntity === 'unassigned' ? properties.filter(p => !(p as any).entity_id)
+    : properties.filter(p => (p as any).entity_id === filterEntity)
+
+  const portfolioValue = filtered.reduce((s, p) => s + (p.market_value || 0), 0)
+  const totalPurchased = filtered.reduce((s, p) => s + (p.purchase_price || 0), 0)
   const totalEquity = portfolioValue - totalPurchased
-  const occupied = properties.filter(p => p.occupancy_status === 'occupied')
-  const vacant = properties.filter(p => p.occupancy_status === 'vacant')
+  const occupied = filtered.filter(p => p.occupancy_status === 'occupied')
+  const vacant = filtered.filter(p => p.occupancy_status === 'vacant')
 
   return (
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Properties</div>
         <div style={{ display: 'flex', gap: '8px' }}>
+          {entities.length > 0 && (
+            <select value={filterEntity} onChange={e => setFilterEntity(e.target.value)} className='input' style={{ width: 'auto', fontSize: '12px' }}>
+              <option value='all'>All Entities</option>
+              <option value='unassigned'>— Unassigned —</option>
+              {entities.map(en => <option key={en.id} value={en.id}>{en.name}</option>)}
+            </select>
+          )}
           <button onClick={() => setView(v => v === 'cards' ? 'table' : 'cards')} className='btn btn-ghost'>
             {view === 'cards' ? '☰ Table' : '⊞ Cards'}
           </button>
@@ -53,7 +67,7 @@ export default function PropertiesPage() {
           <div style={{ display: 'grid', gap: '8px' }}>{[0, 1, 2, 3].map(i => <div key={i} className='skeleton' style={{ height: '64px' }} />)}</div>
         ) : view === 'cards' ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px,1fr))', gap: '14px' }}>
-            {properties.map(p => {
+            {filtered.map(p => {
               const equity = (p.market_value || 0) - (p.purchase_price || 0)
               const isOccupied = p.occupancy_status === 'occupied'
               return (
@@ -109,7 +123,7 @@ export default function PropertiesPage() {
                 </tr>
               </thead>
               <tbody>
-                {properties.map(p => (
+                {filtered.map(p => (
                   <tr key={p.id} style={{ borderBottom: '0.5px solid var(--border)' }}>
                     <td style={{ padding: '10px 14px' }}>
                       <a href={'/properties/' + p.id} style={{ textDecoration: 'none' }}>

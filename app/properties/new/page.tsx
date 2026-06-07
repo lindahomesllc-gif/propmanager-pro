@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import { supabase, USER_ID } from '@/lib/supabase'
@@ -8,13 +8,15 @@ import { supabase, USER_ID } from '@/lib/supabase'
 export default function NewPropertyPage() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
+  const [entities, setEntities] = useState<any[]>([])
   const [form, setForm] = useState({
     address: '', city: '', state: 'FL', zip: '',
     type: 'single_family', bedrooms: '', bathrooms: '',
-    sqft: '', owner_entity: 'Self',
+    sqft: '', entity_id: '',
     purchase_price: '', market_value: '',
     occupancy_status: 'vacant', notes: ''
   })
+  useEffect(() => { supabase.from('entities').select('id, name').order('name').then(({ data }) => setEntities(data || [])) }, [])
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
   async function save() {
     if (!form.address) { alert('Address is required'); return }
@@ -25,7 +27,8 @@ export default function NewPropertyPage() {
       bedrooms: form.bedrooms ? parseFloat(form.bedrooms) : null,
       bathrooms: form.bathrooms ? parseFloat(form.bathrooms) : null,
       sqft: form.sqft ? parseInt(form.sqft) : null,
-      owner_entity: form.owner_entity||'Self',
+      entity_id: form.entity_id || null,
+      owner_entity: entities.find(e => e.id === form.entity_id)?.name || null,
       purchase_price: form.purchase_price ? parseFloat(form.purchase_price) : null,
       market_value: form.market_value ? parseFloat(form.market_value) : null,
       occupancy_status: form.occupancy_status, notes: form.notes||null,
@@ -64,7 +67,7 @@ export default function NewPropertyPage() {
           <div style={secTtl}>Property Details</div>
           <div style={{ ...g2, marginBottom:'12px' }}>
             <div><label style={lbl}>Type</label><select style={sel} value={form.type} onChange={e => set('type', e.target.value)}><option value="single_family">Single Family</option><option value="condo">Condo</option><option value="duplex">Duplex</option><option value="multi_family">Multi Family</option><option value="commercial">Commercial</option></select></div>
-            <div><label style={lbl}>Ownership</label><select style={sel} value={form.owner_entity} onChange={e => set('owner_entity', e.target.value)}><option value="Self">Self</option><option value="LLC - PropCo">LLC - PropCo</option><option value="Trust">Trust</option><option value="Partnership">Partnership</option></select></div>
+            <div><label style={lbl}>Owned by (Entity)</label><select style={sel} value={form.entity_id} onChange={e => set('entity_id', e.target.value)}><option value="">— Unassigned —</option>{entities.map(en => <option key={en.id} value={en.id}>{en.name}</option>)}</select></div>
           </div>
           <div style={{ ...g3, marginBottom:'12px' }}>
             <div><label style={lbl}>Bedrooms</label><input className='input' type="number" placeholder="3" value={form.bedrooms} onChange={e => set('bedrooms', e.target.value)} /></div>
