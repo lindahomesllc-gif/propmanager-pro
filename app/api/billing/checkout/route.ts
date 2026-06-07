@@ -8,8 +8,6 @@ export const dynamic = 'force-dynamic'
 // subscription mode. (Separate from the Connect flow used for tenant rent.)
 export async function POST(request: Request) {
   if (!process.env.STRIPE_SECRET_KEY) return NextResponse.json({ error: 'Stripe not configured.' }, { status: 503 })
-  const priceId = process.env.STRIPE_PRICE_ID
-  if (!priceId) return NextResponse.json({ error: 'STRIPE_PRICE_ID not set. Create a $29/mo recurring price in Stripe and add its ID to Vercel.' }, { status: 503 })
 
   const user = await getUserFromRequest(request)
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
@@ -28,10 +26,20 @@ export async function POST(request: Request) {
     await svc.from('users').update({ stripe_customer_id: customerId }).eq('id', user.id)
   }
 
+  // Define the $29/mo plan inline so there's no dashboard product/price or env var
+  // to set up — Stripe creates the recurring price on the fly.
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     customer: customerId,
-    line_items: [{ price: priceId, quantity: 1 }],
+    line_items: [{
+      price_data: {
+        currency: 'usd',
+        product_data: { name: 'PropManager Pro' },
+        unit_amount: 2900,
+        recurring: { interval: 'month' },
+      },
+      quantity: 1,
+    }],
     allow_promotion_codes: true,
     success_url: origin + '/billing?session_id={CHECKOUT_SESSION_ID}',
     cancel_url: origin + '/billing?canceled=1',
