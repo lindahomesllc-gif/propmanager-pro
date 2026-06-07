@@ -7,6 +7,7 @@ export default function LeasesPage() {
   const [leases, setLeases] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
+  const [view, setView] = useState('cards')
 
   useEffect(() => {
     supabase.from('leases').select('*, properties(address), tenants(full_name, co_tenant_name, email, phone)')
@@ -66,7 +67,10 @@ export default function LeasesPage() {
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Leases</div>
-        <a href='/leases/new' className='btn btn-primary'>+ New Lease</a>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={() => setView(v => v === 'cards' ? 'list' : 'cards')} className='btn btn-ghost'>{view === 'cards' ? '☰ List' : '⊞ Cards'}</button>
+          <a href='/leases/new' className='btn btn-primary'>+ New Lease</a>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
@@ -93,7 +97,7 @@ export default function LeasesPage() {
           </div>
         )}
         {!loading && filtered.length > 0 && (
-          <div style={{ display: 'grid', gap: '10px' }}>
+          <div style={view === 'cards' ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px,1fr))', gap: '12px' } : { display: 'grid', gap: '10px' }}>
             {filtered.map(l => <LeaseCard key={l.id} l={l} />)}
           </div>
         )}

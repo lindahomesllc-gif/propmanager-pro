@@ -12,6 +12,7 @@ export default function PaymentsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState('all')
+  const [view, setView] = useState('list')
   const [leases, setLeases] = useState([])
   const [form, setForm] = useState({
     tenant_id: '', lease_id: '', property_id: '',
@@ -136,7 +137,10 @@ export default function PaymentsPage() {
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Payments</div>
-        <button onClick={openAdd} className='btn btn-primary'>+ Record Payment</button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={() => setView(v => v === 'cards' ? 'list' : 'cards')} className='btn btn-ghost'>{view === 'cards' ? '☰ List' : '⊞ Cards'}</button>
+          <button onClick={openAdd} className='btn btn-primary'>+ Record Payment</button>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
@@ -168,7 +172,7 @@ export default function PaymentsPage() {
             <button onClick={openAdd} className='btn btn-primary'>+ Record Payment</button>
           </div>
         )}
-        {!loading && filtered.length > 0 && (
+        {!loading && filtered.length > 0 && view === 'list' && (
           <div style={{ display: 'grid', gap: '8px' }}>
             {filtered.map(p => (
               <div key={p.id} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + statusColor(p.status), borderRadius: '10px', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -185,6 +189,28 @@ export default function PaymentsPage() {
                   {p.amount_paid !== p.amount_due && <div style={{ fontSize: '11px', color: 'var(--text3)' }}>of {fm(p.amount_due)}</div>}
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                  <button onClick={() => openEdit(p)} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '5px 12px', fontSize: '12px', cursor: 'pointer' }}>Edit</button>
+                  <button onClick={() => deletePayment(p.id)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '5px 12px', fontSize: '12px', cursor: 'pointer' }}>Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {!loading && filtered.length > 0 && view === 'cards' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))', gap: '12px' }}>
+            {filtered.map(p => (
+              <div key={p.id} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderTop: '3px solid ' + statusColor(p.status), borderRadius: '12px', padding: '16px 18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.tenants?.full_name || '—'}</div>
+                  <span className={'chip ' + chipClass(p.status)} style={{ textTransform: 'capitalize', flexShrink: 0 }}>{p.status}</span>
+                </div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '24px', fontWeight: 700, color: statusColor(p.status) }}>
+                  {fm(p.amount_paid)}{p.amount_paid !== p.amount_due ? <span style={{ fontSize: '12px', color: 'var(--text3)', fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 400 }}> of {fm(p.amount_due)}</span> : null}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '8px' }}>📍 {p.properties?.address || '—'}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>📅 Due {formatDate(p.due_date)}{p.paid_date ? ' · Paid ' + formatDate(p.paid_date) : ''}</div>
+                {p.payment_method && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px', textTransform: 'capitalize' }}>{p.payment_method.replace('_', ' ')}</div>}
+                <div style={{ display: 'flex', gap: '6px', marginTop: '12px' }}>
                   <button onClick={() => openEdit(p)} style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '5px 12px', fontSize: '12px', cursor: 'pointer' }}>Edit</button>
                   <button onClick={() => deletePayment(p.id)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '5px 12px', fontSize: '12px', cursor: 'pointer' }}>Delete</button>
                 </div>

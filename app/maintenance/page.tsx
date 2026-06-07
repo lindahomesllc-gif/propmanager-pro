@@ -48,7 +48,10 @@ export default function MaintenancePage() {
   const priorityBg = (p) => ({ emergency: 'var(--red-bg)', high: 'var(--amber-bg)', medium: 'var(--bg3)', low: 'var(--green-bg)' }[p] || 'var(--bg3)')
   const chipClass = (s) => ({ open: 'chip-a', scheduled: 'chip-b', in_progress: 'chip-b', completed: 'chip-g', cancelled: 'chip-x' }[s] || 'chip-x')
 
-  const TicketCard = ({ t, compact = false }) => (
+  const TicketCard = ({ t, compact = false }) => {
+    const ageDays = t.created_at && t.status !== 'completed' && t.status !== 'cancelled'
+      ? Math.floor((Date.now() - new Date(t.created_at).getTime()) / 86400000) : null
+    return (
     <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + priorityColor(t.priority), borderRadius: '10px', padding: compact ? '12px 14px' : '16px 18px', marginBottom: compact ? '8px' : '0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -62,6 +65,7 @@ export default function MaintenancePage() {
       </div>
       {!compact && t.description && <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px', lineHeight: 1.5 }}>{t.description}</div>}
       <div style={{ display: 'flex', gap: '10px', fontSize: '11px', color: 'var(--text3)', marginBottom: '10px', flexWrap: 'wrap' }}>
+        {ageDays !== null && <span style={{ color: ageDays > 7 ? 'var(--red)' : 'var(--text3)', fontWeight: ageDays > 7 ? 600 : 400 }}>⏱ {ageDays}d open</span>}
         {t.category && <span>📂 {t.category.replace('_', ' ')}</span>}
         {t.scheduled_date && <span>📅 {formatDate(t.scheduled_date)}</span>}
         {t.actual_cost && <span>💰 {fm(t.actual_cost)}</span>}
@@ -75,7 +79,8 @@ export default function MaintenancePage() {
         <button onClick={() => deleteTicket(t.id)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', cursor: 'pointer' }}>Delete</button>
       </div>
     </div>
-  )
+    )
+  }
 
   const boardCols = [
     { key: 'open', label: '🔴 Open', color: 'var(--amber)' },
