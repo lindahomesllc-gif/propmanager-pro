@@ -11,7 +11,7 @@ export default function TenantsPage() {
   const [filter, setFilter] = useState('all')
   const [propFilter, setPropFilter] = useState('all')
   const [search, setSearch] = useState('')
-  const [view, setView] = useState<'cards' | 'list'>('list')
+  const [view, setView] = useState<'cards' | 'list'>('cards')
   const [sendingId, setSendingId] = useState<string | null>(null)
 
   useEffect(() => {
