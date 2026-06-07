@@ -1,5 +1,6 @@
 {
   "crons": [
-    { "path": "/api/cron/digest", "schedule": "0 13 * * *" }
+    { "path": "/api/cron/digest", "schedule": "0 13 * * *" },
+    { "path": "/api/cron/generate-rent", "schedule": "0 6 * * *" }
   ]
 }
