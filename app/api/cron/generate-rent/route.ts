@@ -28,13 +28,14 @@ export async function GET(request: Request) {
   const m = today.getMonth() + 1
   const pad = (n: number) => String(n).padStart(2, '0')
   const monthPrefix = `${y}-${pad(m)}`
+  const nextMonthFirst = m === 12 ? `${y + 1}-01-01` : `${y}-${pad(m + 1)}-01`
   const dim = new Date(y, m, 0).getDate()
   const todayStr = today.toISOString().split('T')[0]
 
   // Active leases + the payments already present for this month.
   const [{ data: leases }, { data: existing }] = await Promise.all([
     svc.from('leases').select('id, user_id, tenant_id, property_id, rent_amount, due_day, end_date').eq('status', 'executed'),
-    svc.from('payments').select('lease_id').gte('due_date', monthPrefix + '-01').lte('due_date', monthPrefix + '-31'),
+    svc.from('payments').select('lease_id').gte('due_date', monthPrefix + '-01').lt('due_date', nextMonthFirst),
   ])
   const haveThisMonth = new Set((existing || []).map((p: any) => p.lease_id).filter(Boolean))
 
