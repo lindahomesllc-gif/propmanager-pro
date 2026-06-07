@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { getProperties, fm, supabase, type Property } from '@/lib/supabase'
+import { getProperties, fm, share, supabase, type Property } from '@/lib/supabase'
 
 const typeIcon = (t) => ({ single_family: '🏠', condo: '🏢', duplex: '🏘', triplex: '🏘', quadplex: '🏘', multi_family: '🏗', commercial: '🏬' }[t] || '🏠')
 const typeLabel = (t) => (t || 'property').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
@@ -22,8 +22,9 @@ export default function PropertiesPage() {
     : filterEntity === 'unassigned' ? properties.filter(p => !(p as any).entity_id)
     : properties.filter(p => (p as any).entity_id === filterEntity)
 
-  const portfolioValue = filtered.reduce((s, p) => s + (p.market_value || 0), 0)
-  const totalPurchased = filtered.reduce((s, p) => s + (p.purchase_price || 0), 0)
+  // net-worth totals reflect YOUR share (ownership %); full-owned props are unaffected
+  const portfolioValue = filtered.reduce((s, p) => s + share(p.market_value, p), 0)
+  const totalPurchased = filtered.reduce((s, p) => s + share(p.purchase_price, p), 0)
   const totalEquity = portfolioValue - totalPurchased
   const occupied = filtered.filter(p => p.occupancy_status === 'occupied')
   const vacant = filtered.filter(p => p.occupancy_status === 'vacant')
@@ -78,7 +79,7 @@ export default function PropertiesPage() {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.address}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>{p.city}, {p.state} · {typeLabel(p.type)}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>{p.city}, {p.state} · {typeLabel(p.type)}{p.ownership_percentage != null && p.ownership_percentage < 100 ? ' · ' + p.ownership_percentage + '% owned' : ''}</div>
                     </div>
                     <span className={'chip ' + (isOccupied ? 'chip-g' : 'chip-a')} style={{ flexShrink: 0 }}>
                       {isOccupied ? 'Occupied' : 'Vacant'}
@@ -132,7 +133,7 @@ export default function PropertiesPage() {
                       </a>
                     </td>
                     <td style={{ padding: '10px 14px', color: 'var(--text2)', textTransform: 'capitalize' }}>{typeLabel(p.type)}</td>
-                    <td style={{ padding: '10px 14px', color: 'var(--text2)' }}>{p.owner_entity || 'Self'}</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text2)' }}>{p.owner_entity || 'Self'}{p.ownership_percentage != null && p.ownership_percentage < 100 ? ' (' + p.ownership_percentage + '%)' : ''}</td>
                     <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{fm(p.purchase_price)}</td>
                     <td style={{ padding: '10px 14px', color: 'var(--green)', fontWeight: 600 }}>{fm(p.market_value)}</td>
                     <td style={{ padding: '10px 14px', color: (p.market_value || 0) - (p.purchase_price || 0) >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>{fm((p.market_value || 0) - (p.purchase_price || 0))}</td>

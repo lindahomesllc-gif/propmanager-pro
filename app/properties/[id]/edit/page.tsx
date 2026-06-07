@@ -23,7 +23,7 @@ export default function EditPropertyPage({ params }) {
     address: '', city: '', state: 'FL', zip: '', num_units: '1',
     type: 'single_family', bedrooms: '', bathrooms: '',
     sqft: '', year_built: '', entity_id: '',
-    purchase_price: '', purchase_date: '', market_value: '',
+    purchase_price: '', purchase_date: '', market_value: '', ownership_percentage: '100',
     occupancy_status: 'vacant', notes: '',
     county: '', parcel_id: '', alt_key: '', prop_description: '',
     assessed_value: '', annual_tax: '', tax_due_date: '',
@@ -52,6 +52,7 @@ export default function EditPropertyPage({ params }) {
           purchase_price: data.purchase_price ? String(data.purchase_price) : '',
           purchase_date: data.purchase_date || '',
           market_value: data.market_value ? String(data.market_value) : '',
+          ownership_percentage: data.ownership_percentage != null ? String(data.ownership_percentage) : '100',
           num_units: data.num_units ? String(data.num_units) : '1',
           occupancy_status: data.occupancy_status || 'vacant',
           notes: data.notes || '',
@@ -108,6 +109,7 @@ export default function EditPropertyPage({ params }) {
       purchase_price: form.purchase_price ? parseFloat(form.purchase_price) : null,
       purchase_date: form.purchase_date || null,
       market_value: form.market_value ? parseFloat(form.market_value) : null,
+      ownership_percentage: form.ownership_percentage !== '' ? parseFloat(form.ownership_percentage) : 100,
       num_units: parseInt(form.num_units) || 1,
       occupancy_status: form.occupancy_status,
       notes: form.notes || null,
@@ -224,9 +226,10 @@ export default function EditPropertyPage({ params }) {
                 </div>
                 <div><label style={lbl}>Purchase Date</label><input className='input' type='date' value={form.purchase_date} onChange={e => set('purchase_date', e.target.value)} /></div>
               </div>
-              <div style={g2}>
+              <div style={g3}>
                 <div><label style={lbl}>Purchase Price</label><input className='input' type='number' value={form.purchase_price} onChange={e => set('purchase_price', e.target.value)} /></div>
                 <div><label style={lbl}>Market Value</label><input className='input' type='number' value={form.market_value} onChange={e => set('market_value', e.target.value)} /></div>
+                <div><label style={lbl}>Your Ownership %</label><input className='input' type='number' min='0' max='100' step='0.01' placeholder='100' value={form.ownership_percentage} onChange={e => set('ownership_percentage', e.target.value)} /></div>
               </div>
             </div>
             <div style={card}>

@@ -10,7 +10,8 @@ export type Property = {
   id: string; user_id: string; address: string; city: string | null
   state: string | null; zip: string | null; type: string | null
   bedrooms: number | null; bathrooms: number | null; sqft: number | null
-  owner_entity: string | null; purchase_price: number | null
+  owner_entity: string | null; entity_id: string | null; ownership_percentage: number | null
+  purchase_price: number | null
   market_value: number | null; occupancy_status: string; created_at: string; updated_at: string
 }
 export type Tenant = {
@@ -56,5 +57,11 @@ export async function markPaymentPaid(id: string, method: string, amount: number
   const { error } = await supabase.from('payments').update({ status: 'paid', amount_paid: amount, paid_date: new Date().toISOString().split('T')[0], payment_method: method }).eq('id', id)
   return !error
 }
+// Fractional ownership: the fraction (0–1) of a property you own. Unset = 100%.
+export const ownPct = (p: { ownership_percentage?: number | null } | null | undefined) =>
+  p && p.ownership_percentage != null ? p.ownership_percentage / 100 : 1
+// "Your share" of an amount, scaled by the property's ownership percentage.
+export const share = (n: number | null | undefined, p: { ownership_percentage?: number | null } | null | undefined) =>
+  (n || 0) * ownPct(p)
 export const fm = (n: number | null | undefined) => '$' + Math.abs(Math.round(n || 0)).toLocaleString()
 export const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'

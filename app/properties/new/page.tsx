@@ -12,7 +12,7 @@ export default function NewPropertyPage() {
   const [form, setForm] = useState({
     address: '', city: '', state: 'FL', zip: '',
     type: 'single_family', bedrooms: '', bathrooms: '',
-    sqft: '', entity_id: '',
+    sqft: '', entity_id: '', ownership_percentage: '100',
     purchase_price: '', market_value: '',
     occupancy_status: 'vacant', notes: ''
   })
@@ -29,6 +29,7 @@ export default function NewPropertyPage() {
       sqft: form.sqft ? parseInt(form.sqft) : null,
       entity_id: form.entity_id || null,
       owner_entity: entities.find(e => e.id === form.entity_id)?.name || null,
+      ownership_percentage: form.ownership_percentage !== '' ? parseFloat(form.ownership_percentage) : 100,
       purchase_price: form.purchase_price ? parseFloat(form.purchase_price) : null,
       market_value: form.market_value ? parseFloat(form.market_value) : null,
       occupancy_status: form.occupancy_status, notes: form.notes||null,
@@ -80,9 +81,16 @@ export default function NewPropertyPage() {
         </div>
         <div style={card}>
           <div style={secTtl}>Financial Details</div>
-          <div style={g2}>
+          <div style={{ ...g2, marginBottom: '12px' }}>
             <div><label style={lbl}>Purchase Price</label><input className='input' type="number" placeholder="285000" value={form.purchase_price} onChange={e => set('purchase_price', e.target.value)} /></div>
             <div><label style={lbl}>Market Value</label><input className='input' type="number" placeholder="320000" value={form.market_value} onChange={e => set('market_value', e.target.value)} /></div>
+          </div>
+          <div style={g2}>
+            <div>
+              <label style={lbl}>Your Ownership %</label>
+              <input className='input' type="number" min="0" max="100" step="0.01" placeholder="100" value={form.ownership_percentage} onChange={e => set('ownership_percentage', e.target.value)} />
+              <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>Use 100 if you own it fully. Set e.g. 50 if a partnership owns half — value, equity & tax then show only your share.</div>
+            </div>
           </div>
         </div>
         <div style={card}>

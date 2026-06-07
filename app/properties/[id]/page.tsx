@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, USER_ID, fm, formatDate } from '@/lib/supabase'
+import { supabase, USER_ID, fm, share, formatDate } from '@/lib/supabase'
 import UnitsManager from '@/components/UnitsManager'
 
 export default function PropertyDetailPage({ params }) {
@@ -89,6 +89,12 @@ export default function PropertyDetailPage({ params }) {
           <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Purchased</div><div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', marginTop: '4px' }}>{fm(p.purchase_price)}</div></div>
           {p.bedrooms && <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Beds/Baths</div><div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', marginTop: '4px' }}>{p.bedrooms}bd / {p.bathrooms}ba</div></div>}
           {p.sqft && <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Sq Ft</div><div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', marginTop: '4px' }}>{p.sqft.toLocaleString()}</div></div>}
+          {p.ownership_percentage != null && p.ownership_percentage < 100 && (
+            <>
+              <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>You Own</div><div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--amber)' }}>{p.ownership_percentage}%</div></div>
+              <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Your Share</div><div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--green)' }}>{fm(share(p.market_value, p))}</div></div>
+            </>
+          )}
         </div>
       </div>
 
@@ -129,7 +135,7 @@ export default function PropertyDetailPage({ params }) {
                       ['🚿 Bathrooms', p.bathrooms || '—'],
                       ['📐 Sq Ft', p.sqft ? p.sqft.toLocaleString() : '—'],
                       ['🏗 Year Built', p.year_built || '—'],
-                      ['🏢 Ownership', p.owner_entity || 'Self'],
+                      ['🏢 Ownership', (p.owner_entity || 'Self') + (p.ownership_percentage != null && p.ownership_percentage < 100 ? ' (' + p.ownership_percentage + '%)' : '')],
                     ].map(([k, v]) => (
                       <div key={k} style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '8px 10px' }}>
                         <div style={lbl}>{k}</div>
@@ -256,7 +262,11 @@ export default function PropertyDetailPage({ params }) {
                   ['Market Value', fm(p.market_value)],
                   ['Equity', fm(equity)],
                   ['Appreciation', p.purchase_price ? ((equity / p.purchase_price) * 100).toFixed(1) + '%' : '—'],
-                  ['Ownership', p.owner_entity || 'Self'],
+                  ['Ownership', (p.owner_entity || 'Self') + (p.ownership_percentage != null && p.ownership_percentage < 100 ? ' · ' + p.ownership_percentage + '%' : '')],
+                  ...(p.ownership_percentage != null && p.ownership_percentage < 100 ? [
+                    ['Your Share (Value)', fm(share(p.market_value, p))],
+                    ['Your Share (Equity)', fm(share(equity, p))],
+                  ] : []),
                 ].map(([k, v]) => (
                   <div key={k} style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '10px 12px' }}>
                     <div style={lbl}>{k}</div>

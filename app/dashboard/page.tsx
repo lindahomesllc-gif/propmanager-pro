@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, USER_ID, fm, formatDate } from '@/lib/supabase'
+import { supabase, USER_ID, fm, share, formatDate } from '@/lib/supabase'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 
 export default function DashboardPage() {
@@ -34,8 +34,9 @@ export default function DashboardPage() {
   const totalRentRoll = leases.reduce((s, l) => s + (l.rent_amount || 0), 0)
   const totalExpYTD = expenses.filter(e => e.expense_date?.startsWith(thisYear)).reduce((s, e) => s + e.amount, 0)
   const totalCollectedYTD = paidYTD.reduce((s, p) => s + p.amount_paid, 0)
-  const portfolioValue = properties.reduce((s, p) => s + (p.market_value || 0), 0)
-  const totalEquity = properties.reduce((s, p) => s + ((p.market_value || 0) - (p.purchase_price || 0)), 0)
+  // portfolio value & equity reflect YOUR share (ownership %); rent/collected/expenses stay full
+  const portfolioValue = properties.reduce((s, p) => s + share(p.market_value, p), 0)
+  const totalEquity = properties.reduce((s, p) => s + (share(p.market_value, p) - share(p.purchase_price, p)), 0)
   const today = new Date()
   const in90 = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000)
   const expiringLeases = leases.filter(l => l.end_date && new Date(l.end_date) <= in90).sort((a, b) => new Date(a.end_date) - new Date(b.end_date))
