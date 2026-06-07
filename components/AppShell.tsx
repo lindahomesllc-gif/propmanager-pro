@@ -10,7 +10,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         background: 'var(--bg)',
       }}>
         <Sidebar />
-        <main style={{
+        <main className='app-main' style={{
           flex: 1, display: 'flex', flexDirection: 'column',
           overflow: 'hidden', minWidth: 0,
         }}>

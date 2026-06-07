@@ -141,3 +141,25 @@ body {
 }
 .input:focus { border-color: var(--green); }
 .input::placeholder { color: var(--text3); }
+
+/* ---- Mobile responsiveness (desktop unaffected) ---- */
+.mobile-bar { display: none; }
+.sidebar-overlay { display: none; }
+@media (max-width: 768px) {
+  .mobile-bar {
+    display: flex; align-items: center; gap: 12px;
+    position: fixed; top: 0; left: 0; right: 0; height: 46px; z-index: 120;
+    background: var(--bg2); border-bottom: 0.5px solid var(--border); padding: 0 14px;
+  }
+  .app-sidebar {
+    position: fixed !important; top: 0; bottom: 0; left: 0; z-index: 200;
+    transform: translateX(-100%); transition: transform 0.22s ease;
+  }
+  .app-sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,0.4); }
+  .sidebar-overlay.show { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 150; }
+  .app-main { padding-top: 46px; }
+}
+/* let wide tables scroll instead of overflowing on small screens */
+@media (max-width: 768px) {
+  table { display: block; overflow-x: auto; white-space: nowrap; }
+}

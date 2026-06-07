@@ -70,6 +70,7 @@ export default function Sidebar() {
   const router = useRouter()
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [userLabel, setUserLabel] = useState('')
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -108,7 +109,13 @@ export default function Sidebar() {
   }, [])
 
   return (
-    <nav style={{
+    <>
+    <div className='mobile-bar'>
+      <button onClick={() => setOpen(true)} aria-label='Open menu' style={{ background: 'transparent', border: 'none', color: 'var(--text)', fontSize: '22px', cursor: 'pointer', lineHeight: 1, padding: '4px' }}>☰</button>
+      <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>PropManager</div>
+    </div>
+    <div className={'sidebar-overlay' + (open ? ' show' : '')} onClick={() => setOpen(false)} />
+    <nav className={'app-sidebar' + (open ? ' open' : '')} style={{
       width: '200px', minWidth: '200px',
       background: 'var(--bg2)',
       borderRight: '0.5px solid var(--border)',
@@ -146,7 +153,7 @@ export default function Sidebar() {
             const badgeCount = item.badgeKey ? (counts[item.badgeKey] || 0) : 0
             const badgeStyle = item.badgeKey ? BADGE_STYLE[item.badgeKey] : null
             return (
-              <Link key={item.href} href={item.href} style={{ textDecoration: 'none' }}>
+              <Link key={item.href} href={item.href} onClick={() => setOpen(false)} style={{ textDecoration: 'none' }}>
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: '9px',
                   padding: '7px 16px', cursor: 'pointer', fontSize: '12.5px',
@@ -181,5 +188,6 @@ export default function Sidebar() {
         </button>
       </div>
     </nav>
+    </>
   )
 }
