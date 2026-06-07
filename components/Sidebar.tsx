@@ -52,6 +52,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     label: 'Account',
     items: [
       { href: '/billing', label: 'Billing', icon: '◆' },
+      { href: '/export',  label: 'Export & Backup', icon: '⬇' },
     ],
   },
 ]
