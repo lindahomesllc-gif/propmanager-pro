@@ -57,13 +57,31 @@ export async function GET(request: Request) {
     })
   }
 
-  // Overdue unpaid charges (status 'due', due_date in the past) should become 'late'
-  // so the sidebar badge, dashboard "Late" stat, and alerts actually reflect reality.
-  const { data: overdueRows } = await svc.from('payments').select('id').eq('status', 'due').lt('due_date', todayStr)
-  const overdueCount = (overdueRows || []).length
+  // Overdue unpaid charges past their grace period become 'late' (so the badge,
+  // dashboard stat, and alerts reflect reality), and a late fee is applied once
+  // if the lease has one configured. Grace period + fee come from the lease.
+  // Only status 'due' rows are processed; once flipped to 'late' they're skipped
+  // next run, so the fee is naturally applied exactly once (no extra column needed).
+  const { data: overdueRows } = await svc.from('payments')
+    .select('id, amount_due, due_date, notes, leases(late_fee_amount, late_fee_type, grace_period_days)')
+    .eq('status', 'due').lt('due_date', todayStr)
+
+  const todayMs = new Date(todayStr + 'T00:00:00').getTime()
+  const lateNow = (overdueRows || []).filter((p: any) => {
+    const grace = p.leases?.grace_period_days || 0
+    const graceEnd = new Date(p.due_date + 'T00:00:00'); graceEnd.setDate(graceEnd.getDate() + grace)
+    return todayMs > graceEnd.getTime()
+  })
+  const feeFor = (p: any) => {
+    const amt = p.leases?.late_fee_amount || 0
+    if (amt <= 0) return 0
+    return p.leases?.late_fee_type === 'percent'
+      ? Math.round((p.amount_due || 0) * amt) / 100
+      : amt
+  }
 
   if (dryRun) {
-    return NextResponse.json({ status: 'dry_run', month: monthPrefix, activeLeases: (leases || []).length, wouldCreate: toInsert.length, wouldMarkLate: overdueCount, preview: toInsert })
+    return NextResponse.json({ status: 'dry_run', month: monthPrefix, activeLeases: (leases || []).length, wouldCreate: toInsert.length, wouldMarkLate: lateNow.length, wouldApplyFees: lateNow.filter(p => feeFor(p) > 0).length, preview: toInsert })
   }
 
   let created = 0
@@ -73,11 +91,17 @@ export async function GET(request: Request) {
     created = data?.length || 0
   }
 
-  let markedLate = 0
-  if (overdueCount > 0) {
-    const { data: lated } = await svc.from('payments').update({ status: 'late' }).eq('status', 'due').lt('due_date', todayStr).select('id')
-    markedLate = lated?.length || 0
+  let markedLate = 0, feesApplied = 0
+  for (const p of lateNow) {
+    const fee = feeFor(p)
+    const update: any = { status: 'late' }
+    if (fee > 0) {
+      update.amount_due = (p.amount_due || 0) + fee
+      update.notes = (p.notes ? p.notes + ' · ' : '') + 'Late fee $' + fee + ' applied'
+    }
+    const { error: uErr } = await svc.from('payments').update(update).eq('id', p.id)
+    if (!uErr) { markedLate++; if (fee > 0) feesApplied++ }
   }
 
-  return NextResponse.json({ status: 'done', month: monthPrefix, activeLeases: (leases || []).length, created, markedLate })
+  return NextResponse.json({ status: 'done', month: monthPrefix, activeLeases: (leases || []).length, created, markedLate, feesApplied })
 }
