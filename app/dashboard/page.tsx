@@ -64,6 +64,8 @@ export default function DashboardPage() {
   // Per-tenant rent status for THIS month — who's paid vs who still owes (actionable).
   const leaseRentByTenant: Record<string, number> = {}
   leases.forEach(l => { if (l.tenant_id) leaseRentByTenant[l.tenant_id] = (leaseRentByTenant[l.tenant_id] || 0) + (l.rent_amount || 0) })
+  const rentByProperty: Record<string, number> = {}
+  leases.forEach(l => { if (l.property_id) rentByProperty[l.property_id] = (rentByProperty[l.property_id] || 0) + (l.rent_amount || 0) })
   const statusOrder: Record<string, number> = { late: 0, due: 1, partial: 1, none: 2, paid: 3 }
   const stChip: Record<string, { c: string; l: string }> = { paid: { c: 'chip-g', l: 'Paid' }, late: { c: 'chip-r', l: 'Late' }, due: { c: 'chip-a', l: 'Due' }, partial: { c: 'chip-a', l: 'Partial' }, none: { c: 'chip-x', l: 'Not charged' } }
   const rentStatus = tenants.map((t: any) => {
@@ -252,12 +254,18 @@ export default function DashboardPage() {
                 const pts = tenants.filter((t: any) => t.property_id === p.id)
                 return (
                   <div key={p.id} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + (p.occupancy_status === 'occupied' ? 'var(--green)' : 'var(--amber)'), borderRadius: '8px', padding: '12px 14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
                       <a href={'/properties/' + p.id} style={{ textDecoration: 'none', minWidth: 0 }}>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{p.address}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'capitalize' }}>{p.city} · {p.type?.replace(/_/g, ' ')} · {p.bedrooms}bd/{p.bathrooms}ba</div>
                       </a>
-                      <span className={'chip ' + (p.occupancy_status === 'occupied' ? 'chip-g' : 'chip-a')} style={{ textTransform: 'capitalize', flexShrink: 0 }}>{p.occupancy_status}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--green)' }}>{fm(rentByProperty[p.id] || 0)}<span style={{ fontSize: '10px', fontWeight: 400, color: 'var(--text3)' }}>/mo</span></div>
+                          <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{fm((rentByProperty[p.id] || 0) * 12)}/yr</div>
+                        </div>
+                        <span className={'chip ' + (p.occupancy_status === 'occupied' ? 'chip-g' : 'chip-a')} style={{ textTransform: 'capitalize' }}>{p.occupancy_status}</span>
+                      </div>
                     </div>
                     {pts.length > 0 && (
                       <div style={{ marginTop: '8px', borderTop: '0.5px solid var(--border)', paddingTop: '8px', display: 'grid', gap: '6px' }}>
