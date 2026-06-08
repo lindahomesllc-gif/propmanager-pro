@@ -9,6 +9,7 @@ export default function ReportsPage() {
   const [expenses, setExpenses] = useState<any[]>([])
   const [properties, setProperties] = useState<any[]>([])
   const [mortgages, setMortgages] = useState<any[]>([])
+  const [entities, setEntities] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'rentroll' | 'pnl' | 'returns'>('rentroll')
   const [year, setYear] = useState(new Date().getFullYear())
@@ -18,10 +19,11 @@ export default function ReportsPage() {
       supabase.from('leases').select('*, properties(address), tenants(full_name), units(label)').eq('status', 'executed'),
       supabase.from('payments').select('property_id, amount_paid, paid_date, status'),
       supabase.from('expenses').select('property_id, amount, expense_date'),
-      supabase.from('properties').select('id, address, market_value, purchase_price'),
+      supabase.from('properties').select('id, address, market_value, purchase_price, entity_id'),
       supabase.from('mortgages').select('property_id, current_balance, original_amount, interest_rate, term_years, is_paid_off'),
-    ]).then(([l, p, e, pr, m]) => {
-      setLeases(l.data || []); setPayments(p.data || []); setExpenses(e.data || []); setProperties(pr.data || []); setMortgages(m.data || [])
+      supabase.from('entities').select('id, name'),
+    ]).then(([l, p, e, pr, m, en]) => {
+      setLeases(l.data || []); setPayments(p.data || []); setExpenses(e.data || []); setProperties(pr.data || []); setMortgages(m.data || []); setEntities(en.data || [])
       setLoading(false)
     })
   }, [])
@@ -66,7 +68,7 @@ export default function ReportsPage() {
     const cashFlow = noi - debt
     const equity = value - (balByProp[p.id] || 0)
     return {
-      id: p.id, address: p.address, value, noi, debt, cashFlow,
+      id: p.id, address: p.address, entity_id: p.entity_id || null, value, noi, debt, cashFlow,
       cap: value > 0 ? noi / value * 100 : null,
       dscr: debt > 0 ? noi / debt : null,
       roe: equity > 0 ? cashFlow / equity * 100 : null,
@@ -78,6 +80,16 @@ export default function ReportsPage() {
   const mTotCF = metrics.reduce((s, m) => s + m.cashFlow, 0)
   const blendedCap = mTotValue > 0 ? mTotNOI / mTotValue * 100 : 0
   const portDSCR = mTotDebt > 0 ? mTotNOI / mTotDebt : null
+
+  // entity rollup — same metrics grouped by the owning entity (+ Unassigned)
+  const entityRows = [...entities, { id: null, name: 'Unassigned / Self' }].map(en => {
+    const ms = metrics.filter(m => (m.entity_id || null) === (en.id || null))
+    const value = ms.reduce((s, m) => s + m.value, 0)
+    const noi = ms.reduce((s, m) => s + m.noi, 0)
+    const debt = ms.reduce((s, m) => s + m.debt, 0)
+    const cf = ms.reduce((s, m) => s + m.cashFlow, 0)
+    return { name: en.name, count: ms.length, value, noi, debt, cf, cap: value > 0 ? noi / value * 100 : null, dscr: debt > 0 ? noi / debt : null }
+  }).filter(r => r.count > 0).sort((a, b) => b.cf - a.cf)
 
   const sel = { padding: '6px 10px', fontSize: '12px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none' }
   const card = { background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden' as const }
@@ -212,6 +224,29 @@ export default function ReportsPage() {
                 </div>
               ))}
             </div>
+            {entityRows.length > 1 && (
+              <div style={{ ...card, marginBottom: '14px' }}>
+                <div style={{ padding: '12px 14px', fontSize: '12px', fontWeight: 700, color: 'var(--text)', borderBottom: '0.5px solid var(--border)' }}>By Entity</div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead><tr style={{ borderBottom: '0.5px solid var(--border)' }}>
+                    <th style={th}>Entity</th>
+                    {['Properties', 'NOI', 'Cap', 'DSCR', 'Cash Flow'].map(h => <th key={h} style={{ ...th, textAlign: 'right' }}>{h}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {entityRows.map(r => (
+                      <tr key={r.name} style={{ borderBottom: '0.5px solid var(--border)' }}>
+                        <td style={{ ...td, fontWeight: 600 }}>{r.name}</td>
+                        <td style={{ ...td, textAlign: 'right', color: 'var(--text2)' }}>{r.count}</td>
+                        <td style={{ ...td, textAlign: 'right', color: 'var(--green)' }}>{fm(r.noi)}</td>
+                        <td style={{ ...td, textAlign: 'right' }}>{r.cap != null ? r.cap.toFixed(2) + '%' : '—'}</td>
+                        <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>{r.dscr != null ? r.dscr.toFixed(2) + 'x' : '—'}</td>
+                        <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: r.cf >= 0 ? 'var(--green)' : 'var(--red)' }}>{fm(r.cf)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
             <div style={card}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead><tr style={{ borderBottom: '0.5px solid var(--border)' }}>
