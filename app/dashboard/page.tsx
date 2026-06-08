@@ -4,6 +4,7 @@ import AppShell from '@/components/AppShell'
 import { supabase, fm, share, formatDate, computeReturns } from '@/lib/supabase'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import GettingStarted from '@/components/GettingStarted'
+import GoalsCard from '@/components/GoalsCard'
 
 export default function DashboardPage() {
   const [data, setData] = useState({ properties: [], tenants: [], payments: [], expenses: [], leases: [], maintenance: [], mortgages: [] })
@@ -169,6 +170,8 @@ export default function DashboardPage() {
                 { label: 'DSCR', value: returns.totals.dscr != null ? returns.totals.dscr.toFixed(2) + 'x' : '—', sub: 'NOI ÷ debt', color: 'var(--text)' },
               ].map(mc => <Tile key={mc.label} {...mc} />)}
             </div>
+
+            <GoalsCard current={{ cashFlow: returns.totals.cashFlow / 12, value: portfolioValue, properties: properties.length, occupancy: properties.length ? (occupied.length / properties.length) * 100 : 0 }} />
 
             {/* 🏠 Operations — the landlord view */}
             <div style={secLabel}>🏠 Operations</div>
