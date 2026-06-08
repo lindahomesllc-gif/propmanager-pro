@@ -74,6 +74,15 @@ export const LOAN_TYPES: [string, string][] = [
   ['construction', 'Construction'], ['commercial', 'Commercial'], ['heloc', 'HELOC'],
   ['private_lender', 'Private Lender'], ['bridge', 'Bridge'], ['portfolio', 'Portfolio'], ['blanket', 'Blanket'],
 ]
+// Monthly principal & interest for a loan (escrow-free) from amount / rate / term.
+// Used by the amortization schedule and the investor-returns metrics.
+export const monthlyPI = (m: { original_amount?: any; interest_rate?: any; term_years?: any }) => {
+  const P = Number(m.original_amount) || 0
+  const r = (Number(m.interest_rate) || 0) / 100 / 12
+  const n = Math.round((Number(m.term_years) || 0) * 12)
+  if (P <= 0 || n <= 0) return 0
+  return r > 0 ? (P * r) / (1 - Math.pow(1 + r, -n)) : P / n
+}
 const LOAN_TYPE_MAP: Record<string, string> = Object.fromEntries(LOAN_TYPES)
 export const loanTypeLabel = (t: string | null | undefined) => {
   if (!t) return '—'
