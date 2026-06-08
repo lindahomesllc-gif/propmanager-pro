@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, LOAN_TYPES } from '@/lib/supabase'
 
 // Shared add/edit mortgage form, shown as a centered modal so it works the same
 // from the Mortgages page and from a property's Financials tab (no page bouncing).
@@ -85,12 +85,7 @@ export default function MortgageFormModal({
           </div>
           <div><label style={lbl}>Loan Type</label>
             <select className='input' value={form.loan_type} onChange={e => set('loan_type', e.target.value)}>
-              <option value='conventional'>Conventional</option>
-              <option value='dscr'>DSCR</option>
-              <option value='fha'>FHA</option>
-              <option value='va'>VA</option>
-              <option value='usda'>USDA</option>
-              <option value='jumbo'>Jumbo</option>
+              {LOAN_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </div>
         </div>

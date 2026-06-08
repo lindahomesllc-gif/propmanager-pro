@@ -65,10 +65,16 @@ export const share = (n: number | null | undefined, p: { ownership_percentage?: 
   (n || 0) * ownPct(p)
 export const fm = (n: number | null | undefined) => { const v = Math.round(n || 0); return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString() }
 export const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
-// Loan types: acronyms stay uppercase (DSCR/FHA/VA/USDA), others title-cased.
+// Loan types — single source of truth for the dropdown + display labels.
+// (Stored value, display label.) Keep in sync with the DB check constraint.
+export const LOAN_TYPES: [string, string][] = [
+  ['conventional', 'Conventional'], ['dscr', 'DSCR'], ['fha', 'FHA'], ['va', 'VA'],
+  ['usda', 'USDA'], ['jumbo', 'Jumbo'], ['interest_only', 'Interest-Only'],
+  ['hard_money', 'Hard Money'], ['seller_financed', 'Seller-Financed'],
+  ['construction', 'Construction'], ['commercial', 'Commercial'], ['heloc', 'HELOC'],
+]
+const LOAN_TYPE_MAP: Record<string, string> = Object.fromEntries(LOAN_TYPES)
 export const loanTypeLabel = (t: string | null | undefined) => {
   if (!t) return '—'
-  return ['dscr', 'fha', 'va', 'usda'].includes(t.toLowerCase())
-    ? t.toUpperCase()
-    : t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()
+  return LOAN_TYPE_MAP[t.toLowerCase()] || (t.charAt(0).toUpperCase() + t.slice(1).toLowerCase())
 }
