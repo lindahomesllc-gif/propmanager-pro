@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, share, formatDate } from '@/lib/supabase'
+import { supabase, fm, share, formatDate, computeReturns } from '@/lib/supabase'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import GettingStarted from '@/components/GettingStarted'
 
@@ -59,6 +59,10 @@ export default function DashboardPage() {
     return { month, collected, due: i <= curMonthIdx ? totalRentRoll : 0 }
   })
 
+  // Investor returns (shared math with Reports → Returns)
+  const returns = computeReturns({ properties, leases, expenses, mortgages, year: currentYear })
+  const showReturns = returns.totals.noi !== 0 || returns.totals.debt > 0 || returns.totals.value > 0
+
   return (
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
@@ -109,6 +113,30 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
+
+            {showReturns && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Investor Snapshot</div>
+                  <a href='/reports' style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none' }}>Full returns →</a>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
+                  {[
+                    { label: 'Mortgage Debt', value: fm(returns.totals.balance), sub: fm(returns.totals.debt) + '/yr P&I', color: 'var(--red)' },
+                    { label: 'Annual NOI', value: fm(returns.totals.noi), sub: 'rent − expenses', color: 'var(--green)' },
+                    { label: 'Cap Rate', value: returns.totals.cap.toFixed(2) + '%', sub: 'NOI ÷ value', color: 'var(--text)' },
+                    { label: 'Cash Flow', value: fm(returns.totals.cashFlow), sub: 'NOI − debt service', color: returns.totals.cashFlow >= 0 ? 'var(--green)' : 'var(--red)' },
+                    { label: 'DSCR', value: returns.totals.dscr != null ? returns.totals.dscr.toFixed(2) + 'x' : '—', sub: 'NOI ÷ debt', color: 'var(--text)' },
+                  ].map(mc => (
+                    <div key={mc.label} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                      <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{mc.label}</div>
+                      <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color, marginTop: '5px' }}>{mc.value}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>{mc.sub}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
 
             <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, formatDate, monthlyPI } from '@/lib/supabase'
+import { supabase, fm, formatDate, computeReturns } from '@/lib/supabase'
 
 export default function ReportsPage() {
   const [leases, setLeases] = useState<any[]>([])
@@ -46,50 +46,10 @@ export default function ReportsPage() {
   const totIncome = pnl.reduce((s, r) => s + r.income, 0)
   const totExpense = pnl.reduce((s, r) => s + r.expense, 0)
 
-  // Investor returns: annualized in-place rent − selected-year expenses = NOI;
-  // debt service = P&I only (escrow excluded). Cap, DSCR, cash flow, RoE per property.
-  const rentByProp: Record<string, number> = {}
-  leases.forEach(l => { if (l.property_id) rentByProp[l.property_id] = (rentByProp[l.property_id] || 0) + (l.rent_amount || 0) * 12 })
-  const expByProp: Record<string, number> = {}
-  expenses.filter(e => e.expense_date?.startsWith(yearStr)).forEach(e => { if (e.property_id) expByProp[e.property_id] = (expByProp[e.property_id] || 0) + (e.amount || 0) })
-  const piByProp: Record<string, number> = {}
-  const balByProp: Record<string, number> = {}
-  mortgages.filter(m => !m.is_paid_off).forEach(m => {
-    if (!m.property_id) return
-    piByProp[m.property_id] = (piByProp[m.property_id] || 0) + monthlyPI(m) * 12
-    balByProp[m.property_id] = (balByProp[m.property_id] || 0) + (m.current_balance || 0)
-  })
-  const metrics = properties.map(p => {
-    const value = p.market_value || p.purchase_price || 0
-    const income = rentByProp[p.id] || 0
-    const opex = expByProp[p.id] || 0
-    const noi = income - opex
-    const debt = piByProp[p.id] || 0
-    const cashFlow = noi - debt
-    const equity = value - (balByProp[p.id] || 0)
-    return {
-      id: p.id, address: p.address, entity_id: p.entity_id || null, value, noi, debt, cashFlow,
-      cap: value > 0 ? noi / value * 100 : null,
-      dscr: debt > 0 ? noi / debt : null,
-      roe: equity > 0 ? cashFlow / equity * 100 : null,
-    }
-  }).filter(m => m.value > 0 || m.noi !== 0).sort((a, b) => b.cashFlow - a.cashFlow)
-  const mTotValue = metrics.reduce((s, m) => s + m.value, 0)
-  const mTotNOI = metrics.reduce((s, m) => s + m.noi, 0)
-  const mTotDebt = metrics.reduce((s, m) => s + m.debt, 0)
-  const mTotCF = metrics.reduce((s, m) => s + m.cashFlow, 0)
-  const blendedCap = mTotValue > 0 ? mTotNOI / mTotValue * 100 : 0
-  const portDSCR = mTotDebt > 0 ? mTotNOI / mTotDebt : null
-
-  // entity rollup — same metrics grouped by the owning entity (+ Unassigned)
-  const entityRows = [...entities, { id: null, name: 'Unassigned / Self' }].map(en => {
-    const ms = metrics.filter(m => (m.entity_id || null) === (en.id || null))
-    const value = ms.reduce((s, m) => s + m.value, 0)
-    const noi = ms.reduce((s, m) => s + m.noi, 0)
-    const debt = ms.reduce((s, m) => s + m.debt, 0)
-    const cf = ms.reduce((s, m) => s + m.cashFlow, 0)
-    return { name: en.name, count: ms.length, value, noi, debt, cf, cap: value > 0 ? noi / value * 100 : null, dscr: debt > 0 ? noi / debt : null }
-  }).filter(r => r.count > 0).sort((a, b) => b.cf - a.cf)
+  // Investor returns — computed by the shared helper (same math used on the Dashboard).
+  const { metrics, totals, entityRows } = computeReturns({ properties, leases, expenses, mortgages, entities, year })
+  const mTotValue = totals.value, mTotNOI = totals.noi, mTotDebt = totals.debt, mTotCF = totals.cashFlow
+  const blendedCap = totals.cap, portDSCR = totals.dscr
 
   const sel = { padding: '6px 10px', fontSize: '12px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none' }
   const card = { background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden' as const }

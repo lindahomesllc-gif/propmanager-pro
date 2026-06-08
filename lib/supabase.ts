@@ -83,6 +83,53 @@ export const monthlyPI = (m: { original_amount?: any; interest_rate?: any; term_
   if (P <= 0 || n <= 0) return 0
   return r > 0 ? (P * r) / (1 - Math.pow(1 + r, -n)) : P / n
 }
+// Single source of truth for investor returns — used by Reports AND the Dashboard.
+// NOI = annualized in-place rent (active leases ×12) − that year's expenses.
+// Debt service = P&I only (escrow excluded). Returns per-property metrics,
+// portfolio totals, and a by-entity rollup.
+export function computeReturns(opts: { properties: any[]; leases: any[]; expenses: any[]; mortgages: any[]; entities?: any[]; year: number }) {
+  const { properties, leases, expenses, mortgages, entities = [], year } = opts
+  const yearStr = String(year)
+  const rentByProp: Record<string, number> = {}
+  leases.forEach((l: any) => { if (l.property_id) rentByProp[l.property_id] = (rentByProp[l.property_id] || 0) + (l.rent_amount || 0) * 12 })
+  const expByProp: Record<string, number> = {}
+  expenses.filter((e: any) => e.expense_date?.startsWith(yearStr)).forEach((e: any) => { if (e.property_id) expByProp[e.property_id] = (expByProp[e.property_id] || 0) + (e.amount || 0) })
+  const piByProp: Record<string, number> = {}
+  const balByProp: Record<string, number> = {}
+  mortgages.filter((m: any) => !m.is_paid_off).forEach((m: any) => {
+    if (!m.property_id) return
+    piByProp[m.property_id] = (piByProp[m.property_id] || 0) + monthlyPI(m) * 12
+    balByProp[m.property_id] = (balByProp[m.property_id] || 0) + (m.current_balance || 0)
+  })
+  const metrics = properties.map((p: any) => {
+    const value = p.market_value || p.purchase_price || 0
+    const income = rentByProp[p.id] || 0
+    const opex = expByProp[p.id] || 0
+    const noi = income - opex
+    const debt = piByProp[p.id] || 0
+    const cashFlow = noi - debt
+    const balance = balByProp[p.id] || 0
+    const equity = value - balance
+    return {
+      id: p.id, address: p.address, entity_id: p.entity_id || null, value, income, opex, noi, debt, cashFlow, balance, equity,
+      cap: value > 0 ? noi / value * 100 : null,
+      dscr: debt > 0 ? noi / debt : null,
+      roe: equity > 0 ? cashFlow / equity * 100 : null,
+    }
+  }).filter((m: any) => m.value > 0 || m.noi !== 0).sort((a: any, b: any) => b.cashFlow - a.cashFlow)
+  const sum = (k: string) => metrics.reduce((s: number, m: any) => s + m[k], 0)
+  const tV = sum('value'), tNOI = sum('noi'), tDebt = sum('debt'), tBal = sum('balance'), tCF = sum('cashFlow')
+  const totals = { value: tV, noi: tNOI, debt: tDebt, balance: tBal, cashFlow: tCF, cap: tV > 0 ? tNOI / tV * 100 : 0, dscr: tDebt > 0 ? tNOI / tDebt : null }
+  const entityRows = [...entities, { id: null, name: 'Unassigned / Self' }].map((en: any) => {
+    const ms = metrics.filter((m: any) => (m.entity_id || null) === (en.id || null))
+    const value = ms.reduce((s: number, m: any) => s + m.value, 0)
+    const noi = ms.reduce((s: number, m: any) => s + m.noi, 0)
+    const debt = ms.reduce((s: number, m: any) => s + m.debt, 0)
+    const cf = ms.reduce((s: number, m: any) => s + m.cashFlow, 0)
+    return { name: en.name, count: ms.length, value, noi, debt, cf, cap: value > 0 ? noi / value * 100 : null, dscr: debt > 0 ? noi / debt : null }
+  }).filter((r: any) => r.count > 0).sort((a: any, b: any) => b.cf - a.cf)
+  return { metrics, totals, entityRows }
+}
 const LOAN_TYPE_MAP: Record<string, string> = Object.fromEntries(LOAN_TYPES)
 export const loanTypeLabel = (t: string | null | undefined) => {
   if (!t) return '—'
