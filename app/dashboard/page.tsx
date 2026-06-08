@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, fm, share, formatDate } from '@/lib/supabase'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import GettingStarted from '@/components/GettingStarted'
 
 export default function DashboardPage() {
   const [data, setData] = useState({ properties: [], tenants: [], payments: [], expenses: [], leases: [], maintenance: [], mortgages: [] })
@@ -76,6 +77,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
+            <GettingStarted />
             <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '20px 22px', marginBottom: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
