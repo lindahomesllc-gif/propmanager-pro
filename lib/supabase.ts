@@ -72,6 +72,7 @@ export const LOAN_TYPES: [string, string][] = [
   ['usda', 'USDA'], ['jumbo', 'Jumbo'], ['interest_only', 'Interest-Only'],
   ['hard_money', 'Hard Money'], ['seller_financed', 'Seller-Financed'],
   ['construction', 'Construction'], ['commercial', 'Commercial'], ['heloc', 'HELOC'],
+  ['private_lender', 'Private Lender'], ['bridge', 'Bridge'], ['portfolio', 'Portfolio'], ['blanket', 'Blanket'],
 ]
 const LOAN_TYPE_MAP: Record<string, string> = Object.fromEntries(LOAN_TYPES)
 export const loanTypeLabel = (t: string | null | undefined) => {
