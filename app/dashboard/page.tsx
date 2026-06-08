@@ -192,56 +192,21 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Roster: properties + tenants */}
+            {/* Rent detail (sits right under the rent info) + quick actions */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
-              <div>
-                <div style={secLabel}>Properties</div>
-                <div style={{ display: 'grid', gap: '8px' }}>
-                  {properties.length === 0 ? <div style={{ ...panel, padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No properties yet.</div> : properties.map(p => (
-                    <a key={p.id} href={'/properties/' + p.id} style={{ textDecoration: 'none' }}>
-                      <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + (p.occupancy_status === 'occupied' ? 'var(--green)' : 'var(--amber)'), borderRadius: '8px', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{p.address}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px', textTransform: 'capitalize' }}>{p.city} · {p.type?.replace(/_/g, ' ')} · {p.bedrooms}bd/{p.bathrooms}ba</div>
-                        </div>
-                        <span className={'chip ' + (p.occupancy_status === 'occupied' ? 'chip-g' : 'chip-a')} style={{ textTransform: 'capitalize' }}>{p.occupancy_status}</span>
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <div style={secLabel}>Active Tenants & Rent Roll</div>
-                <div style={panel}>
-                  {tenants.length === 0 ? <div style={{ padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No active tenants.</div> : tenants.map(t => (
-                    <a key={t.id} href={'/tenants/' + t.id} style={{ textDecoration: 'none' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '0.5px solid var(--border)' }}>
-                        <div>
-                          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{t.full_name}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{t.unit_address || t.properties?.address}</div>
-                        </div>
-                        <span className='chip chip-g'>active</span>
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Utility row: recent activity + quick actions */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
                 <div style={secLabel}>Rent Status · {monthLabel}</div>
                 <div style={panel}>
-                  <div style={{ padding: '9px 14px', borderBottom: '0.5px solid var(--border)', fontSize: '11px', color: 'var(--text3)', fontWeight: 600 }}>{paidCount} of {rentStatus.length} paid this month</div>
+                  <div style={{ padding: '9px 14px', borderBottom: '0.5px solid var(--border)', fontSize: '11px', color: 'var(--text3)', fontWeight: 600 }}>{paidCount} of {rentStatus.length} paid this month{rentStatus.length - paidCount > 0 ? ' · ' + (rentStatus.length - paidCount) + ' to collect' : ''}</div>
                   {rentStatus.length === 0 ? <div style={{ padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No active tenants.</div> : rentStatus.map((s: any) => {
                     const ch = stChip[s.status]
+                    const href = s.status === 'paid' ? '/tenants/' + s.id : '/payments?tenant_id=' + s.id
                     return (
-                      <a key={s.id} href={'/tenants/' + s.id} style={{ textDecoration: 'none' }}>
+                      <a key={s.id} href={href} style={{ textDecoration: 'none' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '10px 14px', borderBottom: '0.5px solid var(--border)' }}>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</div>
-                            <div style={{ fontSize: '11px', color: 'var(--text3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.where}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.where}{s.status !== 'paid' && s.status !== 'none' ? ' · tap to record' : ''}</div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
                             <div style={{ fontSize: '13px', fontWeight: 600, color: s.status === 'paid' ? 'var(--green)' : 'var(--text2)' }}>{s.status === 'paid' ? fm(s.paid) : fm(s.amount)}</div>
@@ -278,6 +243,35 @@ export default function DashboardPage() {
                   ))}
                 </div>
               </div>
+            </div>
+
+            {/* Properties & Tenants — combined (tenants nested under each property) */}
+            <div style={secLabel}>🏠 Properties & Tenants</div>
+            <div style={{ display: 'grid', gap: '8px' }}>
+              {properties.length === 0 ? <div style={{ ...panel, padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No properties yet.</div> : properties.map(p => {
+                const pts = tenants.filter((t: any) => t.property_id === p.id)
+                return (
+                  <div key={p.id} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + (p.occupancy_status === 'occupied' ? 'var(--green)' : 'var(--amber)'), borderRadius: '8px', padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                      <a href={'/properties/' + p.id} style={{ textDecoration: 'none', minWidth: 0 }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{p.address}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'capitalize' }}>{p.city} · {p.type?.replace(/_/g, ' ')} · {p.bedrooms}bd/{p.bathrooms}ba</div>
+                      </a>
+                      <span className={'chip ' + (p.occupancy_status === 'occupied' ? 'chip-g' : 'chip-a')} style={{ textTransform: 'capitalize', flexShrink: 0 }}>{p.occupancy_status}</span>
+                    </div>
+                    {pts.length > 0 && (
+                      <div style={{ marginTop: '8px', borderTop: '0.5px solid var(--border)', paddingTop: '8px', display: 'grid', gap: '6px' }}>
+                        {pts.map((t: any) => (
+                          <a key={t.id} href={'/tenants/' + t.id} style={{ textDecoration: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '12px', color: 'var(--text2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>👤 {t.full_name}{t.unit_address ? ' · ' + t.unit_address : ''}</span>
+                            <span style={{ fontSize: '12px', color: 'var(--green)', fontWeight: 600, flexShrink: 0 }}>{leaseRentByTenant[t.id] ? fm(leaseRentByTenant[t.id]) + '/mo' : ''}</span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </>
         )}
