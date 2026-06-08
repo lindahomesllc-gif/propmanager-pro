@@ -28,6 +28,12 @@ export default function ReportsPage() {
     })
   }, [])
 
+  // open a specific tab via ?tab=returns|pnl|rentroll (e.g. from the dashboard link)
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('tab')
+    if (t === 'rentroll' || t === 'pnl' || t === 'returns') setTab(t)
+  }, [])
+
   const monthlyRoll = leases.reduce((s, l) => s + (l.rent_amount || 0), 0)
   const annualRoll = monthlyRoll * 12
 

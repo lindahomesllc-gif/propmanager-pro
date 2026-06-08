@@ -92,7 +92,7 @@ export default function DashboardPage() {
             {/* 📈 Portfolio — the investor view (leads the dashboard) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>📈 Portfolio</div>
-              <a href='/reports' style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none' }}>Full returns →</a>
+              <a href='/reports?tab=returns' style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none' }}>Full returns →</a>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
               {[
