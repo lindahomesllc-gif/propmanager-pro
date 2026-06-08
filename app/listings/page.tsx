@@ -35,7 +35,7 @@ export default function ListingsPage() {
     if (!form.property_id) { setError('Please select a property'); return }
     if (!form.rent_amount) { setError('Rent amount is required'); return }
     setSaving(true)
-    const { error: err } = await supabase.from('listings').insert({
+    const { data, error: err } = await supabase.from('listings').insert({
       property_id: form.property_id,
       rent_amount: parseFloat(form.rent_amount),
       title: form.title || null,
@@ -45,10 +45,11 @@ export default function ListingsPage() {
       pets_allowed: form.pets_allowed,
       pet_deposit: form.pet_deposit ? parseFloat(form.pet_deposit) : null,
       is_active: form.is_active,
-    })
+    }).select('*, properties(address, city, state, bedrooms, bathrooms, type)').single()
     setSaving(false)
     if (err) { setError('Error: ' + err.message); return }
-    window.location.reload()
+    setListings(prev => [data, ...prev])
+    setShowAdd(false)
   }
 
   async function toggleActive(id, isActive) {

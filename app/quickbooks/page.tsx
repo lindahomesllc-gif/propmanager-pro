@@ -63,12 +63,12 @@ export default function QuickBooksPage() {
         </select>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-        <div style={{ background: 'var(--blue-bg)', border: '0.5px solid var(--blue)', borderRadius: '10px', padding: '16px 20px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
           <div>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>QuickBooks Direct Integration</div>
-            <div style={{ fontSize: '12px', color: 'var(--text2)' }}>Connect your QuickBooks account to automatically sync income and expenses. Coming soon.</div>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>Export to QuickBooks</div>
+            <div style={{ fontSize: '12px', color: 'var(--text3)' }}>Download your income &amp; expenses as CSV below, then import into QuickBooks. (One-click direct sync is planned.)</div>
           </div>
-          <button style={{ ...btnB, opacity: 0.6, cursor: 'not-allowed' }}>Connect QuickBooks</button>
+          <span style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '20px', background: 'var(--bg3)', color: 'var(--text3)', border: '0.5px solid var(--border)', whiteSpace: 'nowrap' }}>Direct sync — coming soon</span>
         </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
         {[

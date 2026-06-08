@@ -45,7 +45,7 @@ export default function TurnoverPage() {
     setError('')
     if (!form.property_id) { setError('Please select a property'); return }
     setSaving(true)
-    const { error: err } = await supabase.from('condition_reports').insert({
+    const { data, error: err } = await supabase.from('condition_reports').insert({
       property_id: form.property_id,
       tenant_id: form.tenant_id || null,
       report_type: 'move_out',
@@ -63,10 +63,11 @@ export default function TurnoverPage() {
         deposit_returned: form.deposit_returned,
         deposit_deductions: form.deposit_deductions,
       }),
-    })
+    }).select('*, properties(address), tenants(full_name)').single()
     setSaving(false)
     if (err) { setError('Error: ' + err.message); return }
-    window.location.reload()
+    setTurnovers(prev => [data, ...prev])
+    setShowAdd(false)
   }
 
   const statusBadge = (s) => {

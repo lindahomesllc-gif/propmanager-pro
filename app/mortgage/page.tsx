@@ -39,7 +39,7 @@ export default function MortgagePage() {
     if (!form.monthly_payment) { setError('Monthly payment is required'); return }
     if (!form.start_date) { setError('Start date is required'); return }
     setSaving(true)
-    const { error: err } = await supabase.from('mortgages').insert({
+    const { data, error: err } = await supabase.from('mortgages').insert({
       property_id: form.property_id,
       lender_name: form.lender_name || null,
       loan_number: form.loan_number || null,
@@ -52,10 +52,11 @@ export default function MortgagePage() {
       due_day: parseInt(form.due_day),
       loan_type: form.loan_type,
       is_paid_off: form.is_paid_off,
-    })
+    }).select('*, properties(address, city, state)').single()
     setSaving(false)
     if (err) { setError('Error: ' + err.message); return }
-    window.location.reload()
+    setMortgages(prev => [data, ...prev])
+    setShowAdd(false)
   }
 
   const totalBalance = mortgages.filter(m => !m.is_paid_off).reduce((s, m) => s + (m.current_balance || 0), 0)
