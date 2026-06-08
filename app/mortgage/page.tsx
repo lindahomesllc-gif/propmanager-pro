@@ -33,7 +33,8 @@ export default function MortgagePage() {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const blank = { property_id: '', lender_name: '', loan_number: '', original_amount: '', current_balance: '', interest_rate: '', term_years: '30', monthly_payment: '', start_date: '', due_day: '1', loan_type: 'conventional', is_paid_off: false }
-  function openAdd() { setEditId(null); setForm(blank); setError(''); setShowAdd(true) }
+  const scrollToForm = () => setTimeout(() => document.getElementById('mortgage-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60)
+  function openAdd() { setEditId(null); setForm(blank); setError(''); setShowAdd(true); scrollToForm() }
   function openEdit(m) {
     setEditId(m.id)
     setForm({
@@ -43,7 +44,7 @@ export default function MortgagePage() {
       monthly_payment: String(m.monthly_payment ?? ''), start_date: m.start_date || '',
       due_day: String(m.due_day ?? '1'), loan_type: m.loan_type || 'conventional', is_paid_off: !!m.is_paid_off,
     })
-    setError(''); setShowAdd(true)
+    setError(''); setShowAdd(true); scrollToForm()
   }
   async function delMortgage(m) {
     if (!confirm('Delete this mortgage' + (m.properties?.address ? ' for ' + m.properties.address : '') + '? This cannot be undone.')) return
@@ -123,7 +124,7 @@ export default function MortgagePage() {
         </div>
 
         {showAdd && (
-          <div style={{ ...card, border: '0.5px solid rgba(74,222,154,0.3)' }}>
+          <div id='mortgage-form' style={{ ...card, border: '0.5px solid rgba(74,222,154,0.3)' }}>
             <div style={secTtl}>{editId ? 'Edit Mortgage' : 'Add Mortgage'}</div>
             {error && <div style={{ background: '#3a1a1a', border: '0.5px solid #ff6b6b', borderRadius: '7px', padding: '10px 14px', marginBottom: '14px', color: '#ff6b6b', fontSize: '13px' }}>{error}</div>}
             <div style={{ ...g2, marginBottom: '12px' }}>

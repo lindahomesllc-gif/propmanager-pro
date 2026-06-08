@@ -4,15 +4,18 @@ import { fm } from '@/lib/supabase'
 
 type Row = { n: number; date: Date | null; payment: number; principal: number; interest: number; balance: number }
 
-function buildSchedule(m: any): { rows: Row[]; valid: boolean; reason?: string; totalInterest: number; totalPaid: number } {
+function buildSchedule(m: any): { rows: Row[]; valid: boolean; reason?: string; totalInterest: number; totalPaid: number; piPayment: number } {
   const P = Number(m.original_amount) || 0
   const r = (Number(m.interest_rate) || 0) / 100 / 12
   const n = Math.round((Number(m.term_years) || 0) * 12)
-  const pay = Number(m.monthly_payment) || 0
   const start = m.start_date ? new Date(m.start_date + 'T00:00:00') : null
-  if (P <= 0 || n <= 0) return { rows: [], valid: false, reason: 'This loan is missing its amount or term.', totalInterest: 0, totalPaid: 0 }
-  if (pay <= 0) return { rows: [], valid: false, reason: 'This loan has no monthly payment set.', totalInterest: 0, totalPaid: 0 }
-  if (r > 0 && pay <= P * r) return { rows: [], valid: false, reason: 'The monthly payment doesn’t cover the first month’s interest — the balance would never go down. Double-check the payment, rate, or amount.', totalInterest: 0, totalPaid: 0 }
+  if (P <= 0 || n <= 0) return { rows: [], valid: false, reason: 'This loan is missing its amount, rate, or term — fill those in to see the schedule.', totalInterest: 0, totalPaid: 0, piPayment: 0 }
+
+  // Compute the true principal & interest payment from the loan terms. We do NOT
+  // use the stored "monthly payment" because that often includes escrow
+  // (taxes + insurance), which doesn't pay down the loan. This keeps the schedule
+  // correct and guarantees it amortizes to exactly $0 at the final payment.
+  const pay = r > 0 ? (P * r) / (1 - Math.pow(1 + r, -n)) : P / n
 
   const rows: Row[] = []
   let bal = P
@@ -29,14 +32,15 @@ function buildSchedule(m: any): { rows: Row[]; valid: boolean; reason?: string; 
     if (start) { date = new Date(start); date.setMonth(date.getMonth() + (i - 1)) }
     rows.push({ n: i, date, payment: thisPay, principal, interest, balance: bal })
   }
-  return { rows, valid: true, totalInterest, totalPaid }
+  return { rows, valid: true, totalInterest, totalPaid, piPayment: pay }
 }
 
 const fmtDate = (d: Date | null) => d ? d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'
 
 export default function AmortizationModal({ mortgage, onClose }: { mortgage: any; onClose: () => void }) {
   const [view, setView] = useState<'monthly' | 'yearly'>('monthly')
-  const { rows, valid, reason, totalInterest, totalPaid } = useMemo(() => buildSchedule(mortgage), [mortgage])
+  const { rows, valid, reason, totalInterest, totalPaid, piPayment } = useMemo(() => buildSchedule(mortgage), [mortgage])
+  const escrow = (Number(mortgage.monthly_payment) || 0) - piPayment
 
   // yearly rollup (12-payment blocks)
   const yearly = useMemo(() => {
@@ -86,7 +90,7 @@ export default function AmortizationModal({ mortgage, onClose }: { mortgage: any
               {[
                 ['Loan Amount', fm(mortgage.original_amount)],
                 ['Rate', (mortgage.interest_rate || 0) + '%'],
-                ['Payment', fm(mortgage.monthly_payment)],
+                ['P&I Payment', fm(piPayment)],
                 ['Payoff', fmtDate(payoff)],
                 ['Total Interest', fm(totalInterest)],
               ].map(([k, v], i) => (
@@ -96,6 +100,11 @@ export default function AmortizationModal({ mortgage, onClose }: { mortgage: any
                 </div>
               ))}
             </div>
+            {escrow > 1 && (
+              <div style={{ padding: '9px 16px', fontSize: '11.5px', color: 'var(--text3)', borderBottom: '0.5px solid var(--border)', background: 'var(--bg3)' }}>
+                Your recorded payment of <strong style={{ color: 'var(--text2)' }}>{fm(mortgage.monthly_payment)}/mo</strong> includes about <strong style={{ color: 'var(--text2)' }}>{fm(escrow)}/mo</strong> in escrow (taxes &amp; insurance). The schedule below is <strong style={{ color: 'var(--text2)' }}>principal &amp; interest only</strong> — that's what pays the loan down.
+              </div>
+            )}
 
             {/* controls */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '0.5px solid var(--border)' }}>
