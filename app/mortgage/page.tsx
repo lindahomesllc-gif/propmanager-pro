@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, formatDate } from '@/lib/supabase'
+import { supabase, fm, formatDate, loanTypeLabel } from '@/lib/supabase'
 import AmortizationModal from '@/components/AmortizationModal'
 import MortgageFormModal from '@/components/MortgageFormModal'
 
@@ -78,7 +78,7 @@ export default function MortgagePage() {
               <div>
                 <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{m.properties?.address}</div>
                 <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>{m.lender_name || 'No lender'} {m.loan_number ? '· #' + m.loan_number : ''}</div>
-                <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px', textTransform: 'uppercase' }}>{m.loan_type} · {m.term_years}yr · {m.interest_rate}%</div>
+                <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{loanTypeLabel(m.loan_type)} · {m.term_years}yr · {m.interest_rate}%</div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: m.is_paid_off ? 'var(--green)' : 'var(--red)' }}>{fm(m.current_balance)}</div>

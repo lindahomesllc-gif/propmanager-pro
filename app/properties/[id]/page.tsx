@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, share, formatDate } from '@/lib/supabase'
+import { supabase, fm, share, formatDate, loanTypeLabel } from '@/lib/supabase'
 import UnitsManager from '@/components/UnitsManager'
 import AmortizationModal from '@/components/AmortizationModal'
 import MortgageFormModal from '@/components/MortgageFormModal'
@@ -299,7 +299,7 @@ export default function PropertyDetailPage({ params }) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{m.lender_name || 'Lender'} {m.is_paid_off && <span style={{ fontSize: '10px', color: 'var(--green)', fontWeight: 700 }}>· PAID OFF</span>}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px', textTransform: 'capitalize' }}>{m.loan_type} · {m.term_years}yr · {m.interest_rate}%</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{loanTypeLabel(m.loan_type)} · {m.term_years}yr · {m.interest_rate}%</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '17px', fontWeight: 700, color: m.is_paid_off ? 'var(--green)' : 'var(--text)' }}>{fm(m.current_balance)}</div>

@@ -65,3 +65,10 @@ export const share = (n: number | null | undefined, p: { ownership_percentage?: 
   (n || 0) * ownPct(p)
 export const fm = (n: number | null | undefined) => { const v = Math.round(n || 0); return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString() }
 export const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+// Loan types: acronyms stay uppercase (DSCR/FHA/VA/USDA), others title-cased.
+export const loanTypeLabel = (t: string | null | undefined) => {
+  if (!t) return '—'
+  return ['dscr', 'fha', 'va', 'usda'].includes(t.toLowerCase())
+    ? t.toUpperCase()
+    : t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()
+}
