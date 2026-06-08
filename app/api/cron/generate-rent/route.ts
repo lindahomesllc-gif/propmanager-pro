@@ -34,7 +34,7 @@ export async function GET(request: Request) {
 
   // Active leases + the payments already present for this month.
   const [{ data: leases }, { data: existing }] = await Promise.all([
-    svc.from('leases').select('id, user_id, tenant_id, property_id, rent_amount, due_day, end_date').eq('status', 'executed'),
+    svc.from('leases').select('id, user_id, tenant_id, property_id, rent_amount, due_day, start_date, end_date').eq('status', 'executed'),
     svc.from('payments').select('lease_id').gte('due_date', monthPrefix + '-01').lt('due_date', nextMonthFirst),
   ])
   const haveThisMonth = new Set((existing || []).map((p: any) => p.lease_id).filter(Boolean))
@@ -42,8 +42,9 @@ export async function GET(request: Request) {
   const toInsert: any[] = []
   for (const l of leases || []) {
     if (!l.due_day || !l.rent_amount) continue
-    if (l.end_date && l.end_date < monthPrefix + '-01') continue // lease already ended
-    if (haveThisMonth.has(l.id)) continue                         // already has this month's rent
+    if (l.end_date && l.end_date < monthPrefix + '-01') continue   // lease already ended
+    if (l.start_date && l.start_date >= nextMonthFirst) continue   // lease hasn't started yet (e.g. a future renewal term)
+    if (haveThisMonth.has(l.id)) continue                          // already has this month's rent
     const dueDate = `${monthPrefix}-${pad(Math.min(l.due_day, dim))}`
     toInsert.push({
       user_id: l.user_id,

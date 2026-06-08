@@ -78,8 +78,9 @@ export default function LeaseDetailPage({ params }) {
     }).select('id').single()
     if (insErr) { setRenewing(false); alert('Error creating renewal: ' + insErr.message); return }
     // expire the old term so charges stop and the history reads cleanly
-    await supabase.from('leases').update({ status: 'expired' }).eq('id', l0.id)
+    const { error: expErr } = await supabase.from('leases').update({ status: 'expired' }).eq('id', l0.id)
     setRenewing(false)
+    if (expErr) { alert('Renewal created, but the old lease could not be marked Expired automatically. Please set the previous lease to Expired manually to avoid double charges.\n\n(' + expErr.message + ')') }
     window.location.href = '/leases/' + created.id
   }
 
