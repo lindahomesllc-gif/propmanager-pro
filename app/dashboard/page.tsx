@@ -55,18 +55,28 @@ export default function DashboardPage() {
     const monthStr = String(i + 1).padStart(2, '0')
     const monthPayments = payments.filter(p => p.paid_date?.startsWith(thisYear + '-' + monthStr))
     const collected = monthPayments.filter(p => p.status === 'paid').reduce((s, p) => s + (p.amount_paid || 0), 0)
-    // don't project expected rent into future months — only up to the current month
     return { month, collected, due: i <= curMonthIdx ? totalRentRoll : 0 }
   })
 
-  // Investor returns (shared math with Reports → Returns)
   const returns = computeReturns({ properties, leases, expenses, mortgages, year: currentYear })
+  const attentionCount = latePayments.length + expiringLeases.length + maintenance.length + vacant.length
+
+  const secLabel: any = { fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }
+  const panel: any = { background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }
   const Tile = ({ label, value, sub, color }: any) => (
     <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
       <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{label}</div>
       <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color, marginTop: '5px' }}>{value}</div>
       <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>{sub}</div>
     </div>
+  )
+  const AlertCard = ({ href, color, title, sub }: any) => (
+    <a href={href} style={{ textDecoration: 'none' }}>
+      <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + color, borderRadius: '8px', padding: '10px 14px' }}>
+        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>{title}</div>
+        <div style={{ fontSize: '11px', color, marginTop: '2px', textTransform: 'capitalize' }}>{sub}</div>
+      </div>
+    </a>
   )
 
   return (
@@ -81,8 +91,8 @@ export default function DashboardPage() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
         {loading ? (
           <div style={{ display: 'grid', gap: '14px' }}>
-            <div className='skeleton' style={{ height: '96px' }} />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px' }}>{[0,1,2,3,4,5].map(i => <div key={i} className='skeleton' style={{ height: '78px' }} />)}</div>
+            <div className='skeleton' style={{ height: '96px' }} />
             <div className='skeleton' style={{ height: '220px' }} />
           </div>
         ) : (
@@ -91,7 +101,7 @@ export default function DashboardPage() {
 
             {/* 📈 Portfolio — the investor view (leads the dashboard) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>📈 Portfolio</div>
+              <div style={secLabel}>📈 Portfolio</div>
               <a href='/reports?tab=returns' style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none' }}>Full returns →</a>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
@@ -106,10 +116,10 @@ export default function DashboardPage() {
             </div>
 
             {/* 🏠 Operations — the landlord view */}
-            <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>🏠 Operations</div>
+            <div style={secLabel}>🏠 Operations</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
               {[
-                { label: 'Properties', value: properties.length, sub: occupied.length + ' occupied', color: 'var(--text)' },
+                { label: 'Properties', value: properties.length, sub: occupied.length + ' occupied · ' + vacant.length + ' vacant', color: 'var(--text)' },
                 { label: 'Monthly Rent Roll', value: fm(totalRentRoll), sub: leases.length + ' active leases', color: 'var(--green)' },
                 { label: 'Collected YTD', value: fm(totalCollectedYTD), sub: paidYTD.length + ' payments', color: 'var(--green)' },
                 { label: 'Expenses YTD', value: fm(totalExpYTD), sub: 'Net: ' + fm(totalCollectedYTD - totalExpYTD), color: 'var(--amber)' },
@@ -117,12 +127,25 @@ export default function DashboardPage() {
               ].map(mc => <Tile key={mc.label} {...mc} />)}
             </div>
 
-            {/* This month's rent collection (operational detail) */}
+            {/* ⚠️ Needs Attention — the landlord's action list (one place, no duplicates) */}
+            <div style={secLabel}>⚠️ Needs Attention</div>
+            {attentionCount === 0 ? (
+              <div style={{ ...panel, padding: '16px', textAlign: 'center', color: 'var(--green)', fontSize: '13px', marginBottom: '20px' }}>✅ All caught up — nothing needs your attention.</div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px,1fr))', gap: '8px', marginBottom: '20px' }}>
+                {latePayments.map(p => <AlertCard key={'p' + p.id} href='/payments' color='var(--red)' title={'Late Rent — ' + (p.tenants?.full_name || 'Tenant')} sub={'Due ' + formatDate(p.due_date) + ' · ' + fm(p.amount_due)} />)}
+                {maintenance.map(m => <AlertCard key={'m' + m.id} href={'/maintenance/' + m.id} color={m.priority === 'emergency' ? 'var(--red)' : m.priority === 'high' ? 'var(--amber)' : 'var(--blue)'} title={'🔧 ' + m.title} sub={(m.priority || 'open') + ' · ' + (m.properties?.address || '')} />)}
+                {expiringLeases.map(l => <AlertCard key={'l' + l.id} href={'/leases/' + l.id} color='var(--amber)' title={'Lease Expiring — ' + (l.tenants?.full_name || 'Tenant')} sub={'Expires ' + formatDate(l.end_date) + ' · ' + (l.properties?.address || '')} />)}
+                {vacant.map(p => <AlertCard key={'v' + p.id} href={'/properties/' + p.id} color='var(--amber)' title={'Vacant — ' + p.address} sub={(p.city || '') + ' · needs a tenant'} />)}
+              </div>
+            )}
+
+            {/* 💰 Rent Collection — this month + yearly trend, in one place */}
             <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '20px 22px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
-                  <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)' }}>This Month's Rent Collection · {monthLabel}</div>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '30px', fontWeight: 800, color: 'var(--text)', marginTop: '6px' }}>{fm(collectedThisMonth)} <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text3)' }}>/ {fm(expectedThisMonth)} expected</span></div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)' }}>💰 Rent Collection · {monthLabel}</div>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '30px', fontWeight: 800, color: 'var(--text)', marginTop: '6px' }}>{fm(collectedThisMonth)} <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text3)' }}>/ {fm(expectedThisMonth)} expected this month</span></div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '26px', fontWeight: 800, color: pctColor }}>{collectionPct}%</div>
@@ -132,33 +155,33 @@ export default function DashboardPage() {
               <div style={{ marginTop: '14px', height: '8px', background: 'var(--bg3)', borderRadius: '20px', overflow: 'hidden' }}>
                 <div style={{ width: collectionPct + '%', height: '100%', background: pctColor, borderRadius: '20px', transition: 'width 0.4s' }} />
               </div>
-            </div>
-
-            <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Rent Collection {currentYear}</div>
-                <div style={{ display: 'flex', gap: '16px', fontSize: '11px' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--green)', display: 'inline-block' }} />Collected</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--border2)', display: 'inline-block' }} />Rent Roll</span>
+              <div style={{ borderTop: '0.5px solid var(--border)', marginTop: '18px', paddingTop: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{currentYear} Monthly Trend</div>
+                  <div style={{ display: 'flex', gap: '16px', fontSize: '11px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--green)', display: 'inline-block' }} />Collected</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--border2)', display: 'inline-block' }} />Rent Roll</span>
+                  </div>
                 </div>
+                <ResponsiveContainer width='100%' height={170}>
+                  <BarChart data={chartData} barGap={4} barCategoryGap='30%'>
+                    <CartesianGrid vertical={false} stroke='var(--border)' strokeDasharray='3 3' />
+                    <XAxis dataKey='month' tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? '$' + (v/1000).toFixed(0) + 'k' : '$' + v} width={40} />
+                    <Tooltip contentStyle={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '8px', fontSize: '12px' }} />
+                    <Bar dataKey='due' fill='var(--border2)' radius={[3,3,0,0]} />
+                    <Bar dataKey='collected' fill='var(--green)' radius={[3,3,0,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-              <ResponsiveContainer width='100%' height={180}>
-                <BarChart data={chartData} barGap={4} barCategoryGap='30%'>
-                  <CartesianGrid vertical={false} stroke='var(--border)' strokeDasharray='3 3' />
-                  <XAxis dataKey='month' tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? '$' + (v/1000).toFixed(0) + 'k' : '$' + v} width={40} />
-                  <Tooltip contentStyle={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '8px', fontSize: '12px' }} />
-                  <Bar dataKey='due' fill='var(--border2)' radius={[3,3,0,0]} />
-                  <Bar dataKey='collected' fill='var(--green)' radius={[3,3,0,0]} />
-                </BarChart>
-              </ResponsiveContainer>
             </div>
 
+            {/* Roster: properties + tenants */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
               <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Properties</div>
+                <div style={secLabel}>Properties</div>
                 <div style={{ display: 'grid', gap: '8px' }}>
-                  {properties.map(p => (
+                  {properties.length === 0 ? <div style={{ ...panel, padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No properties yet.</div> : properties.map(p => (
                     <a key={p.id} href={'/properties/' + p.id} style={{ textDecoration: 'none' }}>
                       <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + (p.occupancy_status === 'occupied' ? 'var(--green)' : 'var(--amber)'), borderRadius: '8px', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
@@ -172,8 +195,8 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Active Tenants & Rent Roll</div>
-                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={secLabel}>Active Tenants & Rent Roll</div>
+                <div style={panel}>
                   {tenants.length === 0 ? <div style={{ padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No active tenants.</div> : tenants.map(t => (
                     <a key={t.id} href={'/tenants/' + t.id} style={{ textDecoration: 'none' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '0.5px solid var(--border)' }}>
@@ -189,10 +212,11 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+            {/* Utility row: recent activity + quick actions */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Recent Payments</div>
-                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={secLabel}>Recent Payments</div>
+                <div style={panel}>
                   {recentPayments.length === 0 ? <div style={{ padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No payments yet.</div> : recentPayments.map(p => (
                     <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '0.5px solid var(--border)' }}>
                       <div>
@@ -206,75 +230,15 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Alerts</div>
-                <div style={{ display: 'grid', gap: '8px' }}>
-                  {latePayments.map(p => (
-                    <a key={p.id} href='/payments' style={{ textDecoration: 'none' }}>
-                      <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid var(--red)', borderRadius: '8px', padding: '10px 14px' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>Late Payment — {p.tenants?.full_name}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--red)', marginTop: '2px' }}>Due {formatDate(p.due_date)} · {fm(p.amount_due)}</div>
-                      </div>
-                    </a>
-                  ))}
-                  {expiringLeases.map(l => (
-                    <a key={l.id} href={'/leases/' + l.id} style={{ textDecoration: 'none' }}>
-                      <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid var(--amber)', borderRadius: '8px', padding: '10px 14px' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>Lease Expiring — {l.tenants?.full_name}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--amber)', marginTop: '2px' }}>Expires {formatDate(l.end_date)} · {l.properties?.address}</div>
-                      </div>
-                    </a>
-                  ))}
-                  {maintenance.filter(m => m.priority === 'emergency' || m.priority === 'high').map(m => (
-                    <a key={m.id} href={'/maintenance/' + m.id} style={{ textDecoration: 'none' }}>
-                      <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid var(--red)', borderRadius: '8px', padding: '10px 14px' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>{m.title}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--red)', marginTop: '2px', textTransform: 'capitalize' }}>{m.priority} priority · {m.properties?.address}</div>
-                      </div>
-                    </a>
-                  ))}
-                  {vacant.map(p => (
-                    <a key={p.id} href={'/properties/' + p.id} style={{ textDecoration: 'none' }}>
-                      <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid var(--amber)', borderRadius: '8px', padding: '10px 14px' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>Vacant — {p.address}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--amber)', marginTop: '2px' }}>{p.city} · {p.type?.replace(/_/g, ' ')}</div>
-                      </div>
-                    </a>
-                  ))}
-                  {latePayments.length === 0 && expiringLeases.length === 0 && maintenance.filter(m => m.priority === 'emergency' || m.priority === 'high').length === 0 && vacant.length === 0 && (
-                    <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '8px', padding: '16px 14px', textAlign: 'center', color: 'var(--green)', fontSize: '13px' }}>✅ All clear — no alerts!</div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Open Maintenance</div>
-                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                  {maintenance.length === 0 ? <div style={{ padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No open maintenance requests.</div> : maintenance.slice(0, 5).map(m => (
-                    <a key={m.id} href={'/maintenance/' + m.id} style={{ textDecoration: 'none' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '0.5px solid var(--border)' }}>
-                        <div>
-                          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{m.title}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{m.properties?.address}</div>
-                        </div>
-                        <span className={'chip ' + (m.priority === 'emergency' ? 'chip-r' : m.priority === 'high' ? 'chip-a' : 'chip-x')} style={{ textTransform: 'capitalize' }}>{m.priority}</span>
-                      </div>
-                    </a>
-                  ))}
-                  <a href='/maintenance' style={{ display: 'block', padding: '10px 14px', fontSize: '12px', color: 'var(--green)', textDecoration: 'none' }}>View all →</a>
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }}>Quick Actions</div>
-                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={secLabel}>Quick Actions</div>
+                <div style={panel}>
                   {[
                     { href: '/payments', icon: '💳', label: 'Record Payment', sub: duePayments.length + ' payments due' },
-                    { href: '/tenants/new', icon: '👤', label: 'Add Tenant', sub: vacant.length + ' vacant units' },
+                    { href: '/tenants/new', icon: '👤', label: 'Add Tenant', sub: vacant.length + ' vacant' },
                     { href: '/maintenance/new', icon: '🔧', label: 'New Maintenance Request', sub: maintenance.length + ' open' },
                     { href: '/expenses/new', icon: '💰', label: 'Add Expense', sub: 'Track property costs' },
-                    { href: '/leases/new', icon: '📋', label: 'Create Lease', sub: 'E-sign ready' },
-                    { href: '/tax', icon: '🧮', label: 'Tax Reports', sub: 'Schedule E ready' },
+                    { href: '/leases/new', icon: '📋', label: 'Create Lease', sub: 'Draft a new lease' },
+                    { href: '/reports?tab=returns', icon: '📊', label: 'Returns & Reports', sub: 'Cap rate, DSCR, cash flow' },
                   ].map((item, i) => (
                     <a key={i} href={item.href} style={{ textDecoration: 'none' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderBottom: '0.5px solid var(--border)', cursor: 'pointer' }}>
