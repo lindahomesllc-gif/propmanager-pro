@@ -61,6 +61,22 @@ export default function DashboardPage() {
   const returns = computeReturns({ properties, leases, expenses, mortgages, year: currentYear })
   const attentionCount = latePayments.length + expiringLeases.length + maintenance.length + vacant.length
 
+  // Per-tenant rent status for THIS month — who's paid vs who still owes (actionable).
+  const leaseRentByTenant: Record<string, number> = {}
+  leases.forEach(l => { if (l.tenant_id) leaseRentByTenant[l.tenant_id] = (leaseRentByTenant[l.tenant_id] || 0) + (l.rent_amount || 0) })
+  const statusOrder: Record<string, number> = { late: 0, due: 1, partial: 1, none: 2, paid: 3 }
+  const stChip: Record<string, { c: string; l: string }> = { paid: { c: 'chip-g', l: 'Paid' }, late: { c: 'chip-r', l: 'Late' }, due: { c: 'chip-a', l: 'Due' }, partial: { c: 'chip-a', l: 'Partial' }, none: { c: 'chip-x', l: 'Not charged' } }
+  const rentStatus = tenants.map((t: any) => {
+    const tp = payments.filter((p: any) => p.tenant_id === t.id && (p.due_date?.startsWith(thisMonth) || p.paid_date?.startsWith(thisMonth)))
+    let status = 'none', amount = leaseRentByTenant[t.id] || 0, paid = 0
+    if (tp.some((p: any) => p.status === 'paid')) { status = 'paid'; paid = tp.filter((p: any) => p.status === 'paid').reduce((s: number, p: any) => s + (p.amount_paid || 0), 0) }
+    else if (tp.some((p: any) => p.status === 'late')) { status = 'late'; amount = tp.find((p: any) => p.status === 'late')?.amount_due || amount }
+    else if (tp.some((p: any) => p.status === 'partial')) { status = 'partial'; amount = tp.find((p: any) => p.status === 'partial')?.amount_due || amount }
+    else if (tp.some((p: any) => p.status === 'due' || p.status === 'upcoming')) { status = 'due'; amount = tp.find((p: any) => p.status === 'due' || p.status === 'upcoming')?.amount_due || amount }
+    return { id: t.id, name: t.full_name, where: t.unit_address || t.properties?.address, status, amount, paid }
+  }).sort((a: any, b: any) => statusOrder[a.status] - statusOrder[b.status])
+  const paidCount = rentStatus.filter((s: any) => s.status === 'paid').length
+
   const secLabel: any = { fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }
   const panel: any = { background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }
   const Tile = ({ label, value, sub, color }: any) => (
@@ -215,17 +231,26 @@ export default function DashboardPage() {
             {/* Utility row: recent activity + quick actions */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
-                <div style={secLabel}>Recent Payments</div>
+                <div style={secLabel}>Rent Status · {monthLabel}</div>
                 <div style={panel}>
-                  {recentPayments.length === 0 ? <div style={{ padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No payments yet.</div> : recentPayments.map(p => (
-                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '0.5px solid var(--border)' }}>
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{p.tenants?.full_name || '—'}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{formatDate(p.paid_date)} · {p.payment_method}</div>
-                      </div>
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--green)' }}>{fm(p.amount_paid)}</div>
-                    </div>
-                  ))}
+                  <div style={{ padding: '9px 14px', borderBottom: '0.5px solid var(--border)', fontSize: '11px', color: 'var(--text3)', fontWeight: 600 }}>{paidCount} of {rentStatus.length} paid this month</div>
+                  {rentStatus.length === 0 ? <div style={{ padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No active tenants.</div> : rentStatus.map((s: any) => {
+                    const ch = stChip[s.status]
+                    return (
+                      <a key={s.id} href={'/tenants/' + s.id} style={{ textDecoration: 'none' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '10px 14px', borderBottom: '0.5px solid var(--border)' }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.where}</div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: s.status === 'paid' ? 'var(--green)' : 'var(--text2)' }}>{s.status === 'paid' ? fm(s.paid) : fm(s.amount)}</div>
+                            <span className={'chip ' + ch.c}>{ch.l}</span>
+                          </div>
+                        </div>
+                      </a>
+                    )
+                  })}
                   <a href='/payments' style={{ display: 'block', padding: '10px 14px', fontSize: '12px', color: 'var(--green)', textDecoration: 'none' }}>View all payments →</a>
                 </div>
               </div>
