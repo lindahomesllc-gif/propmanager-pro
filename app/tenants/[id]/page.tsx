@@ -203,9 +203,9 @@ export default function TenantDetailPage({ params }) {
             {leases.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text3)', fontSize: '13px' }}>No leases found.</div>
             ) : leases.map(l => (
-              <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '0.5px solid var(--border)' }}>
+              <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0 12px 12px', borderBottom: '0.5px solid var(--border)', borderLeft: l.status === 'executed' ? '3px solid var(--green)' : '3px solid transparent' }}>
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{fm(l.rent_amount)}/mo</div>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{fm(l.rent_amount)}/mo {l.status === 'executed' && <span style={{ fontSize: '10px', color: 'var(--green)', fontWeight: 700 }}>· CURRENT</span>}</div>
                   <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{formatDate(l.start_date)} → {formatDate(l.end_date)}</div>
                   <div style={{ display: 'flex', gap: '5px', marginTop: '5px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '10px', padding: '1px 7px', borderRadius: '20px', background: l.status === 'executed' ? 'var(--green-bg)' : 'var(--bg3)', color: l.status === 'executed' ? 'var(--green)' : 'var(--text3)', fontWeight: 600 }}>{l.status?.replace('_', ' ')}</span>

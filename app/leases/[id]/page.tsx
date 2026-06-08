@@ -9,6 +9,9 @@ export default function LeaseDetailPage({ params }) {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const fileRef = useRef(null)
+  const [showRenew, setShowRenew] = useState(false)
+  const [renewing, setRenewing] = useState(false)
+  const [renewForm, setRenewForm] = useState({ start_date: '', end_date: '', rent_amount: '', security_deposit: '' })
 
   useEffect(() => {
     supabase.from('leases').select('*, properties(address, city, state), tenants(full_name, email, phone)')
@@ -36,6 +39,50 @@ export default function LeaseDetailPage({ params }) {
     setUploading(false)
   }
 
+  function addToDate(dateStr, days, months) {
+    if (!dateStr) return ''
+    const d = new Date(dateStr + 'T00:00:00')
+    if (days) d.setDate(d.getDate() + days)
+    if (months) d.setMonth(d.getMonth() + months)
+    return d.toISOString().split('T')[0]
+  }
+  function openRenew() {
+    const start = addToDate(lease.end_date, 1, 0) || new Date().toISOString().split('T')[0]
+    const end = addToDate(start, 0, 12)
+    setRenewForm({ start_date: start, end_date: end, rent_amount: String(lease.rent_amount || ''), security_deposit: String(lease.security_deposit || '') })
+    setShowRenew(true)
+  }
+  async function doRenew() {
+    if (!renewForm.start_date || !renewForm.end_date || !renewForm.rent_amount) { alert('Start date, end date, and rent are required.'); return }
+    setRenewing(true)
+    const l0 = lease
+    // clone the lease into a new term; the cron continues charges at the new rent
+    const { data: created, error: insErr } = await supabase.from('leases').insert({
+      property_id: l0.property_id,
+      unit_id: l0.unit_id || null,
+      tenant_id: l0.tenant_id,
+      rent_amount: parseFloat(renewForm.rent_amount),
+      security_deposit: renewForm.security_deposit ? parseFloat(renewForm.security_deposit) : null,
+      pet_deposit: l0.pet_deposit || 0,
+      start_date: renewForm.start_date,
+      end_date: renewForm.end_date,
+      due_day: l0.due_day,
+      grace_period_days: l0.grace_period_days,
+      late_fee_amount: l0.late_fee_amount,
+      late_fee_type: l0.late_fee_type,
+      lease_type: l0.lease_type,
+      pet_policy: l0.pet_policy,
+      parking_spaces: l0.parking_spaces,
+      special_clauses: l0.special_clauses,
+      status: 'executed',
+    }).select('id').single()
+    if (insErr) { setRenewing(false); alert('Error creating renewal: ' + insErr.message); return }
+    // expire the old term so charges stop and the history reads cleanly
+    await supabase.from('leases').update({ status: 'expired' }).eq('id', l0.id)
+    setRenewing(false)
+    window.location.href = '/leases/' + created.id
+  }
+
   if (loading) return <AppShell><div style={{ padding: '40px', color: 'var(--text3)', textAlign: 'center' }}>Loading...</div></AppShell>
   if (!lease) return <AppShell><div style={{ padding: '40px', color: 'var(--text3)', textAlign: 'center' }}>Lease not found.</div></AppShell>
 
@@ -58,6 +105,7 @@ export default function LeaseDetailPage({ params }) {
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <span style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '20px', background: statusColor + '22', color: statusColor, fontWeight: 600, textTransform: 'uppercase' }}>{l.status.replace(/_/g, ' ')}</span>
+          {l.status === 'executed' && <button onClick={openRenew} className='btn btn-ghost'>♻ Renew</button>}
           <a href={'/leases/' + l.id + '/edit'} className='btn btn-ghost'>Edit</a>
         </div>
       </div>
@@ -143,6 +191,27 @@ export default function LeaseDetailPage({ params }) {
           </div>
         )}
       </div>
+
+      {showRenew && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowRenew(false)}>
+          <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '24px', width: '440px', maxWidth: '92vw' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>Renew Lease</div>
+            <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '16px', lineHeight: 1.5 }}>Creates a new lease term for {l.tenants?.full_name} and marks the current one <strong>Expired</strong>. Monthly rent charges continue automatically at the new amount — no double-billing.</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div><label style={{ ...lbl, display: 'block', marginBottom: '4px' }}>New Start</label><input className='input' type='date' value={renewForm.start_date} onChange={e => setRenewForm(f => ({ ...f, start_date: e.target.value }))} /></div>
+              <div><label style={{ ...lbl, display: 'block', marginBottom: '4px' }}>New End</label><input className='input' type='date' value={renewForm.end_date} onChange={e => setRenewForm(f => ({ ...f, end_date: e.target.value }))} /></div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '18px' }}>
+              <div><label style={{ ...lbl, display: 'block', marginBottom: '4px' }}>New Monthly Rent</label><input className='input' type='number' value={renewForm.rent_amount} onChange={e => setRenewForm(f => ({ ...f, rent_amount: e.target.value }))} /></div>
+              <div><label style={{ ...lbl, display: 'block', marginBottom: '4px' }}>Security Deposit</label><input className='input' type='number' value={renewForm.security_deposit} onChange={e => setRenewForm(f => ({ ...f, security_deposit: e.target.value }))} /></div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowRenew(false)} className='btn btn-ghost'>Cancel</button>
+              <button onClick={doRenew} disabled={renewing} className='btn btn-primary'>{renewing ? 'Renewing…' : '♻ Create Renewal'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   )
 }
