@@ -66,6 +66,13 @@ export default function DashboardPage() {
   leases.forEach(l => { if (l.tenant_id) leaseRentByTenant[l.tenant_id] = (leaseRentByTenant[l.tenant_id] || 0) + (l.rent_amount || 0) })
   const rentByProperty: Record<string, number> = {}
   leases.forEach(l => { if (l.property_id) rentByProperty[l.property_id] = (rentByProperty[l.property_id] || 0) + (l.rent_amount || 0) })
+  // group properties by owning entity (for the vision-board roster) — only group when 2+ entities are in use
+  const propGroups: [string, any[]][] = (() => {
+    const g: Record<string, any[]> = {}
+    properties.forEach((p: any) => { const k = p.owner_entity || 'Unassigned / Self'; (g[k] = g[k] || []).push(p) })
+    return Object.entries(g)
+  })()
+  const groupByEntity = propGroups.length > 1
   const statusOrder: Record<string, number> = { late: 0, due: 1, partial: 1, none: 2, paid: 3 }
   const stChip: Record<string, { c: string; l: string }> = { paid: { c: 'chip-g', l: 'Paid' }, late: { c: 'chip-r', l: 'Late' }, due: { c: 'chip-a', l: 'Due' }, partial: { c: 'chip-a', l: 'Partial' }, none: { c: 'chip-x', l: 'Not charged' } }
   const rentStatus = tenants.map((t: any) => {
@@ -96,6 +103,36 @@ export default function DashboardPage() {
       </div>
     </a>
   )
+  const PropRow = ({ p }: any) => {
+    const pts = tenants.filter((t: any) => t.property_id === p.id)
+    return (
+      <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + (p.occupancy_status === 'occupied' ? 'var(--green)' : 'var(--amber)'), borderRadius: '8px', padding: '12px 14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+          <a href={'/properties/' + p.id} style={{ textDecoration: 'none', minWidth: 0 }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{p.address}</div>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'capitalize' }}>{p.city} · {p.type?.replace(/_/g, ' ')} · {p.bedrooms}bd/{p.bathrooms}ba</div>
+          </a>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--green)' }}>{fm(rentByProperty[p.id] || 0)}<span style={{ fontSize: '10px', fontWeight: 400, color: 'var(--text3)' }}>/mo</span></div>
+              <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{fm((rentByProperty[p.id] || 0) * 12)}/yr</div>
+            </div>
+            <span className={'chip ' + (p.occupancy_status === 'occupied' ? 'chip-g' : 'chip-a')} style={{ textTransform: 'capitalize' }}>{p.occupancy_status}</span>
+          </div>
+        </div>
+        {pts.length > 0 && (
+          <div style={{ marginTop: '8px', borderTop: '0.5px solid var(--border)', paddingTop: '8px', display: 'grid', gap: '6px' }}>
+            {pts.map((t: any) => (
+              <a key={t.id} href={'/tenants/' + t.id} style={{ textDecoration: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>👤 {t.full_name}{t.unit_address ? ' · ' + t.unit_address : ''}</span>
+                <span style={{ fontSize: '12px', color: 'var(--green)', fontWeight: 600, flexShrink: 0 }}>{leaseRentByTenant[t.id] ? fm(leaseRentByTenant[t.id]) + '/mo' : ''}</span>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <AppShell>
@@ -247,40 +284,26 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Properties & Tenants — combined (tenants nested under each property) */}
+            {/* Properties & Tenants — the vision board, grouped by entity when you have 2+ */}
             <div style={secLabel}>🏠 Properties & Tenants</div>
-            <div style={{ display: 'grid', gap: '8px' }}>
-              {properties.length === 0 ? <div style={{ ...panel, padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No properties yet.</div> : properties.map(p => {
-                const pts = tenants.filter((t: any) => t.property_id === p.id)
+            {properties.length === 0 ? (
+              <div style={{ ...panel, padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No properties yet.</div>
+            ) : groupByEntity ? (
+              propGroups.map(([name, props]) => {
+                const grpRent = props.reduce((s: number, p: any) => s + (rentByProperty[p.id] || 0), 0)
                 return (
-                  <div key={p.id} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid ' + (p.occupancy_status === 'occupied' ? 'var(--green)' : 'var(--amber)'), borderRadius: '8px', padding: '12px 14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                      <a href={'/properties/' + p.id} style={{ textDecoration: 'none', minWidth: 0 }}>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{p.address}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'capitalize' }}>{p.city} · {p.type?.replace(/_/g, ' ')} · {p.bedrooms}bd/{p.bathrooms}ba</div>
-                      </a>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--green)' }}>{fm(rentByProperty[p.id] || 0)}<span style={{ fontSize: '10px', fontWeight: 400, color: 'var(--text3)' }}>/mo</span></div>
-                          <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{fm((rentByProperty[p.id] || 0) * 12)}/yr</div>
-                        </div>
-                        <span className={'chip ' + (p.occupancy_status === 'occupied' ? 'chip-g' : 'chip-a')} style={{ textTransform: 'capitalize' }}>{p.occupancy_status}</span>
-                      </div>
+                  <div key={name} style={{ marginBottom: '14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', padding: '0 2px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)' }}>🏛️ {name}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{props.length} propert{props.length === 1 ? 'y' : 'ies'} · {fm(grpRent)}/mo</div>
                     </div>
-                    {pts.length > 0 && (
-                      <div style={{ marginTop: '8px', borderTop: '0.5px solid var(--border)', paddingTop: '8px', display: 'grid', gap: '6px' }}>
-                        {pts.map((t: any) => (
-                          <a key={t.id} href={'/tenants/' + t.id} style={{ textDecoration: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '12px', color: 'var(--text2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>👤 {t.full_name}{t.unit_address ? ' · ' + t.unit_address : ''}</span>
-                            <span style={{ fontSize: '12px', color: 'var(--green)', fontWeight: 600, flexShrink: 0 }}>{leaseRentByTenant[t.id] ? fm(leaseRentByTenant[t.id]) + '/mo' : ''}</span>
-                          </a>
-                        ))}
-                      </div>
-                    )}
+                    <div style={{ display: 'grid', gap: '8px' }}>{props.map((p: any) => <PropRow key={p.id} p={p} />)}</div>
                   </div>
                 )
-              })}
-            </div>
+              })
+            ) : (
+              <div style={{ display: 'grid', gap: '8px' }}>{properties.map((p: any) => <PropRow key={p.id} p={p} />)}</div>
+            )}
           </>
         )}
       </div>
