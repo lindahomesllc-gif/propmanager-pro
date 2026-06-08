@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, USER_ID, formatDate } from '@/lib/supabase'
+import { supabase, formatDate } from '@/lib/supabase'
 
 export default function ScreeningPage() {
   const [applications, setApplications] = useState([])

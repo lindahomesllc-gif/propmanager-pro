@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, USER_ID } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export default function EditLeasePage({ params }) {
   const [saving, setSaving] = useState(false)

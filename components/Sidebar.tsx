@@ -25,7 +25,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { href: '/listings',     label: 'Listings',     icon: '◈' },
       { href: '/applications', label: 'Applications', icon: '◎' },
       { href: '/screening',    label: 'Screening',    icon: '◉' },
-      { href: '/leases',       label: 'E-Sign Leases',icon: '✎' },
+      { href: '/leases',       label: 'Leases',       icon: '✎' },
       { href: '/turnover',     label: 'Turnover',     icon: '↻' },
     ],
   },

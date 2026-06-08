@@ -116,16 +116,19 @@ export default function MessagesPage() {
                 })}
               </div>
 
-              <div style={{ padding: '10px 14px', borderTop: '0.5px solid var(--border)', background: 'var(--bg2)', display: 'flex', gap: '8px' }}>
-                <input
-                  className="input"
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSend()}
-                  placeholder="Type a message…"
-                  style={{ borderRadius: '20px', background: 'var(--bg3)' }}
-                />
-                <button className="btn btn-primary" onClick={handleSend} style={{ fontSize: '11px' }}>Send</button>
+              <div style={{ padding: '10px 14px', borderTop: '0.5px solid var(--border)', background: 'var(--bg2)' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    className="input"
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSend()}
+                    placeholder="Type a message…"
+                    style={{ borderRadius: '20px', background: 'var(--bg3)' }}
+                  />
+                  <button className="btn btn-primary" onClick={handleSend} style={{ fontSize: '11px' }}>Send</button>
+                </div>
+                <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '6px', textAlign: 'center' }}>The tenant sees this in their portal — they aren’t emailed or texted.</div>
               </div>
             </>
           ) : (

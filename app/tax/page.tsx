@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, USER_ID, fm } from '@/lib/supabase'
+import { supabase, fm } from '@/lib/supabase'
 // tax view reflects YOUR share of partly-owned properties (ownership %)
 
 export default function TaxPage() {

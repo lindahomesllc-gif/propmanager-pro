@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, USER_ID, fm, formatDate } from '@/lib/supabase'
+import { supabase, fm, formatDate } from '@/lib/supabase'
 
 export default function ListingsPage() {
   const [listings, setListings] = useState([])

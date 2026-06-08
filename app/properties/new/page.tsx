@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import AppShell from '@/components/AppShell'
-import { supabase, USER_ID } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export default function NewPropertyPage() {
   const router = useRouter()

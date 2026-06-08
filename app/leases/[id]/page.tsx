@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, USER_ID, fm, formatDate } from '@/lib/supabase'
+import { supabase, fm, formatDate } from '@/lib/supabase'
 
 export default function LeaseDetailPage({ params }) {
   const [lease, setLease] = useState(null)

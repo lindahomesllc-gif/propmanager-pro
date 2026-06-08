@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, USER_ID, fm, share, formatDate } from '@/lib/supabase'
+import { supabase, fm, share, formatDate } from '@/lib/supabase'
 import UnitsManager from '@/components/UnitsManager'
 
 export default function PropertyDetailPage({ params }) {
@@ -143,6 +143,7 @@ export default function PropertyDetailPage({ params }) {
                       </div>
                     ))}
                   </div>
+                </div>
                 {p.hoa && (
                   <div style={card}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
@@ -165,7 +166,6 @@ export default function PropertyDetailPage({ params }) {
                     </div>
                   </div>
                 )}
-                </div>
                 {isDuplex && (
                   <div style={card}>
                     <div style={secTtl}>🏘 Units</div>

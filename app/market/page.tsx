@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, USER_ID, fm } from '@/lib/supabase'
+import { supabase, fm } from '@/lib/supabase'
 
 export default function MarketPage() {
   const [properties, setProperties] = useState([])

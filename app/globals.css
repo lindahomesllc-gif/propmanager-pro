@@ -99,10 +99,10 @@ body {
   font-weight: 700;
   white-space: nowrap;
 }
-.chip-g { background: var(--green-bg); color: var(--green); border: 0.5px solid rgba(74,222,154,0.25); }
-.chip-a { background: var(--amber-bg); color: var(--amber); border: 0.5px solid rgba(251,176,64,0.25); }
-.chip-r { background: var(--red-bg);   color: var(--red);   border: 0.5px solid rgba(248,113,113,0.25); }
-.chip-b { background: var(--blue-bg);  color: var(--blue);  border: 0.5px solid rgba(96,165,250,0.25); }
+.chip-g { background: var(--green-bg); color: var(--green); border: 0.5px solid color-mix(in srgb, var(--green) 35%, transparent); }
+.chip-a { background: var(--amber-bg); color: var(--amber); border: 0.5px solid color-mix(in srgb, var(--amber) 35%, transparent); }
+.chip-r { background: var(--red-bg);   color: var(--red);   border: 0.5px solid color-mix(in srgb, var(--red) 35%, transparent); }
+.chip-b { background: var(--blue-bg);  color: var(--blue);  border: 0.5px solid color-mix(in srgb, var(--blue) 35%, transparent); }
 .chip-x { background: var(--bg4);      color: var(--text2); border: 0.5px solid var(--border); }
 
 /* Tables */
