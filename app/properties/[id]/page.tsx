@@ -12,6 +12,7 @@ export default function PropertyDetailPage({ params }) {
   const [payments, setPayments] = useState([])
   const [expenses, setExpenses] = useState([])
   const [mortgages, setMortgages] = useState([])
+  const [leases, setLeases] = useState([])
   const [scheduleFor, setScheduleFor] = useState<any>(null)
   const [showMortgageForm, setShowMortgageForm] = useState(false)
   const [editingMortgage, setEditingMortgage] = useState<any>(null)
@@ -32,12 +33,14 @@ export default function PropertyDetailPage({ params }) {
       supabase.from('payments').select('*').eq('property_id', id).order('due_date', { ascending: false }).limit(10),
       supabase.from('expenses').select('*').eq('property_id', id).order('expense_date', { ascending: false }).limit(10),
       supabase.from('mortgages').select('*, properties(address, city, state)').eq('property_id', id),
-    ]).then(([p, t, pay, exp, mtg]) => {
+      supabase.from('leases').select('rent_amount').eq('property_id', id).eq('status', 'executed'),
+    ]).then(([p, t, pay, exp, mtg, ls]) => {
       setProperty(p.data)
       setTenants(t.data || [])
       setPayments(pay.data || [])
       setExpenses(exp.data || [])
       setMortgages(mtg.data || [])
+      setLeases(ls.data || [])
       setLoading(false)
     })
   }, [params.id])
@@ -64,6 +67,7 @@ export default function PropertyDetailPage({ params }) {
   const totalRent = payments.filter(x => x.status === 'paid').reduce((s, x) => s + (x.amount_paid || 0), 0)
   const totalExp = expenses.reduce((s, x) => s + (x.amount || 0), 0)
   const equity = (p.market_value || 0) - (p.purchase_price || 0)
+  const monthlyRent = leases.reduce((s, l) => s + (l.rent_amount || 0), 0)
   const extra = p.notes ? JSON.parse(p.notes.startsWith('{') ? p.notes : '{}') : {}
   const isDuplex = p.type === 'duplex' || p.type === 'multi_family'
 
@@ -97,6 +101,7 @@ export default function PropertyDetailPage({ params }) {
         </div>
         <div style={{ padding: '12px 20px 16px', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
           <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Market Value</div><div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--green)' }}>{fm(p.market_value)}</div></div>
+          {monthlyRent > 0 && <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Rent Revenue</div><div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--green)' }}>{fm(monthlyRent)}<span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--text3)' }}>/mo</span></div><div style={{ fontSize: '11px', color: 'var(--text3)' }}>{fm(monthlyRent * 12)}/yr</div></div>}
           <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Equity</div><div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--green)' }}>{fm(equity)}</div></div>
           <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Purchased</div><div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', marginTop: '4px' }}>{fm(p.purchase_price)}</div></div>
           {p.bedrooms && <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Beds/Baths</div><div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', marginTop: '4px' }}>{p.bedrooms}bd / {p.bathrooms}ba</div></div>}

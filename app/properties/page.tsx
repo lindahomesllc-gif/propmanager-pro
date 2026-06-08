@@ -12,10 +12,16 @@ export default function PropertiesPage() {
   const [filterEntity, setFilterEntity] = useState('all')
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'cards' | 'table'>('cards')
+  const [rentByProperty, setRentByProperty] = useState<Record<string, number>>({})
 
   useEffect(() => {
     getProperties().then(data => { setProperties(data); setLoading(false) })
     supabase.from('entities').select('id, name').order('name').then(({ data }) => setEntities(data || []))
+    supabase.from('leases').select('property_id, rent_amount').eq('status', 'executed').then(({ data }) => {
+      const m: Record<string, number> = {}
+      ;(data || []).forEach((l: any) => { if (l.property_id) m[l.property_id] = (m[l.property_id] || 0) + (l.rent_amount || 0) })
+      setRentByProperty(m)
+    })
   }, [])
 
   const filtered = filterEntity === 'all' ? properties
@@ -28,6 +34,7 @@ export default function PropertiesPage() {
   const totalEquity = portfolioValue - totalPurchased
   const occupied = filtered.filter(p => p.occupancy_status === 'occupied')
   const vacant = filtered.filter(p => p.occupancy_status === 'vacant')
+  const monthlyRentRoll = filtered.reduce((s, p) => s + (rentByProperty[p.id] || 0), 0)
 
   return (
     <AppShell>
@@ -54,6 +61,7 @@ export default function PropertiesPage() {
             { label: 'Total Properties', value: properties.length, color: 'var(--text)' },
             { label: 'Occupied', value: occupied.length, color: 'var(--green)' },
             { label: 'Vacant', value: vacant.length, color: vacant.length > 0 ? 'var(--amber)' : 'var(--green)' },
+            { label: 'Monthly Rent', value: fm(monthlyRentRoll), color: 'var(--green)' },
             { label: 'Portfolio Value', value: fm(portfolioValue), color: 'var(--text)' },
             { label: 'Total Equity', value: fm(totalEquity), color: 'var(--green)' },
           ].map(mc => (
@@ -100,6 +108,7 @@ export default function PropertiesPage() {
                     </div>
                   </div>
                   <div style={{ padding: '10px 18px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {rentByProperty[p.id] > 0 && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: 'var(--green-bg)', color: 'var(--green)', border: '0.5px solid var(--green)', fontWeight: 600 }}>💰 {fm(rentByProperty[p.id])}/mo · {fm(rentByProperty[p.id] * 12)}/yr</span>}
                     {p.bedrooms && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--text2)', border: '0.5px solid var(--border)' }}>{p.bedrooms}bd / {p.bathrooms}ba</span>}
                     {p.sqft && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--text2)', border: '0.5px solid var(--border)' }}>{p.sqft.toLocaleString()} sqft</span>}
                     {p.year_built && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--text2)', border: '0.5px solid var(--border)' }}>Built {p.year_built}</span>}
@@ -118,7 +127,7 @@ export default function PropertiesPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ borderBottom: '0.5px solid var(--border)' }}>
-                  {['Address', 'Type', 'Ownership', 'Purchase Price', 'Market Value', 'Equity', 'Status'].map(h => (
+                  {['Address', 'Type', 'Ownership', 'Purchase Price', 'Market Value', 'Equity', 'Rent/mo', 'Status'].map(h => (
                     <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)' }}>{h}</th>
                   ))}
                 </tr>
@@ -137,6 +146,7 @@ export default function PropertiesPage() {
                     <td style={{ padding: '10px 14px', color: 'var(--text)' }}>{fm(p.purchase_price)}</td>
                     <td style={{ padding: '10px 14px', color: 'var(--green)', fontWeight: 600 }}>{fm(p.market_value)}</td>
                     <td style={{ padding: '10px 14px', color: (p.market_value || 0) - (p.purchase_price || 0) >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>{fm((p.market_value || 0) - (p.purchase_price || 0))}</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--green)', fontWeight: 600 }}>{fm(rentByProperty[p.id] || 0)}</td>
                     <td style={{ padding: '10px 14px' }}><span className={'chip ' + (p.occupancy_status === 'occupied' ? 'chip-g' : 'chip-a')} style={{ textTransform: 'capitalize' }}>{p.occupancy_status}</span></td>
                   </tr>
                 ))}
