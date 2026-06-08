@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, fm, formatDate } from '@/lib/supabase'
+import AmortizationModal from '@/components/AmortizationModal'
 
 export default function MortgagePage() {
   const [mortgages, setMortgages] = useState([])
@@ -10,6 +11,7 @@ export default function MortgagePage() {
   const [showAdd, setShowAdd] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [scheduleFor, setScheduleFor] = useState<any>(null)
   const [form, setForm] = useState({
     property_id: '', lender_name: '', loan_number: '',
     original_amount: '', current_balance: '', interest_rate: '',
@@ -169,9 +171,13 @@ export default function MortgagePage() {
                 </div>
               ))}
             </div>
+            <div style={{ marginTop: '12px' }}>
+              <button onClick={() => setScheduleFor(m)} className='btn btn-ghost' style={{ fontSize: '12px' }}>📅 Amortization Schedule</button>
+            </div>
           </div>
         ))}
       </div>
+      {scheduleFor && <AmortizationModal mortgage={scheduleFor} onClose={() => setScheduleFor(null)} />}
     </AppShell>
   )
 }
