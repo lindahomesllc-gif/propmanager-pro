@@ -4,6 +4,7 @@ import AppShell from '@/components/AppShell'
 import { supabase, fm, share, formatDate } from '@/lib/supabase'
 import UnitsManager from '@/components/UnitsManager'
 import AmortizationModal from '@/components/AmortizationModal'
+import MortgageFormModal from '@/components/MortgageFormModal'
 
 export default function PropertyDetailPage({ params }) {
   const [property, setProperty] = useState(null)
@@ -12,6 +13,12 @@ export default function PropertyDetailPage({ params }) {
   const [expenses, setExpenses] = useState([])
   const [mortgages, setMortgages] = useState([])
   const [scheduleFor, setScheduleFor] = useState<any>(null)
+  const [showMortgageForm, setShowMortgageForm] = useState(false)
+  const [editingMortgage, setEditingMortgage] = useState<any>(null)
+  const onMortgageSaved = (row: any, isEdit: boolean) => {
+    setMortgages((prev: any) => isEdit ? prev.map((x: any) => x.id === row.id ? row : x) : [...prev, row])
+    setShowMortgageForm(false)
+  }
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('overview')
   const [uploading, setUploading] = useState(false)
@@ -286,7 +293,7 @@ export default function PropertyDetailPage({ params }) {
                 <a href={'/mortgage'} className='btn btn-ghost'>Manage</a>
               </div>
               {mortgages.length === 0 ? (
-                <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No mortgage on this property. <a href='/mortgage' style={{ color: 'var(--green)', textDecoration: 'none' }}>+ Add one</a></div>
+                <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No mortgage on this property. <span onClick={() => { setEditingMortgage(null); setShowMortgageForm(true) }} style={{ color: 'var(--green)', cursor: 'pointer', fontWeight: 600 }}>+ Add one</span></div>
               ) : mortgages.map(m => (
                 <div key={m.id} style={{ background: 'var(--bg3)', borderRadius: '8px', padding: '14px', marginBottom: '8px', borderLeft: '3px solid ' + (m.is_paid_off ? 'var(--green)' : 'var(--blue)') }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -305,7 +312,7 @@ export default function PropertyDetailPage({ params }) {
                   </div>
                   <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
                     <button onClick={() => setScheduleFor(m)} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 10px' }}>📅 Amortization</button>
-                    <a href='/mortgage' className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 10px' }}>Edit</a>
+                    <button onClick={() => { setEditingMortgage(m); setShowMortgageForm(true) }} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 10px' }}>Edit</button>
                   </div>
                 </div>
               ))}
@@ -436,6 +443,7 @@ export default function PropertyDetailPage({ params }) {
 
       </div>
       {scheduleFor && <AmortizationModal mortgage={scheduleFor} onClose={() => setScheduleFor(null)} />}
+      {showMortgageForm && <MortgageFormModal mortgage={editingMortgage} properties={[{ id: p.id, address: p.address }]} lockProperty onClose={() => setShowMortgageForm(false)} onSaved={onMortgageSaved} />}
     </AppShell>
   )
 }
