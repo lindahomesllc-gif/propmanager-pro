@@ -74,6 +74,18 @@ export default function DashboardPage() {
     return Object.entries(g)
   })()
   const groupByEntity = propGroups.length > 1
+
+  // 📅 This Month — dated events in the current month (forward-looking)
+  const monthAbbr = monthNames[curMonthIdx]
+  const monthEvents: any[] = []
+  leases.forEach((l: any) => { if (l.end_date?.startsWith(thisMonth)) monthEvents.push({ date: l.end_date, icon: '📋', label: 'Lease ends — ' + (l.tenants?.full_name || l.properties?.address || ''), href: '/leases/' + l.id, color: 'var(--amber)' }) })
+  properties.forEach((p: any) => {
+    if (p.insurance_expires?.startsWith(thisMonth)) monthEvents.push({ date: p.insurance_expires, icon: '🛡', label: 'Insurance renews — ' + p.address, href: '/properties/' + p.id, color: 'var(--blue)' })
+    if (p.tax_due_date?.startsWith(thisMonth)) monthEvents.push({ date: p.tax_due_date, icon: '🧾', label: 'Property tax due — ' + p.address, href: '/properties/' + p.id, color: 'var(--red)' })
+  })
+  maintenance.forEach((m: any) => { if (m.scheduled_date?.startsWith(thisMonth)) monthEvents.push({ date: m.scheduled_date, icon: '🔧', label: (m.title || 'Maintenance') + ' — ' + (m.properties?.address || ''), href: '/maintenance/' + m.id, color: 'var(--blue)' }) })
+  mortgages.forEach((m: any) => { if (m.due_day) monthEvents.push({ date: thisMonth + '-' + String(m.due_day).padStart(2, '0'), icon: '🏦', label: 'Loan payment — ' + (m.properties?.address || ''), href: '/mortgage', color: 'var(--text2)' }) })
+  monthEvents.sort((a, b) => a.date.localeCompare(b.date))
   const statusOrder: Record<string, number> = { late: 0, due: 1, partial: 1, none: 2, paid: 3 }
   const stChip: Record<string, { c: string; l: string }> = { paid: { c: 'chip-g', l: 'Paid' }, late: { c: 'chip-r', l: 'Late' }, due: { c: 'chip-a', l: 'Due' }, partial: { c: 'chip-a', l: 'Partial' }, none: { c: 'chip-x', l: 'Not charged' } }
   const rentStatus = tenants.map((t: any) => {
@@ -195,6 +207,26 @@ export default function DashboardPage() {
                 {maintenance.map(m => <AlertCard key={'m' + m.id} href={'/maintenance/' + m.id} color={m.priority === 'emergency' ? 'var(--red)' : m.priority === 'high' ? 'var(--amber)' : 'var(--blue)'} title={'🔧 ' + m.title} sub={(m.priority || 'open') + ' · ' + (m.properties?.address || '')} />)}
                 {expiringLeases.map(l => <AlertCard key={'l' + l.id} href={'/leases/' + l.id} color='var(--amber)' title={'Lease Expiring — ' + (l.tenants?.full_name || 'Tenant')} sub={'Expires ' + formatDate(l.end_date) + ' · ' + (l.properties?.address || '')} />)}
                 {vacant.map(p => <AlertCard key={'v' + p.id} href={'/properties/' + p.id} color='var(--amber)' title={'Vacant — ' + p.address} sub={(p.city || '') + ' · needs a tenant'} />)}
+              </div>
+            )}
+
+            {/* 📅 This Month — dated events (forward-looking complement to Needs Attention) */}
+            <div style={secLabel}>📅 This Month · {monthLabel}</div>
+            {monthEvents.length === 0 ? (
+              <div style={{ ...panel, padding: '16px', textAlign: 'center', color: 'var(--text3)', fontSize: '13px', marginBottom: '20px' }}>Nothing scheduled this month.</div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px,1fr))', gap: '8px', marginBottom: '20px' }}>
+                {monthEvents.map((e: any, i: number) => (
+                  <a key={i} href={e.href} style={{ textDecoration: 'none' }}>
+                    <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '11px', padding: '9px 12px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--bg3)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '0.5px solid var(--border)' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 800, color: e.color, lineHeight: 1 }}>{Number(e.date.slice(8, 10))}</div>
+                        <div style={{ fontSize: '8px', color: 'var(--text3)', textTransform: 'uppercase', marginTop: '1px' }}>{monthAbbr}</div>
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text)', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.icon} {e.label}</div>
+                    </div>
+                  </a>
+                ))}
               </div>
             )}
 
