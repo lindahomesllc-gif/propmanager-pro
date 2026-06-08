@@ -1,0 +1,24 @@
+# dependencies
+/node_modules
+
+# next.js build output
+/.next/
+/out/
+/build
+
+# local env files (never commit secrets or local dummies)
+.env
+.env*.local
+
+# vercel
+.vercel
+
+# next typegen (auto-generated)
+next-env.d.ts
+
+# misc
+.DS_Store
+*.pem
+*.log
+npm-debug.log*
+*.tsbuildinfo
