@@ -3,12 +3,15 @@ import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, fm, share, formatDate } from '@/lib/supabase'
 import UnitsManager from '@/components/UnitsManager'
+import AmortizationModal from '@/components/AmortizationModal'
 
 export default function PropertyDetailPage({ params }) {
   const [property, setProperty] = useState(null)
   const [tenants, setTenants] = useState([])
   const [payments, setPayments] = useState([])
   const [expenses, setExpenses] = useState([])
+  const [mortgages, setMortgages] = useState([])
+  const [scheduleFor, setScheduleFor] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('overview')
   const [uploading, setUploading] = useState(false)
@@ -21,11 +24,13 @@ export default function PropertyDetailPage({ params }) {
       supabase.from('tenants').select('*').eq('property_id', id).order('unit_address', { ascending: true }),
       supabase.from('payments').select('*').eq('property_id', id).order('due_date', { ascending: false }).limit(10),
       supabase.from('expenses').select('*').eq('property_id', id).order('expense_date', { ascending: false }).limit(10),
-    ]).then(([p, t, pay, exp]) => {
+      supabase.from('mortgages').select('*, properties(address, city, state)').eq('property_id', id),
+    ]).then(([p, t, pay, exp, mtg]) => {
       setProperty(p.data)
       setTenants(t.data || [])
       setPayments(pay.data || [])
       setExpenses(exp.data || [])
+      setMortgages(mtg.data || [])
       setLoading(false)
     })
   }, [params.id])
@@ -277,10 +282,33 @@ export default function PropertyDetailPage({ params }) {
             </div>
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <div style={secTtl}>🏦 Mortgage</div>
-                <a href={'/mortgage'} className='btn btn-ghost'>Manage Mortgages</a>
+                <div style={secTtl}>🏦 Mortgage{mortgages.length > 1 ? 's' : ''}</div>
+                <a href={'/mortgage'} className='btn btn-ghost'>Manage</a>
               </div>
-              <div style={{ fontSize: '13px', color: 'var(--text3)' }}>View and manage mortgage details in the Mortgage section.</div>
+              {mortgages.length === 0 ? (
+                <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No mortgage on this property. <a href='/mortgage' style={{ color: 'var(--green)', textDecoration: 'none' }}>+ Add one</a></div>
+              ) : mortgages.map(m => (
+                <div key={m.id} style={{ background: 'var(--bg3)', borderRadius: '8px', padding: '14px', marginBottom: '8px', borderLeft: '3px solid ' + (m.is_paid_off ? 'var(--green)' : 'var(--blue)') }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{m.lender_name || 'Lender'} {m.is_paid_off && <span style={{ fontSize: '10px', color: 'var(--green)', fontWeight: 700 }}>· PAID OFF</span>}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px', textTransform: 'capitalize' }}>{m.loan_type} · {m.term_years}yr · {m.interest_rate}%</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '17px', fontWeight: 700, color: m.is_paid_off ? 'var(--green)' : 'var(--text)' }}>{fm(m.current_balance)}</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text3)' }}>balance</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '11px', color: 'var(--text3)' }}>
+                    <span>Pmt {fm(m.monthly_payment)}/mo</span>
+                    <span>Orig {fm(m.original_amount)}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
+                    <button onClick={() => setScheduleFor(m)} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 10px' }}>📅 Amortization</button>
+                    <a href='/mortgage' className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 10px' }}>Edit</a>
+                  </div>
+                </div>
+              ))}
             </div>
           </>
         )}
@@ -407,6 +435,7 @@ export default function PropertyDetailPage({ params }) {
         )}
 
       </div>
+      {scheduleFor && <AmortizationModal mortgage={scheduleFor} onClose={() => setScheduleFor(null)} />}
     </AppShell>
   )
 }
