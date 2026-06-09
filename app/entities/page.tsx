@@ -126,7 +126,10 @@ export default function EntitiesPage() {
                   {counts[e.id] || 0} propert{counts[e.id] === 1 ? 'y' : 'ies'}{e.ein ? ' · EIN ' + e.ein : ''}
                 </div>
                 {e.notes && <div style={{ fontSize: '12px', color: 'var(--text2)', marginTop: '8px', lineHeight: 1.5 }}>{e.notes}</div>}
-                <div style={{ display: 'flex', gap: '6px', marginTop: '12px' }}>
+                <div style={{ display: 'flex', gap: '6px', marginTop: '12px', flexWrap: 'wrap' }}>
+                  {(counts[e.id] || 0) > 0 && (
+                    <a href={'/properties?entity=' + e.id} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 12px' }}>🏠 Properties →</a>
+                  )}
                   <button onClick={() => openEdit(e)} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 12px' }}>Edit</button>
                   <button onClick={() => setDocEntity(e)} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 12px' }}>📄 Docs{(e.doc_urls || []).length ? ' (' + e.doc_urls.length + ')' : ''}</button>
                   <button onClick={() => del(e)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '5px 12px', fontSize: '11px', cursor: 'pointer', marginLeft: 'auto' }}>Delete</button>

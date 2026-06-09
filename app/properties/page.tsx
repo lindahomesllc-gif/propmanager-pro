@@ -15,6 +15,8 @@ export default function PropertiesPage() {
   const [rentByProperty, setRentByProperty] = useState<Record<string, number>>({})
 
   useEffect(() => {
+    const ent = new URLSearchParams(window.location.search).get('entity')
+    if (ent) setFilterEntity(ent)
     getProperties().then(data => { setProperties(data); setLoading(false) })
     supabase.from('entities').select('id, name').order('name').then(({ data }) => setEntities(data || []))
     supabase.from('leases').select('property_id, rent_amount').eq('status', 'executed').then(({ data }) => {
