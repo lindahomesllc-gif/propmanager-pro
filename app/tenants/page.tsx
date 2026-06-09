@@ -34,14 +34,20 @@ export default function TenantsPage() {
     const pc = payCount || 0, lc = leaseCount || 0
     if (pc > 0 || lc > 0) {
       const ok = confirm(
-        name + ' has ' + pc + ' payment' + (pc === 1 ? '' : 's') + ' and ' + lc + ' lease' + (lc === 1 ? '' : 's') + ' on record.\n\n' +
-        'Deleting would orphan that history. The safe option is to mark them as Past (keeps all records).\n\n' +
-        'OK = mark as Past (recommended)\nCancel = do nothing'
+        'Permanently delete ' + name + '?\n\n' +
+        'This also deletes their ' + pc + ' payment' + (pc === 1 ? '' : 's') + ' and ' + lc + ' lease' + (lc === 1 ? '' : 's') + '. This cannot be undone.\n\n' +
+        'OK = delete everything (use for test or mistaken entries)\n' +
+        'Cancel = keep them (to retire without deleting, set their status to “Past” on the edit page)'
       )
       if (!ok) return
-      const { error } = await supabase.from('tenants').update({ status: 'past', move_out_date: new Date().toISOString().split('T')[0] }).eq('id', id)
+      // scoped cleanup — only THIS tenant's own records, then the tenant
+      await supabase.from('payments').delete().eq('tenant_id', id)
+      await supabase.from('leases').delete().eq('tenant_id', id)
+      await supabase.from('messages').delete().eq('tenant_id', id)
+      await supabase.from('maintenance').update({ tenant_id: null }).eq('tenant_id', id)
+      const { error } = await supabase.from('tenants').delete().eq('id', id)
       if (error) { alert('Error: ' + error.message); return }
-      setTenants(prev => prev.map(t => t.id === id ? { ...t, status: 'past' } : t))
+      setTenants(prev => prev.filter(t => t.id !== id))
       return
     }
     if (!confirm('Delete ' + name + '? This cannot be undone.')) return
