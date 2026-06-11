@@ -48,6 +48,13 @@ export default function TenantDetailPage({ params }) {
     })
   }, [params.id])
 
+  async function deletePayment(id) {
+    if (!confirm('Delete this payment? This cannot be undone.')) return
+    const { error } = await supabase.from('payments').delete().eq('id', id)
+    if (error) { alert('Error: ' + error.message); return }
+    setPayments(prev => prev.filter(p => p.id !== id))
+  }
+
   async function uploadDoc(e) {
     const file = e.target.files[0]
     if (!file) return
@@ -180,14 +187,18 @@ export default function TenantDetailPage({ params }) {
             {payments.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text3)', fontSize: '13px' }}>No payments recorded yet.</div>
             ) : payments.map(p => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '0.5px solid var(--border)' }}>
-                <div>
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: '0.5px solid var(--border)' }}>
+                <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)' }}>Due {formatDate(p.due_date)}</div>
                   <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{p.payment_method?.replace('_', ' ') || '—'}{p.paid_date ? ' · Paid ' + formatDate(p.paid_date) : ''}{p.notes ? ' · ' + p.notes : ''}</div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: p.status === 'paid' ? 'var(--green)' : p.status === 'late' ? 'var(--red)' : 'var(--amber)' }}>{fm(p.amount_paid)}</div>
-                  <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '20px', background: p.status === 'paid' ? 'var(--green-bg)' : p.status === 'late' ? 'var(--red-bg)' : 'var(--amber-bg)', color: p.status === 'paid' ? 'var(--green)' : p.status === 'late' ? 'var(--red)' : 'var(--amber)', fontWeight: 600 }}>{p.status}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: p.status === 'paid' ? 'var(--green)' : p.status === 'late' ? 'var(--red)' : 'var(--amber)' }}>{fm(p.amount_paid)}</div>
+                    <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '20px', background: p.status === 'paid' ? 'var(--green-bg)' : p.status === 'late' ? 'var(--red-bg)' : 'var(--amber-bg)', color: p.status === 'paid' ? 'var(--green)' : p.status === 'late' ? 'var(--red)' : 'var(--amber)', fontWeight: 600 }}>{p.status}</span>
+                  </div>
+                  <a href={'/payments?edit=' + p.id} title='Edit' style={{ background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '7px', padding: '4px 10px', fontSize: '11px', cursor: 'pointer', textDecoration: 'none' }}>Edit</a>
+                  <button onClick={() => deletePayment(p.id)} title='Delete' style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '4px 10px', fontSize: '11px', cursor: 'pointer' }}>Delete</button>
                 </div>
               </div>
             ))}

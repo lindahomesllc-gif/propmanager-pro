@@ -6,12 +6,15 @@ import { supabase, fm, formatDate } from '@/lib/supabase'
 export default function PaymentsPage() {
   const [payments, setPayments] = useState([])
   const [tenants, setTenants] = useState([])
+  const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState('all')
+  const [filterTenant, setFilterTenant] = useState('all')
+  const [filterProperty, setFilterProperty] = useState('all')
   const [view, setView] = useState('list')
   const [leases, setLeases] = useState([])
   const [form, setForm] = useState({
@@ -25,12 +28,22 @@ export default function PaymentsPage() {
     Promise.all([
       supabase.from('payments').select('*, tenants(full_name), properties(address)').order('due_date', { ascending: false }),
       supabase.from('tenants').select('id, full_name, property_id, properties(address)').eq('status', 'active'),
-    ]).then(([p, t]) => {
-      setPayments(p.data || [])
+      supabase.from('properties').select('id, address').order('address'),
+    ]).then(([p, t, pr]) => {
+      const pdata = p.data || []
+      setPayments(pdata)
       const tdata = t.data || []
       setTenants(tdata)
-      const tid = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tenant_id') : null
-      if (tid) { setForm(f => ({ ...f, tenant_id: tid })); setShowForm(true) }
+      setProperties(pr.data || [])
+      const sp = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+      const tid = sp?.get('tenant_id') || null
+      const eid = sp?.get('edit') || null
+      if (eid) {
+        const target = pdata.find(x => x.id === eid)
+        if (target) openEdit(target)
+      } else if (tid) {
+        setForm(f => ({ ...f, tenant_id: tid })); setShowForm(true); setFilterTenant(tid)
+      }
       setLoading(false)
     })
   }, [])
@@ -116,7 +129,11 @@ export default function PaymentsPage() {
   const statusColor = (s) => ({ paid: 'var(--green)', late: 'var(--red)', partial: 'var(--amber)', due: 'var(--amber)', upcoming: 'var(--blue)', waived: 'var(--text3)' }[s] || 'var(--text3)')
   const chipClass = (s) => ({ paid: 'chip-g', late: 'chip-r', partial: 'chip-a', due: 'chip-a', upcoming: 'chip-b', waived: 'chip-x' }[s] || 'chip-x')
 
-  const filtered = filter === 'all' ? payments : payments.filter(p => p.status === filter)
+  const filtered = payments.filter(p =>
+    (filter === 'all' || p.status === filter) &&
+    (filterTenant === 'all' || p.tenant_id === filterTenant) &&
+    (filterProperty === 'all' || p.property_id === filterProperty)
+  )
 
   const summary = {
     paid: payments.filter(p => p.status === 'paid').reduce((s, p) => s + (p.amount_paid || 0), 0),
@@ -157,10 +174,23 @@ export default function PaymentsPage() {
           </button>
         ))}
       </div>
-      <div style={{ display: 'flex', gap: '6px', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '6px', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexWrap: 'wrap', alignItems: 'center' }}>
         {['all', 'paid', 'due', 'late', 'partial', 'upcoming', 'waived'].map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '20px', border: '0.5px solid var(--border2)', background: filter === f ? 'var(--green)' : 'transparent', color: filter === f ? '#fff' : 'var(--text2)', cursor: 'pointer', fontWeight: filter === f ? 700 : 400, textTransform: 'capitalize' }}>{f}</button>
         ))}
+        <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto', alignItems: 'center', flexWrap: 'wrap' }}>
+          <select value={filterTenant} onChange={e => setFilterTenant(e.target.value)} style={{ ...inp, width: 'auto', padding: '5px 9px', fontSize: '12px' }}>
+            <option value='all'>All tenants</option>
+            {tenants.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+          </select>
+          <select value={filterProperty} onChange={e => setFilterProperty(e.target.value)} style={{ ...inp, width: 'auto', padding: '5px 9px', fontSize: '12px' }}>
+            <option value='all'>All properties</option>
+            {properties.map(pr => <option key={pr.id} value={pr.id}>{pr.address}</option>)}
+          </select>
+          {(filterTenant !== 'all' || filterProperty !== 'all' || filter !== 'all') && (
+            <button onClick={() => { setFilter('all'); setFilterTenant('all'); setFilterProperty('all') }} style={{ padding: '5px 10px', fontSize: '11px', borderRadius: '7px', border: '0.5px solid var(--border2)', background: 'transparent', color: 'var(--text3)', cursor: 'pointer' }}>✕ Clear</button>
+          )}
+        </div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
