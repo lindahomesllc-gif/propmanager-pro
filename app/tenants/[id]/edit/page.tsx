@@ -85,6 +85,7 @@ export default function EditTenantPage({ params }) {
   async function save() {
     setError('')
     if (!form.full_name) { setError('Name is required'); return }
+    if (addLease && !form.rent_amount) { setError('Enter the monthly rent — or uncheck the lease.'); return }
     const wantLease = addLease && form.rent_amount
     if (wantLease && (!form.start_date || !form.end_date)) { setError('A lease needs both a start and end date.'); return }
     setSaving(true)
@@ -114,7 +115,12 @@ export default function EditTenantPage({ params }) {
 
     // keep unit occupancy in sync when the assignment changed
     if (units.length > 0 && form.unit_id !== origUnitId) {
-      if (origUnitId) await supabase.from('units').update({ status: 'vacant' }).eq('id', origUnitId)
+      if (origUnitId) {
+        // only free the old unit if no other active tenant still lives there (shared rooms / co-tenants)
+        const { count } = await supabase.from('tenants').select('id', { count: 'exact', head: true })
+          .eq('unit_id', origUnitId).eq('status', 'active').neq('id', params.id)
+        if (!count) await supabase.from('units').update({ status: 'vacant' }).eq('id', origUnitId)
+      }
       if (form.unit_id) await supabase.from('units').update({ status: 'occupied' }).eq('id', form.unit_id)
     }
 

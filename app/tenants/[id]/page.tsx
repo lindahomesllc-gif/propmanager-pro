@@ -75,7 +75,7 @@ export default function TenantDetailPage({ params }) {
 
   const t = tenant
   const activeLease = leases.find(l => l.status === 'executed')
-  const totalPaid = payments.filter(p => p.status === 'paid').reduce((s, p) => s + p.amount_paid, 0)
+  const totalPaid = payments.filter(p => p.status === 'paid').reduce((s, p) => s + (p.amount_paid || 0), 0)
   const initials = t.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   const statusColor = t.status === 'active' ? 'var(--green)' : 'var(--text3)'
   const statusBg = t.status === 'active' ? 'var(--green-bg)' : 'var(--bg3)'

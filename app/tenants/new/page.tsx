@@ -51,8 +51,9 @@ export default function NewTenantPage() {
     setError('')
     if (!form.full_name) { setError('Name is required'); return }
     if (!form.property_id) { setError('Please select a property'); return }
-    if (addLease && form.rent_amount) {
-      if (!form.start_date || !form.end_date) { setError('A lease needs both a start and end date — or turn off "Create a lease" below.'); return }
+    if (addLease) {
+      if (!form.rent_amount) { setError('Enter the monthly rent — or uncheck “Create a lease now”.'); return }
+      if (!form.start_date || !form.end_date) { setError('A lease needs both a start and end date — or uncheck “Create a lease now”.'); return }
     }
     setSaving(true)
     const { data: tenant, error: err } = await supabase.from('tenants').insert({
