@@ -15,6 +15,24 @@ const STATUSES: { v: string; label: string; chip: string }[] = [
 ]
 const statusMeta = (v: string) => STATUSES.find(s => s.v === v) || STATUSES[0]
 
+// Curated tap-to-add palette — neutrals, warm woods/brass, sage, coastal blues, terracotta.
+const PRESET_COLORS = [
+  '#ffffff', '#f5f1ea', '#e8e0d2', '#d8c8b0', '#c2b09a', '#a98e6e', '#8a6d4b', '#5c4630',
+  '#1a1a18', '#3a3a36', '#6b6b64', '#9a9a92', '#c9c7be',
+  '#e7ece6', '#b9c9be', '#8e9890', '#5e7468', '#2e4034',
+  '#dce6e8', '#afc6ca', '#859fa0', '#4f6f75', '#26383c',
+  '#f3e6d8', '#e6c9a8', '#c99a5b', '#b5924e', '#8c6a3a',
+  '#f0dede', '#d9a9a9', '#b56b6b',
+]
+const normalizeHex = (s: string): string | null => {
+  let h = (s || '').trim().toLowerCase()
+  if (!h) return null
+  if (h[0] !== '#') h = '#' + h
+  if (/^#[0-9a-f]{6}$/.test(h)) return h
+  if (/^#[0-9a-f]{3}$/.test(h)) return '#' + h.slice(1).split('').map(c => c + c).join('')
+  return null
+}
+
 const emptyFinish = { id: '', room_id: '', category: 'Tile', name: '', brand: '', color_hex: '', material: '', dimensions: '', price: '', qty: '', actual_cost: '', supplier: '', supplier_url: '', image_url: '', status: 'idea', notes: '' }
 
 export default function DesignProjectPage({ params }: { params: { id: string } }) {
@@ -42,6 +60,10 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const [finishFilter, setFinishFilter] = useState('')
   const [copied, setCopied] = useState(false)
   const [uploadingFor, setUploadingFor] = useState('') // roomId or 'finish' or 'cover'
+  const [colorPicker, setColorPicker] = useState<{ roomId: string | null } | null>(null)
+  const [suggested, setSuggested] = useState<{ roomId: string | null; colors: string[] } | null>(null)
+  const [extracting, setExtracting] = useState('')
+  const [hexInput, setHexInput] = useState('')
   const finishFileRef = useRef<HTMLInputElement>(null)
 
   async function load() {
@@ -165,8 +187,46 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
     setUploadingFor(''); load()
   }
   async function addColor(roomId: string | null, hex: string) {
-    await supabase.from('design_items').insert({ project_id: pid, room_id: roomId, kind: 'color', color_hex: hex, sort_order: items.length })
+    const h = normalizeHex(hex) || hex
+    await supabase.from('design_items').insert({ project_id: pid, room_id: roomId, kind: 'color', color_hex: h, sort_order: items.length })
     load()
+  }
+  function loadImg(src: string): Promise<HTMLImageElement> {
+    return new Promise((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = () => rej(new Error('load')); i.src = src })
+  }
+  // Sample dominant colors from images (downscaled to a canvas, frequency-bucketed).
+  async function extractColors(urls: string[], k = 6): Promise<string[]> {
+    const buckets = new Map<string, { c: number; r: number; g: number; b: number }>()
+    for (const url of urls) {
+      let img: HTMLImageElement
+      try { img = await loadImg(url) } catch { continue }
+      const w = 80, h = Math.max(1, Math.round(80 * (img.height || 1) / (img.width || 1)))
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h
+      const ctx = cv.getContext('2d'); if (!ctx) continue
+      ctx.drawImage(img, 0, 0, w, h)
+      let data: Uint8ClampedArray
+      try { data = ctx.getImageData(0, 0, w, h).data } catch { continue } // tainted (CORS) → skip
+      for (let i = 0; i < data.length; i += 12) {
+        const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3]
+        if (a < 200) continue
+        if (r > 245 && g > 245 && b > 245) continue // near-white
+        if (r < 12 && g < 12 && b < 12) continue    // near-black
+        const key = (r >> 5) + '-' + (g >> 5) + '-' + (b >> 5)
+        const e = buckets.get(key) || { c: 0, r: 0, g: 0, b: 0 }
+        e.c++; e.r += r; e.g += g; e.b += b; buckets.set(key, e)
+      }
+    }
+    const cols = [...buckets.values()].sort((a, b) => b.c - a.c).map(e => ({ r: Math.round(e.r / e.c), g: Math.round(e.g / e.c), b: Math.round(e.b / e.c) }))
+    const picked: { r: number; g: number; b: number }[] = []
+    for (const c of cols) { if (picked.every(p => Math.abs(p.r - c.r) + Math.abs(p.g - c.g) + Math.abs(p.b - c.b) > 48)) picked.push(c); if (picked.length >= k) break }
+    return picked.map(c => '#' + [c.r, c.g, c.b].map(x => x.toString(16).padStart(2, '0')).join(''))
+  }
+  async function suggestFromPhotos(roomId: string | null) {
+    const urls = items.filter(i => i.kind === 'inspiration' && (i.room_id || null) === (roomId || null) && i.image_url).map(i => i.image_url)
+    if (!urls.length) { setSuggested({ roomId, colors: [] }); return }
+    setExtracting(roomId || 'whole'); setSuggested(null)
+    const cols = await extractColors(urls, 6)
+    setExtracting(''); setSuggested({ roomId, colors: cols })
   }
   async function deleteItem(id: string) {
     await supabase.from('design_items').delete().eq('id', id)
@@ -333,15 +393,44 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                       </div>
 
                       {/* colors */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
-                        {colors.map(c => (
-                          <div key={c.id} title={c.color_hex} onClick={() => { if (confirm('Remove this swatch?')) deleteItem(c.id) }} style={{ width: '34px', height: '34px', borderRadius: '8px', background: c.color_hex || '#ccc', border: '1px solid var(--border2)', cursor: 'pointer' }} />
-                        ))}
-                        <label style={{ width: '34px', height: '34px', borderRadius: '8px', border: '1px dashed var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text3)', fontSize: '16px', position: 'relative' }} title='Add color swatch'>
-                          +
-                          <input type='color' style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} onChange={e => addColor(b.id, e.target.value)} />
-                        </label>
-                        <span style={{ fontSize: '11px', color: 'var(--text3)' }}>palette</span>
+                      <div style={{ marginTop: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          {colors.map(c => (
+                            <div key={c.id} title={c.color_hex + ' — click to remove'} onClick={() => { if (confirm('Remove this swatch?')) deleteItem(c.id) }} style={{ width: '34px', height: '34px', borderRadius: '8px', background: c.color_hex || '#ccc', border: '1px solid var(--border2)', cursor: 'pointer' }} />
+                          ))}
+                          <button onClick={() => { setColorPicker(colorPicker?.roomId === b.id ? null : { roomId: b.id }); setSuggested(null); setHexInput('') }} style={{ width: '34px', height: '34px', borderRadius: '8px', border: '1px dashed var(--border2)', background: colorPicker?.roomId === b.id ? 'var(--green-bg)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text3)', fontSize: '16px' }} title='Add color'>＋</button>
+                          <span style={{ fontSize: '11px', color: 'var(--text3)' }}>palette</span>
+                        </div>
+
+                        {colorPicker?.roomId === b.id && (
+                          <div style={{ marginTop: '10px', padding: '12px 14px', background: 'var(--bg3)', border: '0.5px solid var(--border)', borderRadius: '10px', maxWidth: '420px' }}>
+                            <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '8px' }}>Tap a color to add it</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                              {PRESET_COLORS.map(hex => (
+                                <button key={hex} onClick={() => addColor(b.id, hex)} title={hex} style={{ width: '26px', height: '26px', borderRadius: '6px', background: hex, border: '1px solid var(--border2)', cursor: 'pointer', padding: 0 }} />
+                              ))}
+                            </div>
+
+                            <div style={{ borderTop: '0.5px solid var(--border)', marginTop: '12px', paddingTop: '10px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                <button onClick={() => suggestFromPhotos(b.id)} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 10px' }}>{extracting === (b.id || 'whole') ? 'Reading photos…' : '🎨 Pull from photos'}</button>
+                                {suggested?.roomId === b.id && suggested.colors.map(hex => (
+                                  <button key={hex} onClick={() => addColor(b.id, hex)} title={hex + ' — tap to add'} style={{ width: '26px', height: '26px', borderRadius: '6px', background: hex, border: '2px solid var(--green)', cursor: 'pointer', padding: 0 }} />
+                                ))}
+                                {suggested?.roomId === b.id && suggested.colors.length === 0 && <span style={{ fontSize: '11px', color: 'var(--text3)' }}>Add some photos to this room first.</span>}
+                              </div>
+                            </div>
+
+                            <div style={{ borderTop: '0.5px solid var(--border)', marginTop: '12px', paddingTop: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <input value={hexInput} onChange={e => setHexInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { const h = normalizeHex(hexInput); if (h) { addColor(b.id, h); setHexInput('') } } }} placeholder='#hex' style={{ width: '92px', padding: '6px 9px', fontSize: '12px', border: '0.5px solid var(--border2)', borderRadius: '6px', background: 'var(--bg2)', color: 'var(--text)', outline: 'none' }} />
+                              <button onClick={() => { const h = normalizeHex(hexInput); if (h) { addColor(b.id, h); setHexInput('') } }} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 10px' }}>Add</button>
+                              <label style={{ width: '30px', height: '30px', borderRadius: '7px', border: '0.5px solid var(--border2)', background: 'var(--bg2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '13px', position: 'relative' }} title='Custom color'>🎨
+                                <input type='color' style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} onChange={e => addColor(b.id, e.target.value)} />
+                              </label>
+                              <button onClick={() => setColorPicker(null)} className='btn btn-ghost' style={{ marginLeft: 'auto', fontSize: '11px', padding: '5px 10px' }}>Done</button>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* inspiration */}
