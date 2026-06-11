@@ -92,7 +92,7 @@ export default function DesignPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))', gap: '12px' }}>
             {visible.map(p => (
               <div key={p.id} onClick={() => router.push('/design/' + p.id)} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
-                <div style={{ height: '110px', background: p.cover_image_url ? `center/cover no-repeat url(${p.cover_image_url})` : 'linear-gradient(135deg, var(--green-bg), var(--bg4))', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '8px' }}>
+                <div style={{ height: '110px', background: p.cover_image_url ? `center/cover no-repeat url(${p.cover_image_url})` : 'linear-gradient(120deg, #0EA5A5, #38BDF8 55%, #FB7185)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '8px' }}>
                   {!p.cover_image_url && <div style={{ position: 'absolute', fontSize: '30px', opacity: 0.4, alignSelf: 'center', width: '100%', textAlign: 'center', pointerEvents: 'none' }}>🏠</div>}
                   <div style={{ display: 'flex', gap: '5px', marginLeft: 'auto' }}>
                     {p.share_enabled && <span className='chip chip-g' style={{ fontSize: '9px' }}>🔗 Shared</span>}

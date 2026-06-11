@@ -24,6 +24,8 @@ const PRESET_COLORS = [
   '#f3e6d8', '#e6c9a8', '#c99a5b', '#b5924e', '#8c6a3a',
   '#f0dede', '#d9a9a9', '#b56b6b',
 ]
+// Rotating accent colors (Coastal palette) for room cards.
+const ROOM_ACCENTS = ['#0EA5A5', '#38BDF8', '#FB7185', '#F4C77B', '#5DCAA5', '#A78BFA']
 // One-click area templates — create a whole suite of rooms at once.
 const ROOM_TEMPLATES: { label: string; area: string; rooms: string[] }[] = [
   { label: 'Master Suite', area: 'Master Suite', rooms: ['Bedroom', 'Bath', 'Closet'] },
@@ -457,8 +459,8 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const tabBtn = (t: string, label: string) => (
     <button onClick={() => setTab(t as any)} style={{
       padding: '7px 14px', fontSize: '12.5px', fontWeight: tab === t ? 700 : 500, cursor: 'pointer',
-      background: 'transparent', border: 'none', color: tab === t ? 'var(--green)' : 'var(--text2)',
-      borderBottom: tab === t ? '2px solid var(--green)' : '2px solid transparent', fontFamily: 'inherit',
+      background: tab === t ? 'var(--green-bg)' : 'transparent', border: 'none', color: tab === t ? 'var(--green)' : 'var(--text2)',
+      borderBottom: tab === t ? '2px solid var(--green)' : '2px solid transparent', borderRadius: '8px 8px 0 0', fontFamily: 'inherit',
     }}>{label}</button>
   )
 
@@ -520,9 +522,9 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                     const collapsed = collapsedAreas.has(b.area)
                     return (
                       <div key={'area:' + b.area} onClick={() => setCollapsedAreas(prev => { const n = new Set(prev); n.has(b.area) ? n.delete(b.area) : n.add(b.area); return n })}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '6px 2px 5px', borderBottom: '2px solid var(--green)', marginTop: '4px' }}>
-                        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>{collapsed ? '▸' : '▾'} {b.area}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{b.count} room{b.count === 1 ? '' : 's'}{b.sqft ? ' · ' + b.sqft + ' sq ft' : ''}</div>
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '10px 14px', borderRadius: '10px', marginTop: '4px', border: '0.5px solid var(--border)', background: 'linear-gradient(100deg, rgba(14,165,165,0.16), rgba(56,189,248,0.10) 55%, rgba(251,113,133,0.14))' }}>
+                        <div className='design-grad-text' style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700 }}>{collapsed ? '▸' : '▾'} {b.area}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text2)' }}>{b.count} room{b.count === 1 ? '' : 's'}{b.sqft ? ' · ' + b.sqft + ' sq ft' : ''}</div>
                       </div>
                     )
                   }
@@ -532,6 +534,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                   if (!b.room && colors.length === 0 && inspo.length === 0 && roomFinishes.length === 0) return null
                   return (
                     <div key={b.id || 'whole'} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '16px 18px', marginLeft: b.room?.area ? '14px' : 0 }}>
+                      <div style={{ height: '4px', borderRadius: '12px 12px 0 0', margin: '-16px -18px 14px', background: b.room ? ROOM_ACCENTS[Math.max(0, rooms.findIndex(r => r.id === b.id)) % ROOM_ACCENTS.length] : '#94A3B8' }} />
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
                         <div>
                           <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>{b.room ? b.room.name : '🏠 Whole-home'}{b.room?.sqft ? <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text3)' }}> · {b.room.sqft} sq ft</span> : ''}</div>
