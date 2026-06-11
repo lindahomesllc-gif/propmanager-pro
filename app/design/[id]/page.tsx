@@ -24,6 +24,15 @@ const PRESET_COLORS = [
   '#f3e6d8', '#e6c9a8', '#c99a5b', '#b5924e', '#8c6a3a',
   '#f0dede', '#d9a9a9', '#b56b6b',
 ]
+// One-click area templates — create a whole suite of rooms at once.
+const ROOM_TEMPLATES: { label: string; area: string; rooms: string[] }[] = [
+  { label: 'Master Suite', area: 'Master Suite', rooms: ['Bedroom', 'Bath', 'Closet'] },
+  { label: 'Guest Suite', area: 'Guest Suite', rooms: ['Bedroom', 'Bath', 'Closet'] },
+  { label: 'Kitchen + Pantry', area: 'Kitchen', rooms: ['Kitchen', 'Pantry'] },
+  { label: 'Main Living', area: 'Main Living', rooms: ['Living Room', 'Dining Room', 'Entry'] },
+  { label: 'Powder + Laundry', area: 'Utility', rooms: ['Powder Room', 'Laundry'] },
+  { label: 'Outdoor', area: 'Outdoor', rooms: ['Patio', 'Pool'] },
+]
 const normalizeHex = (s: string): string | null => {
   let h = (s || '').trim().toLowerCase()
   if (!h) return null
@@ -59,6 +68,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const [roomModal, setRoomModal] = useState<any>(null)
   const [detailFinish, setDetailFinish] = useState<any>(null)
   const [lightbox, setLightbox] = useState('')
+  const [collapsedAreas, setCollapsedAreas] = useState<Set<string>>(new Set())
   const [settingsModal, setSettingsModal] = useState<any>(null)
   const [noteText, setNoteText] = useState('')
   const [finishFilter, setFinishFilter] = useState('')
@@ -99,13 +109,27 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
 
   // ---------- rooms ----------
   async function saveRoom() {
-    if (!roomModal?.name?.trim()) return
-    const payload = { name: roomModal.name.trim(), feel: roomModal.feel?.trim() || null, sqft: roomModal.sqft === '' || roomModal.sqft == null ? null : Number(roomModal.sqft) }
+    const num = (v: any) => v === '' || v == null ? null : Number(v)
+    const area = (roomModal.area || '').trim() || null
     if (roomModal.id) {
-      await supabase.from('design_rooms').update(payload).eq('id', roomModal.id)
+      if (!roomModal.name?.trim()) return
+      await supabase.from('design_rooms').update({ name: roomModal.name.trim(), feel: roomModal.feel?.trim() || null, sqft: num(roomModal.sqft), area }).eq('id', roomModal.id)
     } else {
-      await supabase.from('design_rooms').insert({ ...payload, project_id: pid, sort_order: rooms.length })
+      // adding — allow several names at once, comma-separated
+      const names = (roomModal.name || '').split(',').map((s: string) => s.trim()).filter(Boolean)
+      if (!names.length) return
+      const base = rooms.length
+      await supabase.from('design_rooms').insert(names.map((name: string, i: number) => ({
+        project_id: pid, name, area, sort_order: base + i,
+        feel: i === 0 ? (roomModal.feel?.trim() || null) : null,
+        sqft: i === 0 ? num(roomModal.sqft) : null,
+      })))
     }
+    setRoomModal(null); load()
+  }
+  async function applyTemplate(t: { area: string; rooms: string[] }) {
+    const base = rooms.length
+    await supabase.from('design_rooms').insert(t.rooms.map((name, i) => ({ project_id: pid, name, area: t.area, sort_order: base + i })))
     setRoomModal(null); load()
   }
   async function deleteRoom(r: any) {
@@ -300,8 +324,31 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const finishes = items.filter(i => i.kind === 'finish')
   const latestApprovalByItem: Record<string, any> = {}
   approvals.forEach(a => { if (a.item_id && !latestApprovalByItem[a.item_id]) latestApprovalByItem[a.item_id] = a })
-  const buckets = [...rooms.map(r => ({ id: r.id, room: r })), { id: null as any, room: null }]
+  // Group rooms under Areas (e.g. Master Suite). Build a flat render list that
+  // interleaves area headers with their room buckets, honoring collapse state.
+  const roomsByArea: Record<string, any[]> = {}
+  const areaOrder: string[] = []
+  rooms.forEach(r => { const a = (r.area || '').trim(); if (!(a in roomsByArea)) { roomsByArea[a] = []; areaOrder.push(a) } roomsByArea[a].push(r) })
+  const existingAreas = areaOrder.filter(Boolean)
+  const buckets: any[] = []
+  areaOrder.forEach(area => {
+    const rs = roomsByArea[area]
+    if (area) {
+      buckets.push({ type: 'area', area, count: rs.length, sqft: rs.reduce((s, r) => s + (Number(r.sqft) || 0), 0) })
+      if (!collapsedAreas.has(area)) rs.forEach(r => buckets.push({ id: r.id, room: r }))
+    } else {
+      rs.forEach(r => buckets.push({ id: r.id, room: r }))
+    }
+  })
+  buckets.push({ id: null as any, room: null })
   const itemsIn = (roomId: string | null, kind: string) => items.filter(i => i.kind === kind && (i.room_id || null) === (roomId || null))
+  // <option>s for room <select>s — grouped under <optgroup> by area.
+  const roomOptions = () => areaOrder.map(area => {
+    const rs = roomsByArea[area]
+    return area
+      ? <optgroup key={area} label={area}>{rs.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</optgroup>
+      : rs.map(r => <option key={r.id} value={r.id}>{r.name}</option>)
+  })
 
   // ---------- budget & ROI ----------
   // Cost basis: by area when sq ft is set (tile/flooring), otherwise by quantity.
@@ -385,15 +432,25 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
               <div style={{ display: 'grid', gap: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ fontSize: '12px', color: 'var(--text3)' }}>Capture the feel of each room — colors, materials, and inspiration photos.</div>
-                  <button onClick={() => setRoomModal({ name: '', feel: '' })} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 12px' }}>+ Add Room</button>
+                  <button onClick={() => setRoomModal({ name: '', feel: '', area: '' })} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 12px' }}>+ Add Room</button>
                 </div>
                 {buckets.map(b => {
+                  if (b.type === 'area') {
+                    const collapsed = collapsedAreas.has(b.area)
+                    return (
+                      <div key={'area:' + b.area} onClick={() => setCollapsedAreas(prev => { const n = new Set(prev); n.has(b.area) ? n.delete(b.area) : n.add(b.area); return n })}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '6px 2px 5px', borderBottom: '2px solid var(--green)', marginTop: '4px' }}>
+                        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>{collapsed ? '▸' : '▾'} {b.area}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{b.count} room{b.count === 1 ? '' : 's'}{b.sqft ? ' · ' + b.sqft + ' sq ft' : ''}</div>
+                      </div>
+                    )
+                  }
                   const colors = itemsIn(b.id, 'color')
                   const inspo = itemsIn(b.id, 'inspiration')
                   const roomFinishes = finishes.filter(f => (f.room_id || null) === (b.id || null))
                   if (!b.room && colors.length === 0 && inspo.length === 0 && roomFinishes.length === 0) return null
                   return (
-                    <div key={b.id || 'whole'} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '16px 18px' }}>
+                    <div key={b.id || 'whole'} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '16px 18px', marginLeft: b.room?.area ? '14px' : 0 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
                         <div>
                           <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>{b.room ? b.room.name : '🏠 Whole-home'}{b.room?.sqft ? <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text3)' }}> · {b.room.sqft} sq ft</span> : ''}</div>
@@ -482,7 +539,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', gap: '10px', flexWrap: 'wrap' }}>
                   <select value={finishFilter} onChange={e => setFinishFilter(e.target.value)} style={{ ...inp, width: 'auto', minWidth: '160px' }}>
                     <option value=''>All rooms</option>
-                    {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                    {roomOptions()}
                     <option value='__none'>Whole-home / Unassigned</option>
                   </select>
                   <button onClick={() => openFinish(finishFilter && finishFilter !== '__none' ? finishFilter : null)} className='btn btn-primary' style={{ fontSize: '11px', padding: '6px 12px' }}>+ Add Finish</button>
@@ -769,7 +826,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                 <label style={lbl}>Room</label>
                 <select style={inp} value={finishModal.room_id} onChange={e => setFinishModal((m: any) => ({ ...m, room_id: e.target.value }))}>
                   <option value=''>Whole-home / Unassigned</option>
-                  {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  {roomOptions()}
                 </select>
               </div>
             </div>
@@ -928,10 +985,28 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
       {roomModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setRoomModal(null)}>
           <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '24px', width: '420px' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>{roomModal.id ? 'Edit Room' : 'Add Room'}</div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>{roomModal.id ? 'Edit Room' : 'Add Rooms'}</div>
+
+            {!roomModal.id && (
+              <div style={{ marginBottom: '16px', padding: '12px 14px', background: 'var(--green-bg)', border: '0.5px solid var(--border)', borderRadius: '9px' }}>
+                <div style={{ ...lbl, color: 'var(--green-dk)' }}>⚡ Quick start — add a whole area</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {ROOM_TEMPLATES.map(t => (
+                    <button key={t.label} onClick={() => applyTemplate(t)} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 10px', background: 'var(--bg2)' }} title={t.area + ': ' + t.rooms.join(', ')}>+ {t.label}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div style={{ marginBottom: '12px' }}>
-              <label style={lbl}>Room name *</label>
-              <input style={inp} placeholder='e.g. Primary Bath, Kitchen, Living Room' value={roomModal.name} onChange={e => setRoomModal((m: any) => ({ ...m, name: e.target.value }))} />
+              <label style={lbl}>Area / grouping</label>
+              <input style={inp} list='area-list' placeholder='e.g. Master Suite (optional — groups rooms)' value={roomModal.area || ''} onChange={e => setRoomModal((m: any) => ({ ...m, area: e.target.value }))} />
+              <datalist id='area-list'>{existingAreas.map(a => <option key={a} value={a} />)}</datalist>
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={lbl}>Room name{roomModal.id ? ' *' : 's *'}</label>
+              <input style={inp} placeholder={roomModal.id ? 'e.g. Primary Bath' : 'e.g. Bedroom, Bath, Closet (commas add several)'} value={roomModal.name} onChange={e => setRoomModal((m: any) => ({ ...m, name: e.target.value }))} />
+              {!roomModal.id && <div style={{ fontSize: '10.5px', color: 'var(--text3)', marginTop: '4px' }}>Separate with commas to add several rooms at once.</div>}
             </div>
             <div style={{ marginBottom: '12px' }}>
               <label style={lbl}>The feel / vibe</label>
