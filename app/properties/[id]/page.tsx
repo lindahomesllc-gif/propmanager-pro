@@ -4,6 +4,7 @@ import AppShell from '@/components/AppShell'
 import { supabase, fm, share, formatDate, loanTypeLabel } from '@/lib/supabase'
 import UnitsManager from '@/components/UnitsManager'
 import AssetsManager from '@/components/AssetsManager'
+import PaintManager from '@/components/PaintManager'
 import AmortizationModal from '@/components/AmortizationModal'
 import MortgageFormModal from '@/components/MortgageFormModal'
 
@@ -81,8 +82,8 @@ export default function PropertyDetailPage({ params }) {
   const secTtl = { fontSize: '13px', fontWeight: 700, color: 'var(--text)', marginBottom: '14px' }
   const lbl = { fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }
   const val = { fontSize: '13px', fontWeight: 500, color: 'var(--text)', marginTop: '2px' }
-  const tabs = ['overview', 'units', 'appliances', 'financials', 'insurance', 'utilities', 'documents']
-  const tabLabels = { overview: 'Overview', units: 'Units & Rooms', appliances: 'Appliances & Systems', financials: 'Financials', insurance: 'Insurance & Tax', utilities: 'Utilities & Schools', documents: 'Documents' }
+  const tabs = ['overview', 'units', 'appliances', 'paint', 'financials', 'insurance', 'utilities', 'documents']
+  const tabLabels = { overview: 'Overview', units: 'Units & Rooms', appliances: 'Appliances & Systems', paint: 'Paint & Materials', financials: 'Financials', insurance: 'Insurance & Tax', utilities: 'Utilities & Schools', documents: 'Documents' }
 
   return (
     <AppShell>
@@ -275,6 +276,8 @@ export default function PropertyDetailPage({ params }) {
         {tab === 'units' && <UnitsManager propertyId={p.id} tenants={tenants} />}
 
         {tab === 'appliances' && <AssetsManager propertyId={p.id} />}
+
+        {tab === 'paint' && <PaintManager propertyId={p.id} />}
 
         {tab === 'financials' && (
           <>
