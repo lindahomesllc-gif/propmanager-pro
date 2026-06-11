@@ -56,9 +56,10 @@ export default function DesignPage() {
 
   return (
     <AppShell>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Design Studio</div>
-        <button onClick={openAdd} className='btn btn-primary'>+ New Project</button>
+      <div className='design-theme' style={{ display: 'contents' }}>
+      <div className='design-grad' style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', flexShrink: 0 }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '17px', fontWeight: 700, color: '#fff' }}>🎨 Design Studio</div>
+        <button onClick={openAdd} style={{ background: '#fff', color: '#0B7E7E', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>+ New Project</button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
@@ -138,6 +139,7 @@ export default function DesignPage() {
           </div>
         </div>
       )}
+      </div>
     </AppShell>
   )
 }

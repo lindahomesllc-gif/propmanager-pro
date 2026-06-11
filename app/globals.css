@@ -144,6 +144,17 @@ body {
 .input:focus { border-color: var(--green); }
 .input::placeholder { color: var(--text3); }
 
+/* ---- Design Studio theme: vibrant "Coastal" accent, scoped to /design + /share ---- */
+.design-theme { --green: #0E9C9C; --green-dk: #0B7E7E; --green-bg: rgba(14,156,156,0.12); }
+/* keep status/approval chips their semantic green (approved = green, not brand teal) */
+.design-theme .chip-g { --green: #2D6A4F; --green-bg: rgba(45,106,79,0.10); }
+.design-grad { background: linear-gradient(100deg, #0EA5A5, #38BDF8 55%, #FB7185); }
+.design-grad-text {
+  background: linear-gradient(100deg, #0E9C9C, #2563EB 50%, #E0457B);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+
 /* ---- Mobile responsiveness (desktop unaffected) ---- */
 .mobile-bar { display: none; }
 .sidebar-overlay { display: none; }

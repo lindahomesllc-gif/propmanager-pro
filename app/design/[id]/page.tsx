@@ -470,13 +470,15 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
 
   return (
     <AppShell>
+      <div className='design-theme' style={{ display: 'contents' }}>
+      <div className='design-grad' style={{ height: '5px', flexShrink: 0 }} />
       {/* header */}
       <div style={{ padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>
             <a href='/design' style={{ fontSize: '11px', color: 'var(--text3)', textDecoration: 'none' }}>← Design Studio</a>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '17px', fontWeight: 700, color: 'var(--text)' }}>{project?.name || '…'}</div>
+              <div className='design-grad-text' style={{ fontFamily: 'Syne, sans-serif', fontSize: '17px', fontWeight: 700 }}>{project?.name || '…'}</div>
               {project?.status === 'archived' && <span className='chip chip-x'>Archived</span>}
               {project?.share_enabled && <span className='chip chip-g'>🔗 Shared</span>}
             </div>
@@ -1263,6 +1265,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
           </div>
         </div>
       )}
+      </div>
     </AppShell>
   )
 }
