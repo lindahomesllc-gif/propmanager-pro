@@ -65,7 +65,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const [approvals, setApprovals] = useState<any[]>([])
   const [properties, setProperties] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'moodboard' | 'finishes' | 'budget' | 'decisions' | 'share'>('moodboard')
+  const [tab, setTab] = useState<'moodboard' | 'concept' | 'finishes' | 'budget' | 'decisions' | 'share'>('moodboard')
   const [notFound, setNotFound] = useState(false)
 
   // modals / editors
@@ -420,6 +420,18 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   finishes.forEach(f => { if (f.option_group) (optionGroups[f.option_group] = optionGroups[f.option_group] || []).push(f) })
   const existingGroups = Object.keys(optionGroups)
   const decisionGroups = Object.entries(optionGroups).filter(([, fs]) => fs.length >= 2)
+  // Whole-home cohesion (Concept view): the full color story + recurring materials/brands.
+  const allSwatches = Array.from(new Set([
+    ...items.filter(i => i.kind === 'color' && i.color_hex).map(i => i.color_hex),
+    ...finishes.map(f => f.color_hex).filter(Boolean),
+  ]))
+  const tally = (key: string) => {
+    const m: Record<string, number> = {}
+    finishes.forEach(f => { const v = (f[key] || '').trim(); if (v) m[v] = (m[v] || 0) + 1 })
+    return Object.entries(m).filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1])
+  }
+  const recurringMaterials = tally('material')
+  const recurringBrands = tally('brand')
   // Every photo already uploaded to this project — for the "reuse a photo" picker.
   const allProjectPhotos: string[] = Array.from(new Set([
     ...items.filter(i => i.kind === 'inspiration' && i.image_url).map(i => i.image_url),
@@ -521,6 +533,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
         {project?.style_summary && <div style={{ fontSize: '12px', color: 'var(--text2)', marginTop: '8px', fontStyle: 'italic', maxWidth: '720px' }}>“{project.style_summary}”</div>}
         <div style={{ display: 'flex', gap: '4px', marginTop: '10px', borderBottom: '0', marginBottom: '-12px' }}>
           {tabBtn('moodboard', '🖼 Moodboard')}
+          {tabBtn('concept', '✨ Concept')}
           {tabBtn('finishes', '🧱 Finishes' + (finishes.length ? ' (' + finishes.length + ')' : ''))}
           {tabBtn('budget', '💰 Budget & ROI')}
           {tabBtn('decisions', '📝 Decisions')}
@@ -643,6 +656,72 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                 {rooms.length === 0 && (
                   <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text3)', fontSize: '13px' }}>Add a room to start building the moodboard.</div>
                 )}
+              </div>
+            )}
+
+            {/* ============ CONCEPT (whole-home overview) ============ */}
+            {tab === 'concept' && (
+              <div style={{ display: 'grid', gap: '22px', maxWidth: '900px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text3)' }}>The whole home at a glance — see if the color story, materials and selections flow together. Doubles as a concept board to show a client.</div>
+
+                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '18px 20px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '8px' }}>The vision</div>
+                  {project.style_summary
+                    ? <div style={{ fontSize: '15px', color: 'var(--text)', fontStyle: 'italic', lineHeight: 1.6 }}>“{project.style_summary}”</div>
+                    : <div style={{ fontSize: '13px', color: 'var(--text3)' }}>Add an overall style in ⚙ Settings to anchor the concept.</div>}
+                </div>
+
+                {allSwatches.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '10px' }}>Whole-home palette</div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {allSwatches.map(h => <div key={h} title={h} onClick={() => navigator.clipboard?.writeText(h)} style={{ width: '46px', height: '46px', borderRadius: '10px', background: h, border: '1px solid var(--border2)', cursor: 'pointer' }} />)}
+                    </div>
+                  </div>
+                )}
+
+                {(recurringMaterials.length > 0 || recurringBrands.length > 0) && (
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '10px' }}>Recurring elements <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--text3)' }}>— what ties the home together</span></div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {recurringMaterials.map(([m, n]) => <span key={'m' + m} style={{ fontSize: '12px', padding: '5px 11px', borderRadius: '8px', background: 'var(--green-bg)', color: 'var(--green-dk)', fontWeight: 600 }}>{m} · ×{n}</span>)}
+                      {recurringBrands.map(([b, n]) => <span key={'b' + b} style={{ fontSize: '12px', padding: '5px 11px', borderRadius: '8px', background: 'var(--bg3)', color: 'var(--text2)', fontWeight: 600 }}>{b} · ×{n}</span>)}
+                    </div>
+                  </div>
+                )}
+
+                {buckets.filter((b: any) => !b.type).map((b: any) => {
+                  const swatches = itemsIn(b.id, 'color')
+                  const roomFins = finishes.filter(f => (f.room_id || null) === (b.id || null))
+                  if (!b.room && swatches.length === 0 && roomFins.length === 0) return null
+                  return (
+                    <div key={b.id || 'whole'} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '16px 18px' }}>
+                      <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>{b.room ? b.room.name : '🏠 Whole-home'}{b.room?.area ? <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text3)' }}> · {b.room.area}</span> : ''}</div>
+                      {b.room?.feel && <div style={{ fontSize: '12px', color: 'var(--text2)', marginTop: '3px' }}>{b.room.feel}</div>}
+                      {swatches.length > 0 && (
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
+                          {swatches.map(c => <div key={c.id} title={c.color_hex} style={{ width: '28px', height: '28px', borderRadius: '7px', background: c.color_hex, border: '1px solid var(--border2)' }} />)}
+                        </div>
+                      )}
+                      {roomFins.length > 0 && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px,1fr))', gap: '8px', marginTop: '12px' }}>
+                          {roomFins.map(f => {
+                            const cover = finishImages(f)[0]
+                            const dim = f.status === 'rejected'
+                            return (
+                              <div key={f.id} onClick={() => setDetailFinish(f)} style={{ borderRadius: '8px', overflow: 'hidden', border: f.status === 'approved' ? '2px solid var(--green)' : '0.5px solid var(--border)', cursor: 'pointer', opacity: dim ? 0.45 : 1 }}>
+                                <div style={{ height: '80px', background: cover ? 'var(--bg3)' : (f.color_hex || 'var(--bg3)') }}>
+                                  {cover && <img src={cover} alt='' style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+                                </div>
+                                <div style={{ padding: '6px 8px', fontSize: '10.5px', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.status === 'approved' ? '✓ ' : ''}{f.name}</div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
 
