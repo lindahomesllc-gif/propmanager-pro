@@ -483,7 +483,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
       <div className='design-theme' style={{ display: 'contents' }}>
       <div className='design-grad' style={{ height: '5px', flexShrink: 0 }} />
       {/* header */}
-      <div style={{ padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'linear-gradient(100deg, rgba(14,165,165,0.16), rgba(56,189,248,0.09) 55%, rgba(251,113,133,0.14))', flexShrink: 0 }}>
+      <div style={{ padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>
             <a href='/design' style={{ fontSize: '11px', color: 'var(--text3)', textDecoration: 'none' }}>← Design Studio</a>
