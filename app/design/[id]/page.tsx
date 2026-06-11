@@ -51,7 +51,7 @@ const normalizeHex = (s: string): string | null => {
   return null
 }
 
-const emptyFinish = { id: '', room_id: '', category: 'Tile', name: '', brand: '', color_hex: '', material: '', dimensions: '', price: '', qty: '', sqft: '', actual_cost: '', supplier: '', supplier_url: '', image_url: '', images: [] as string[], docs: [] as { name: string; url: string }[], status: 'idea', notes: '' }
+const emptyFinish = { id: '', room_id: '', category: 'Tile', name: '', brand: '', color_hex: '', material: '', dimensions: '', price: '', qty: '', sqft: '', actual_cost: '', supplier: '', supplier_url: '', image_url: '', images: [] as string[], docs: [] as { name: string; url: string }[], option_group: '', status: 'idea', notes: '' }
 // A finish's photos: gallery (image_urls) if present, else the legacy single image_url.
 const finishImages = (f: any): string[] => (Array.isArray(f?.image_urls) && f.image_urls.length ? f.image_urls : (f?.image_url ? [f.image_url] : []))
 
@@ -81,6 +81,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const [lightbox, setLightbox] = useState('')
   const [collapsedAreas, setCollapsedAreas] = useState<Set<string>>(new Set())
   const [photoPicker, setPhotoPicker] = useState<{ mode: 'finish' | 'room'; roomId?: string | null } | null>(null)
+  const [compareGroup, setCompareGroup] = useState<string>('')
   const [settingsModal, setSettingsModal] = useState<any>(null)
   const [noteText, setNoteText] = useState('')
   const [finishFilter, setFinishFilter] = useState('')
@@ -169,7 +170,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   // ---------- finishes ----------
   function openFinish(roomId: string | null, existing?: any) {
     setFinishErr(''); setImportUrl(''); setImportImg('')
-    if (existing) setFinishModal({ ...emptyFinish, ...existing, price: existing.price ?? '', qty: existing.qty ?? '', sqft: existing.sqft ?? '', actual_cost: existing.actual_cost ?? '', images: finishImages(existing), docs: Array.isArray(existing.docs) ? existing.docs : [], room_id: existing.room_id || '' })
+    if (existing) setFinishModal({ ...emptyFinish, ...existing, price: existing.price ?? '', qty: existing.qty ?? '', sqft: existing.sqft ?? '', actual_cost: existing.actual_cost ?? '', images: finishImages(existing), docs: Array.isArray(existing.docs) ? existing.docs : [], option_group: existing.option_group || '', room_id: existing.room_id || '' })
     else setFinishModal({ ...emptyFinish, images: [], room_id: roomId || '' })
   }
   async function importFromUrl() {
@@ -205,6 +206,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
       price: numOrNull(finishModal.price), qty: numOrNull(finishModal.qty), sqft: numOrNull(finishModal.sqft), actual_cost: numOrNull(finishModal.actual_cost),
       supplier: finishModal.supplier?.trim() || null, supplier_url: finishModal.supplier_url?.trim() || null,
       image_url: imgs[0] || null, image_urls: imgs, docs: Array.isArray(finishModal.docs) ? finishModal.docs : [],
+      option_group: finishModal.option_group?.trim() || null,
       status: finishModal.status || 'idea', notes: finishModal.notes?.trim() || null,
     }
     if (finishModal.id) {
@@ -260,6 +262,15 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
     await supabase.from('design_items').update({ status }).eq('id', it.id)
     await logActivity(it.name + ': ' + statusMeta(it.status).label + ' → ' + statusMeta(status).label, 'status', it.id)
     load()
+  }
+  // Pick one option in a comparison group: approve it, mark the others rejected, log it.
+  async function pickOption(group: string, chosenId: string) {
+    const fs = finishes.filter(f => f.option_group === group)
+    await Promise.all(fs.map(f => supabase.from('design_items').update({ status: f.id === chosenId ? 'approved' : 'rejected' }).eq('id', f.id)))
+    const chosen = fs.find(f => f.id === chosenId)
+    const others = fs.filter(f => f.id !== chosenId).map(f => f.name).filter(Boolean)
+    await logActivity('Chose “' + (chosen?.name || '') + '” for ' + group + (others.length ? ' (over ' + others.join(', ') + ')' : ''), 'decision')
+    setCompareGroup(''); load()
   }
 
   // ---------- inspiration & color ----------
@@ -404,6 +415,11 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
 
   // ---------- derived ----------
   const finishes = items.filter(i => i.kind === 'finish')
+  // Option-comparison groups: finishes tagged with the same decision slot.
+  const optionGroups: Record<string, any[]> = {}
+  finishes.forEach(f => { if (f.option_group) (optionGroups[f.option_group] = optionGroups[f.option_group] || []).push(f) })
+  const existingGroups = Object.keys(optionGroups)
+  const decisionGroups = Object.entries(optionGroups).filter(([, fs]) => fs.length >= 2)
   // Every photo already uploaded to this project — for the "reuse a photo" picker.
   const allProjectPhotos: string[] = Array.from(new Set([
     ...items.filter(i => i.kind === 'inspiration' && i.image_url).map(i => i.image_url),
@@ -641,6 +657,22 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                   </select>
                   <button onClick={() => openFinish(finishFilter && finishFilter !== '__none' ? finishFilter : null)} className='btn btn-primary' style={{ fontSize: '11px', padding: '6px 12px' }}>+ Add Finish</button>
                 </div>
+                {decisionGroups.length > 0 && (
+                  <div style={{ marginBottom: '16px', display: 'grid', gap: '8px' }}>
+                    {decisionGroups.map(([g, fs]) => {
+                      const picked = fs.find((f: any) => f.status === 'approved')
+                      return (
+                        <div key={g} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '11px 14px', background: 'var(--green-bg)', border: '0.5px solid var(--border)', borderRadius: '10px' }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>⚖ {g}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{fs.length} options{picked ? ' · picked: ' + picked.name : ' · no pick yet'}</div>
+                          </div>
+                          <button onClick={() => setCompareGroup(g)} className='btn btn-primary' style={{ fontSize: '11px', padding: '6px 12px', flexShrink: 0 }}>Compare &amp; decide</button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
                 {finishes.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>
                     <div style={{ fontSize: '30px', marginBottom: '8px' }}>🧱</div>
@@ -685,6 +717,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                               <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '3px' }}>
                                 {[f.category, roomName, f.brand].filter(Boolean).join(' · ')}
                               </div>
+                              {f.option_group && <div style={{ marginTop: '5px' }}><span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', background: 'var(--green-bg)', color: 'var(--green-dk)' }}>⚖ {f.option_group}</span></div>}
                               {(f.material || f.dimensions || Number(f.sqft) > 0) && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{[f.material, f.dimensions, Number(f.sqft) > 0 ? f.sqft + ' SF' : null].filter(Boolean).join(' · ')}</div>}
                               <div onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                                 <select value={f.status} onChange={e => quickStatus(f, e.target.value)} style={{ fontSize: '11px', padding: '3px 6px', border: '0.5px solid var(--border2)', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--text)' }}>
@@ -994,6 +1027,11 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
               </div>
             </div>
             <div style={{ fontSize: '10.5px', color: 'var(--text3)', marginBottom: '12px' }}>Enter <b>Sq ft</b> for area-priced items (tile, flooring) — unit price is then per&nbsp;SF. Otherwise use <b>Qty</b> for counted items.</div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={lbl}>Compare as an option for…</label>
+              <input style={inp} list='optgroup-list' placeholder='e.g. Primary bath floor — tag 2+ candidates to compare' value={finishModal.option_group} onChange={e => setFinishModal((m: any) => ({ ...m, option_group: e.target.value }))} />
+              <datalist id='optgroup-list'>{existingGroups.map(g => <option key={g} value={g} />)}</datalist>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px', alignItems: 'end' }}>
               <div>
                 <label style={lbl}>Status</label>
@@ -1151,6 +1189,42 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
           </div>
         </div>
       )}
+
+      {/* ===== compare options ===== */}
+      {compareGroup && (() => {
+        const fs = finishes.filter(f => f.option_group === compareGroup)
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }} onClick={() => setCompareGroup('')}>
+            <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '22px', width: 'min(820px, 96vw)', maxHeight: '92vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '17px', fontWeight: 700, color: 'var(--text)' }}>⚖ Compare — {compareGroup}</div>
+                <button onClick={() => setCompareGroup('')} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: '20px', cursor: 'pointer', lineHeight: 1 }}>×</button>
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '4px', marginBottom: '14px' }}>Pick the winner — it’s approved and the others are marked rejected. Reversible anytime.</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))', gap: '12px' }}>
+                {fs.map((f: any) => {
+                  const imgs = finishImages(f); const sm = statusMeta(f.status); const isPick = f.status === 'approved'
+                  return (
+                    <div key={f.id} style={{ border: isPick ? '2px solid var(--green)' : '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden', background: 'var(--bg2)', display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ height: '130px', background: imgs[0] ? 'var(--bg3)' : (f.color_hex || 'var(--bg3)'), position: 'relative' }}>
+                        {imgs[0] && <img src={imgs[0]} alt='' onClick={() => setLightbox(imgs[0])} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in', display: 'block' }} />}
+                        <span className={'chip ' + sm.chip} style={{ position: 'absolute', top: '6px', left: '6px', fontSize: '9px' }}>{sm.label}</span>
+                      </div>
+                      <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '3px', flex: 1 }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{f.name}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{[f.brand, f.material, f.dimensions].filter(Boolean).join(' · ')}</div>
+                        {(f.price != null || f.actual_cost != null) && <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text2)', marginTop: '2px' }}>{fm(lineAllIn(f))}</div>}
+                        {f.notes && <div style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: 1.4, marginTop: '2px' }}>{f.notes}</div>}
+                        <button onClick={() => pickOption(compareGroup, f.id)} disabled={isPick} className={isPick ? 'btn btn-ghost' : 'btn btn-primary'} style={{ fontSize: '12px', marginTop: 'auto', width: '100%' }}>{isPick ? '✓ Picked' : 'Pick this'}</button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ===== lightbox ===== */}
       {lightbox && (
