@@ -269,14 +269,39 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
     await logActivity(it.name + ': ' + statusMeta(it.status).label + ' → ' + statusMeta(status).label, 'status', it.id)
     load()
   }
-  // ---------- free-arrange canvas ----------
-  function openCanvas(roomId: string | null) {
-    const its = items.filter(i => i.kind === 'inspiration' && (i.room_id || null) === (roomId || null))
+  // ---------- vision-board canvas ----------
+  function openCanvas(roomId: string | null) { setCanvasRoom({ roomId }) }
+  // (Re)build positions for everything on the board whenever the data changes.
+  useEffect(() => {
+    if (!canvasRoom) return
+    const rid = canvasRoom.roomId
+    const ri = items.filter(i => (i.room_id || null) === (rid || null))
     const p: Record<string, { x: number; y: number }> = {}
-    its.forEach((it, idx) => {
-      p[it.id] = { x: it.pos_x != null ? Number(it.pos_x) : 16 + (idx % 4) * 172, y: it.pos_y != null ? Number(it.pos_y) : 16 + Math.floor(idx / 4) * 172 }
+    ri.filter(i => i.kind === 'inspiration').forEach((it, idx) => {
+      p[it.id] = it.pos_x != null ? { x: Number(it.pos_x), y: Number(it.pos_y) } : { x: 16 + (idx % 4) * 172, y: 16 + Math.floor(idx / 4) * 172 }
     })
-    setPos(p); posRef.current = p; setCanvasRoom({ roomId })
+    ri.filter(i => ['finish', 'color', 'text'].includes(i.kind) && i.pos_x != null).forEach(it => { p[it.id] = { x: Number(it.pos_x), y: Number(it.pos_y) } })
+    setPos(p); posRef.current = p
+  }, [canvasRoom, items])
+  async function addToBoard(it: any) {
+    const placed = items.filter(i => (i.room_id || null) === (canvasRoom?.roomId || null) && i.pos_x != null && ['finish', 'color', 'text'].includes(i.kind)).length
+    await supabase.from('design_items').update({ pos_x: 40 + (placed % 6) * 26, pos_y: 40 + (placed % 6) * 26 }).eq('id', it.id)
+    load()
+  }
+  async function removeFromBoard(it: any) {
+    if (it.kind === 'text') await supabase.from('design_items').delete().eq('id', it.id)
+    else await supabase.from('design_items').update({ pos_x: null, pos_y: null }).eq('id', it.id)
+    load()
+  }
+  async function addBoardText() {
+    const t = (window.prompt('Add a word or note to the board:') || '').trim(); if (!t) return
+    await supabase.from('design_items').insert({ project_id: pid, room_id: canvasRoom?.roomId ?? null, kind: 'text', notes: t, pos_x: 48, pos_y: 48 })
+    load()
+  }
+  async function editBoardText(it: any) {
+    const t = (window.prompt('Edit text:', it.notes || '') || '').trim(); if (!t) return
+    await supabase.from('design_items').update({ notes: t }).eq('id', it.id)
+    load()
   }
   function startDrag(e: React.MouseEvent, id: string) {
     e.preventDefault()
@@ -677,9 +702,9 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                       </div>
 
                       {/* inspiration */}
-                      {inspo.length >= 2 && (
+                      {(inspo.length >= 1 || roomFinishes.length >= 1) && (
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px', marginBottom: '-4px' }}>
-                          <button onClick={() => openCanvas(b.id)} className='btn btn-ghost' style={{ fontSize: '10px', padding: '4px 10px' }}>↔ Arrange freely</button>
+                          <button onClick={() => openCanvas(b.id)} className='btn btn-ghost' style={{ fontSize: '10px', padding: '4px 10px' }}>✨ Vision Board</button>
                         </div>
                       )}
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px,1fr))', gap: '8px', marginTop: '12px' }}>
@@ -1408,32 +1433,77 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
         )
       })()}
 
-      {/* ===== free-arrange canvas ===== */}
+      {/* ===== vision board canvas ===== */}
       {canvasRoom && (() => {
-        const roomName = rooms.find(r => r.id === canvasRoom.roomId)?.name || 'Whole-home'
-        const its = items.filter(i => i.kind === 'inspiration' && (i.room_id || null) === (canvasRoom.roomId || null))
+        const rid = canvasRoom.roomId
+        const roomName = rooms.find(r => r.id === rid)?.name || 'Whole-home'
+        const ri = items.filter(i => (i.room_id || null) === (rid || null))
+        const onBoard = [
+          ...ri.filter(i => i.kind === 'inspiration'),
+          ...ri.filter(i => ['finish', 'color', 'text'].includes(i.kind) && i.pos_x != null),
+        ]
+        const trayFins = ri.filter(i => i.kind === 'finish' && i.pos_x == null)
+        const traySw = ri.filter(i => i.kind === 'color' && i.pos_x == null)
+        const xy = (it: any) => pos[it.id] || (it.pos_x != null ? { x: Number(it.pos_x), y: Number(it.pos_y) } : { x: 20, y: 20 })
+        const rm = (e: any, it: any) => { e.stopPropagation(); removeFromBoard(it) }
         return (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1400, display: 'flex', flexDirection: 'column', padding: '16px' }} onClick={() => setCanvasRoom(null)}>
             <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', maxWidth: '1100px', width: '100%', margin: '0 auto' }} onClick={e => e.stopPropagation()}>
               <div style={{ padding: '12px 18px', borderBottom: '0.5px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>↔ Arrange — {roomName}</div>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--text3)' }}>Drag photos to collage — saved automatically.</span>
-                  <button onClick={() => setCanvasRoom(null)} className='btn btn-primary' style={{ fontSize: '12px' }}>Done</button>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>✨ Vision Board — {roomName}</div>
+                  <span style={{ fontSize: '10.5px', color: 'var(--text3)' }}><span style={{ display: 'inline-block', width: '9px', height: '9px', borderRadius: '2px', border: '2px solid #fff', boxShadow: '0 0 0 1px var(--border2)', verticalAlign: 'middle' }} /> inspiration · <span style={{ display: 'inline-block', width: '9px', height: '9px', borderRadius: '2px', border: '2px solid var(--green)', verticalAlign: 'middle' }} /> chosen finish</span>
                 </div>
+                <button onClick={() => setCanvasRoom(null)} className='btn btn-primary' style={{ fontSize: '12px' }}>Done</button>
               </div>
               <div ref={canvasRef} style={{ flex: 1, position: 'relative', overflow: 'auto', background: 'var(--bg3)', backgroundImage: 'radial-gradient(var(--border2) 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
                 <div style={{ position: 'relative', minWidth: '100%', minHeight: '1200px' }}>
-                  {its.map(it => {
-                    const p = pos[it.id] || { x: 0, y: 0 }
-                    return (
-                      <div key={it.id} onMouseDown={e => startDrag(e, it.id)} style={{ position: 'absolute', left: p.x, top: p.y, width: '156px', height: '156px', borderRadius: '10px', overflow: 'hidden', border: '3px solid #fff', boxShadow: '0 3px 12px rgba(0,0,0,0.18)', cursor: drag?.id === it.id ? 'grabbing' : 'grab', userSelect: 'none' }}>
+                  {onBoard.map(it => {
+                    const p = xy(it)
+                    const base: any = { position: 'absolute', left: p.x, top: p.y, cursor: drag?.id === it.id ? 'grabbing' : 'grab', userSelect: 'none', boxShadow: '0 3px 12px rgba(0,0,0,0.18)' }
+                    if (it.kind === 'inspiration') return (
+                      <div key={it.id} onMouseDown={e => startDrag(e, it.id)} style={{ ...base, width: '156px', height: '156px', borderRadius: '10px', overflow: 'hidden', border: '3px solid #fff' }}>
                         <img src={it.image_url} alt='' draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} />
                       </div>
                     )
+                    if (it.kind === 'color') return (
+                      <div key={it.id} onMouseDown={e => startDrag(e, it.id)} style={{ ...base, width: '92px', borderRadius: '9px', overflow: 'hidden', border: '3px solid #fff', background: '#fff' }}>
+                        <div style={{ height: '66px', background: it.color_hex }} />
+                        <div style={{ fontSize: '9px', color: 'var(--text2)', textAlign: 'center', padding: '3px 0' }}>{it.color_hex}</div>
+                        <button onMouseDown={e => e.stopPropagation()} onClick={e => rm(e, it)} style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '5px', width: '17px', height: '17px', cursor: 'pointer', fontSize: '11px', lineHeight: 1 }}>×</button>
+                      </div>
+                    )
+                    if (it.kind === 'text') return (
+                      <div key={it.id} onMouseDown={e => startDrag(e, it.id)} onDoubleClick={() => editBoardText(it)} title='Double-click to edit' style={{ ...base, maxWidth: '220px', background: '#fff', border: '0.5px solid var(--border2)', borderRadius: '9px', padding: '10px 13px' }}>
+                        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>{it.notes}</div>
+                        <button onMouseDown={e => e.stopPropagation()} onClick={e => rm(e, it)} style={{ position: 'absolute', top: '-7px', right: '-7px', background: 'var(--text2)', color: '#fff', border: 'none', borderRadius: '50%', width: '18px', height: '18px', cursor: 'pointer', fontSize: '11px', lineHeight: 1 }}>×</button>
+                      </div>
+                    )
+                    // finish
+                    const cover = finishImages(it)[0]
+                    return (
+                      <div key={it.id} onMouseDown={e => startDrag(e, it.id)} style={{ ...base, width: '150px', borderRadius: '10px', overflow: 'hidden', border: '2px solid var(--green)', background: '#fff' }}>
+                        <div style={{ height: '108px', background: cover ? 'var(--bg3)' : (it.color_hex || 'var(--bg3)') }}>{cover && <img src={cover} alt='' draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} />}</div>
+                        <div style={{ padding: '6px 8px', fontSize: '11px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.status === 'approved' ? '✓ ' : ''}{it.name}</div>
+                        <span style={{ position: 'absolute', top: '5px', left: '5px', fontSize: '8px', fontWeight: 700, background: 'var(--green)', color: '#fff', padding: '1px 5px', borderRadius: '4px' }}>FINISH</span>
+                        <button onMouseDown={e => e.stopPropagation()} onClick={e => rm(e, it)} style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '5px', width: '18px', height: '18px', cursor: 'pointer', fontSize: '11px', lineHeight: 1 }}>×</button>
+                      </div>
+                    )
                   })}
-                  {its.length === 0 && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)', fontSize: '13px' }}>Add photos to this room first.</div>}
+                  {onBoard.length === 0 && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)', fontSize: '13px' }}>Pull photos, finishes, colors or words in from below.</div>}
                 </div>
+              </div>
+              {/* tray */}
+              <div style={{ borderTop: '0.5px solid var(--border)', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px', overflowX: 'auto', background: 'var(--bg2)' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text3)', flexShrink: 0 }}>Pull in:</span>
+                <button onClick={addBoardText} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 10px', flexShrink: 0 }}>+ Text</button>
+                {trayFins.map(f => { const c = finishImages(f)[0]; return (
+                  <div key={f.id} onClick={() => addToBoard(f)} title={'Add finish: ' + f.name} style={{ width: '40px', height: '40px', borderRadius: '7px', overflow: 'hidden', border: '2px solid var(--green)', flexShrink: 0, cursor: 'pointer', background: c ? 'var(--bg3)' : (f.color_hex || 'var(--bg3)') }}>{c && <img src={c} alt='' style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}</div>
+                ) })}
+                {traySw.map(s => (
+                  <div key={s.id} onClick={() => addToBoard(s)} title={'Add color: ' + s.color_hex} style={{ width: '32px', height: '32px', borderRadius: '7px', background: s.color_hex, border: '1px solid var(--border2)', flexShrink: 0, cursor: 'pointer' }} />
+                ))}
+                {trayFins.length === 0 && traySw.length === 0 && <span style={{ fontSize: '11px', color: 'var(--text3)' }}>All finishes &amp; colors are on the board.</span>}
               </div>
             </div>
           </div>
