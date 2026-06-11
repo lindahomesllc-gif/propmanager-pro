@@ -7,7 +7,7 @@ import GettingStarted from '@/components/GettingStarted'
 import GoalsCard from '@/components/GoalsCard'
 
 export default function DashboardPage() {
-  const [data, setData] = useState({ properties: [], tenants: [], payments: [], expenses: [], leases: [], maintenance: [], mortgages: [] })
+  const [data, setData] = useState({ properties: [], tenants: [], payments: [], expenses: [], leases: [], maintenance: [], mortgages: [], assets: [] })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -19,13 +19,14 @@ export default function DashboardPage() {
       supabase.from('leases').select('*, tenants(full_name), properties(address)').eq('status', 'executed'),
       supabase.from('maintenance').select('*, properties(address)').in('status', ['open', 'scheduled', 'in_progress']),
       supabase.from('mortgages').select('*, properties(address)').eq('is_paid_off', false),
-    ]).then(([p, t, pay, exp, l, m, mo]) => {
-      setData({ properties: p.data || [], tenants: t.data || [], payments: pay.data || [], expenses: exp.data || [], leases: l.data || [], maintenance: m.data || [], mortgages: mo.data || [] })
+      supabase.from('property_assets').select('*, properties(address)'),
+    ]).then(([p, t, pay, exp, l, m, mo, as]) => {
+      setData({ properties: p.data || [], tenants: t.data || [], payments: pay.data || [], expenses: exp.data || [], leases: l.data || [], maintenance: m.data || [], mortgages: mo.data || [], assets: as.data || [] })
       setLoading(false)
     })
   }, [])
 
-  const { properties, tenants, payments, expenses, leases, maintenance, mortgages } = data
+  const { properties, tenants, payments, expenses, leases, maintenance, mortgages, assets } = data
   const occupied = properties.filter(p => p.occupancy_status === 'occupied')
   const vacant = properties.filter(p => p.occupancy_status === 'vacant')
   const thisYear = new Date().getFullYear().toString()
@@ -85,6 +86,7 @@ export default function DashboardPage() {
   })
   maintenance.forEach((m: any) => { if (m.scheduled_date?.startsWith(thisMonth)) monthEvents.push({ date: m.scheduled_date, icon: '🔧', label: (m.title || 'Maintenance') + ' — ' + (m.properties?.address || ''), href: '/maintenance/' + m.id, color: 'var(--blue)' }) })
   mortgages.forEach((m: any) => { if (m.due_day) monthEvents.push({ date: thisMonth + '-' + String(m.due_day).padStart(2, '0'), icon: '🏦', label: 'Loan payment — ' + (m.properties?.address || ''), href: '/mortgage', color: 'var(--text2)' }) })
+  assets.forEach((a: any) => { if (a.warranty_expires?.startsWith(thisMonth)) monthEvents.push({ date: a.warranty_expires, icon: '🧰', label: 'Warranty ends — ' + a.name + (a.properties?.address ? ' (' + a.properties.address + ')' : ''), href: '/properties/' + a.property_id + '?tab=appliances', color: 'var(--amber)' }) })
   monthEvents.sort((a, b) => a.date.localeCompare(b.date))
   const statusOrder: Record<string, number> = { late: 0, due: 1, partial: 1, none: 2, paid: 3 }
   const stChip: Record<string, { c: string; l: string }> = { paid: { c: 'chip-g', l: 'Paid' }, late: { c: 'chip-r', l: 'Late' }, due: { c: 'chip-a', l: 'Due' }, partial: { c: 'chip-a', l: 'Partial' }, none: { c: 'chip-x', l: 'Not charged' } }

@@ -27,6 +27,11 @@ export default function PropertyDetailPage({ params }) {
   const fileRef = useRef(null)
 
   useEffect(() => {
+    const qTab = new URLSearchParams(window.location.search).get('tab')
+    if (qTab) setTab(qTab)
+  }, [])
+
+  useEffect(() => {
     const id = params.id
     Promise.all([
       supabase.from('properties').select('*').eq('id', id).single(),
