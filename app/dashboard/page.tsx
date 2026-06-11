@@ -6,7 +6,17 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import GettingStarted from '@/components/GettingStarted'
 import GoalsCard from '@/components/GoalsCard'
 
+// Customizable dashboard: each section is a keyed widget the user can reorder or hide.
+const DEFAULT_ORDER = ['portfolio', 'goals', 'operations', 'attention', 'thisMonth', 'rentCollection', 'rentStatus', 'quickActions', 'propertiesTenants']
+const WIDGET_LABELS: Record<string, string> = {
+  portfolio: '📈 Portfolio', goals: '🎯 Goals', operations: '🏠 Operations',
+  attention: '⚠️ Needs Attention', thisMonth: '📅 This Month', rentCollection: '💰 Rent Collection',
+  rentStatus: '🧾 Rent Status', quickActions: '⚡ Quick Actions', propertiesTenants: '🏠 Properties & Tenants',
+}
+
 export default function DashboardPage() {
+  const [editMode, setEditMode] = useState(false)
+  const [layout, setLayout] = useState<{ order: string[]; hidden: string[] }>({ order: DEFAULT_ORDER, hidden: [] })
   const [data, setData] = useState({ properties: [], tenants: [], payments: [], expenses: [], leases: [], maintenance: [], mortgages: [], assets: [] })
   const [loading, setLoading] = useState(true)
 
@@ -25,6 +35,33 @@ export default function DashboardPage() {
       setLoading(false)
     })
   }, [])
+
+  // load saved layout once; merge with defaults so newly-added widgets always appear
+  useEffect(() => {
+    let saved: any = null
+    try { saved = JSON.parse(localStorage.getItem('dashboardLayout') || 'null') } catch {}
+    const savedOrder: string[] = Array.isArray(saved?.order) ? saved.order.filter((k: string) => DEFAULT_ORDER.includes(k)) : []
+    const order = [...savedOrder, ...DEFAULT_ORDER.filter(k => !savedOrder.includes(k))]
+    const hidden: string[] = Array.isArray(saved?.hidden) ? saved.hidden.filter((k: string) => DEFAULT_ORDER.includes(k)) : []
+    setLayout({ order, hidden })
+  }, [])
+
+  function persistLayout(next: { order: string[]; hidden: string[] }) {
+    setLayout(next)
+    try { localStorage.setItem('dashboardLayout', JSON.stringify(next)) } catch {}
+  }
+  function moveWidget(key: string, dir: number) {
+    const order = [...layout.order]
+    const i = order.indexOf(key), j = i + dir
+    if (j < 0 || j >= order.length) return
+    ;[order[i], order[j]] = [order[j], order[i]]
+    persistLayout({ ...layout, order })
+  }
+  function toggleHidden(key: string) {
+    const hidden = layout.hidden.includes(key) ? layout.hidden.filter(k => k !== key) : [...layout.hidden, key]
+    persistLayout({ ...layout, hidden })
+  }
+  function resetLayout() { persistLayout({ order: [...DEFAULT_ORDER], hidden: [] }) }
 
   const { properties, tenants, payments, expenses, leases, maintenance, mortgages, assets } = data
   const occupied = properties.filter(p => p.occupancy_status === 'occupied')
@@ -157,11 +194,201 @@ export default function DashboardPage() {
     )
   }
 
+  // Each dashboard section as a keyed widget (so the user can reorder / hide them).
+  const widgets: { [k: string]: any } = {
+    portfolio: (
+      <>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <div style={secLabel}>📈 Portfolio</div>
+          <a href='/reports?tab=returns' style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none' }}>Full returns →</a>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
+          {[
+            { label: 'Portfolio Value', value: fm(portfolioValue), sub: 'Equity: ' + fm(totalEquity), color: 'var(--text)', href: '/properties' },
+            { label: 'Mortgage Debt', value: fm(returns.totals.balance), sub: fm(returns.totals.debt) + '/yr P&I', color: 'var(--red)', href: '/mortgage' },
+            { label: 'Annual NOI', value: fm(returns.totals.noi), sub: 'rent − expenses', color: 'var(--green)', href: '/reports?tab=returns' },
+            { label: 'Cap Rate', value: returns.totals.cap.toFixed(2) + '%', sub: 'NOI ÷ value', color: 'var(--text)', href: '/reports?tab=returns' },
+            { label: 'Cash Flow', value: fm(returns.totals.cashFlow), sub: 'NOI − debt service', color: returns.totals.cashFlow >= 0 ? 'var(--green)' : 'var(--red)', href: '/reports?tab=returns' },
+            { label: 'DSCR', value: returns.totals.dscr != null ? returns.totals.dscr.toFixed(2) + 'x' : '—', sub: 'NOI ÷ debt', color: 'var(--text)', href: '/reports?tab=returns' },
+          ].map(mc => <Tile key={mc.label} {...mc} />)}
+        </div>
+      </>
+    ),
+    goals: <GoalsCard current={{ cashFlow: returns.totals.cashFlow / 12, value: portfolioValue, properties: properties.length, occupancy: properties.length ? (occupied.length / properties.length) * 100 : 0 }} />,
+    operations: (
+      <>
+        <div style={secLabel}>🏠 Operations</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
+          {[
+            { label: 'Properties', value: properties.length, sub: occupied.length + ' occupied · ' + vacant.length + ' vacant', color: 'var(--text)', href: '/properties' },
+            { label: 'Monthly Rent Roll', value: fm(totalRentRoll), sub: leases.length + ' active leases', color: 'var(--green)', href: '/reports?tab=rentroll' },
+            { label: 'Collected YTD', value: fm(totalCollectedYTD), sub: paidYTD.length + ' payments', color: 'var(--green)', href: '/payments' },
+            { label: 'Expenses YTD', value: fm(totalExpYTD), sub: 'Net: ' + fm(totalCollectedYTD - totalExpYTD), color: 'var(--amber)', href: '/expenses' },
+            { label: 'Late Payments', value: latePayments.length, sub: duePayments.length + ' upcoming', color: latePayments.length > 0 ? 'var(--red)' : 'var(--green)', href: '/payments' },
+          ].map(mc => <Tile key={mc.label} {...mc} />)}
+        </div>
+      </>
+    ),
+    attention: (
+      <>
+        <div style={secLabel}>⚠️ Needs Attention</div>
+        {attentionCount === 0 ? (
+          <div style={{ ...panel, padding: '16px', textAlign: 'center', color: 'var(--green)', fontSize: '13px', marginBottom: '20px' }}>✅ All caught up — nothing needs your attention.</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px,1fr))', gap: '8px', marginBottom: '20px' }}>
+            {latePayments.map(p => <AlertCard key={'p' + p.id} href='/payments' color='var(--red)' title={'Late Rent — ' + (p.tenants?.full_name || 'Tenant')} sub={'Due ' + formatDate(p.due_date) + ' · ' + fm(p.amount_due)} />)}
+            {maintenance.map(m => <AlertCard key={'m' + m.id} href={'/maintenance/' + m.id} color={m.priority === 'emergency' ? 'var(--red)' : m.priority === 'high' ? 'var(--amber)' : 'var(--blue)'} title={'🔧 ' + m.title} sub={(m.priority || 'open') + ' · ' + (m.properties?.address || '')} />)}
+            {expiringLeases.map(l => <AlertCard key={'l' + l.id} href={'/leases/' + l.id} color='var(--amber)' title={'Lease Expiring — ' + (l.tenants?.full_name || 'Tenant')} sub={'Expires ' + formatDate(l.end_date) + ' · ' + (l.properties?.address || '')} />)}
+            {vacant.map(p => <AlertCard key={'v' + p.id} href={'/properties/' + p.id} color='var(--amber)' title={'Vacant — ' + p.address} sub={(p.city || '') + ' · needs a tenant'} />)}
+            {expiringWarranties.map((a: any) => <AlertCard key={'w' + a.id} href={'/properties/' + a.property_id + '?tab=appliances'} color='var(--amber)' title={'🧰 Warranty Expiring — ' + a.name} sub={'Expires ' + formatDate(a.warranty_expires) + ' · ' + (a.properties?.address || '')} />)}
+            {insuranceRenewing.map((p: any) => <AlertCard key={'ins' + p.id} href={'/properties/' + p.id + '?tab=insurance'} color='var(--amber)' title={'🛡 Insurance Renewing — ' + p.address} sub={'Expires ' + formatDate(p.insurance_expires) + (p.insurance_company ? ' · ' + p.insurance_company : '')} />)}
+            {taxDueSoon.map((p: any) => <AlertCard key={'tax' + p.id} href={'/properties/' + p.id + '?tab=insurance'} color='var(--amber)' title={'🧾 Property Tax Due — ' + p.address} sub={'Due ' + formatDate(p.tax_due_date)} />)}
+          </div>
+        )}
+      </>
+    ),
+    thisMonth: (
+      <>
+        <div style={secLabel}>📅 This Month · {monthLabel}</div>
+        {monthEvents.length === 0 ? (
+          <div style={{ ...panel, padding: '16px', textAlign: 'center', color: 'var(--text3)', fontSize: '13px', marginBottom: '20px' }}>Nothing scheduled this month.</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px,1fr))', gap: '8px', marginBottom: '20px' }}>
+            {monthEvents.map((e: any, i: number) => (
+              <a key={i} href={e.href} style={{ textDecoration: 'none' }}>
+                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '11px', padding: '9px 12px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--bg3)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '0.5px solid var(--border)' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: e.color, lineHeight: 1 }}>{Number(e.date.slice(8, 10))}</div>
+                    <div style={{ fontSize: '8px', color: 'var(--text3)', textTransform: 'uppercase', marginTop: '1px' }}>{monthAbbr}</div>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text)', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.icon} {e.label}</div>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+      </>
+    ),
+    rentCollection: (
+      <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '20px 22px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+        <a href='/payments' style={{ textDecoration: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)' }}>💰 Rent Collection · {monthLabel} <span style={{ color: 'var(--text3)' }}>›</span></div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '30px', fontWeight: 800, color: 'var(--text)', marginTop: '6px' }}>{fm(collectedThisMonth)} <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text3)' }}>/ {fm(expectedThisMonth)} expected this month</span></div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '26px', fontWeight: 800, color: pctColor }}>{collectionPct}%</div>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{fm(Math.max(0, expectedThisMonth - collectedThisMonth))} outstanding</div>
+          </div>
+        </a>
+        <div style={{ marginTop: '14px', height: '8px', background: 'var(--bg3)', borderRadius: '20px', overflow: 'hidden' }}>
+          <div style={{ width: collectionPct + '%', height: '100%', background: pctColor, borderRadius: '20px', transition: 'width 0.4s' }} />
+        </div>
+        <div style={{ borderTop: '0.5px solid var(--border)', marginTop: '18px', paddingTop: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{currentYear} Monthly Trend</div>
+            <div style={{ display: 'flex', gap: '16px', fontSize: '11px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--green)', display: 'inline-block' }} />Collected</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--border2)', display: 'inline-block' }} />Rent Roll</span>
+            </div>
+          </div>
+          <ResponsiveContainer width='100%' height={170}>
+            <BarChart data={chartData} barGap={4} barCategoryGap='30%'>
+              <CartesianGrid vertical={false} stroke='var(--border)' strokeDasharray='3 3' />
+              <XAxis dataKey='month' tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? '$' + (v/1000).toFixed(0) + 'k' : '$' + v} width={40} />
+              <Tooltip contentStyle={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '8px', fontSize: '12px' }} />
+              <Bar dataKey='due' fill='var(--border2)' radius={[3,3,0,0]} />
+              <Bar dataKey='collected' fill='var(--green)' radius={[3,3,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    ),
+    rentStatus: (
+      <div style={{ marginBottom: '14px' }}>
+        <div style={secLabel}>🧾 Rent Status · {monthLabel}</div>
+        <div style={panel}>
+          <div style={{ padding: '9px 14px', borderBottom: '0.5px solid var(--border)', fontSize: '11px', color: 'var(--text3)', fontWeight: 600 }}>{paidCount} of {rentStatus.length} paid this month{rentStatus.length - paidCount > 0 ? ' · ' + (rentStatus.length - paidCount) + ' to collect' : ''}</div>
+          {rentStatus.length === 0 ? <div style={{ padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No active tenants.</div> : rentStatus.map((s: any) => {
+            const ch = stChip[s.status]
+            const href = s.status === 'paid' ? '/tenants/' + s.id : '/payments?tenant_id=' + s.id
+            return (
+              <a key={s.id} href={href} style={{ textDecoration: 'none' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '10px 14px', borderBottom: '0.5px solid var(--border)' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.where}{s.status !== 'paid' && s.status !== 'none' ? ' · tap to record' : ''}</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: s.status === 'paid' ? 'var(--green)' : 'var(--text2)' }}>{s.status === 'paid' ? fm(s.paid) : fm(s.amount)}</div>
+                    <span className={'chip ' + ch.c}>{ch.l}</span>
+                  </div>
+                </div>
+              </a>
+            )
+          })}
+          <a href='/payments' style={{ display: 'block', padding: '10px 14px', fontSize: '12px', color: 'var(--green)', textDecoration: 'none' }}>View all payments →</a>
+        </div>
+      </div>
+    ),
+    quickActions: (
+      <div style={{ marginBottom: '14px' }}>
+        <div style={secLabel}>⚡ Quick Actions</div>
+        <div style={panel}>
+          {[
+            { href: '/payments', icon: '💳', label: 'Record Payment', sub: duePayments.length + ' payments due' },
+            { href: '/tenants/new', icon: '👤', label: 'Add Tenant', sub: vacant.length + ' vacant' },
+            { href: '/maintenance/new', icon: '🔧', label: 'New Maintenance Request', sub: maintenance.length + ' open' },
+            { href: '/expenses/new', icon: '💰', label: 'Add Expense', sub: 'Track property costs' },
+            { href: '/leases/new', icon: '📋', label: 'Create Lease', sub: 'Draft a new lease' },
+            { href: '/reports?tab=returns', icon: '📊', label: 'Returns & Reports', sub: 'Cap rate, DSCR, cash flow' },
+          ].map((item, i) => (
+            <a key={i} href={item.href} style={{ textDecoration: 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderBottom: '0.5px solid var(--border)', cursor: 'pointer' }}>
+                <span style={{ fontSize: '16px' }}>{item.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text)' }}>{item.label}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '1px' }}>{item.sub}</div>
+                </div>
+                <span style={{ color: 'var(--text3)', fontSize: '12px' }}>→</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    ),
+    propertiesTenants: (
+      <>
+        <div style={secLabel}>🏠 Properties & Tenants</div>
+        {properties.length === 0 ? (
+          <div style={{ ...panel, padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No properties yet.</div>
+        ) : groupByEntity ? (
+          propGroups.map(([name, props]) => {
+            const grpRent = props.reduce((s: number, p: any) => s + (rentByProperty[p.id] || 0), 0)
+            return (
+              <div key={name} style={{ marginBottom: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', padding: '0 2px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)' }}>🏛️ {name}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{props.length} propert{props.length === 1 ? 'y' : 'ies'} · {fm(grpRent)}/mo</div>
+                </div>
+                <div style={{ display: 'grid', gap: '8px' }}>{props.map((p: any) => <PropRow key={p.id} p={p} />)}</div>
+              </div>
+            )
+          })
+        ) : (
+          <div style={{ display: 'grid', gap: '8px' }}>{properties.map((p: any) => <PropRow key={p.id} p={p} />)}</div>
+        )}
+      </>
+    ),
+  }
+
   return (
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Dashboard</div>
         <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={() => setEditMode(e => !e)} className='btn btn-ghost'>{editMode ? '✓ Done' : '⚙ Customize'}</button>
           <a href='/properties/new' className='btn btn-ghost'>+ Property</a>
           <a href='/tenants/new' className='btn btn-primary'>+ Tenant</a>
         </div>
@@ -177,181 +404,28 @@ export default function DashboardPage() {
           <>
             <GettingStarted />
 
-            {/* 📈 Portfolio — the investor view (leads the dashboard) */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <div style={secLabel}>📈 Portfolio</div>
-              <a href='/reports?tab=returns' style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none' }}>Full returns →</a>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
-              {[
-                { label: 'Portfolio Value', value: fm(portfolioValue), sub: 'Equity: ' + fm(totalEquity), color: 'var(--text)', href: '/properties' },
-                { label: 'Mortgage Debt', value: fm(returns.totals.balance), sub: fm(returns.totals.debt) + '/yr P&I', color: 'var(--red)', href: '/mortgage' },
-                { label: 'Annual NOI', value: fm(returns.totals.noi), sub: 'rent − expenses', color: 'var(--green)', href: '/reports?tab=returns' },
-                { label: 'Cap Rate', value: returns.totals.cap.toFixed(2) + '%', sub: 'NOI ÷ value', color: 'var(--text)', href: '/reports?tab=returns' },
-                { label: 'Cash Flow', value: fm(returns.totals.cashFlow), sub: 'NOI − debt service', color: returns.totals.cashFlow >= 0 ? 'var(--green)' : 'var(--red)', href: '/reports?tab=returns' },
-                { label: 'DSCR', value: returns.totals.dscr != null ? returns.totals.dscr.toFixed(2) + 'x' : '—', sub: 'NOI ÷ debt', color: 'var(--text)', href: '/reports?tab=returns' },
-              ].map(mc => <Tile key={mc.label} {...mc} />)}
-            </div>
-
-            <GoalsCard current={{ cashFlow: returns.totals.cashFlow / 12, value: portfolioValue, properties: properties.length, occupancy: properties.length ? (occupied.length / properties.length) * 100 : 0 }} />
-
-            {/* 🏠 Operations — the landlord view */}
-            <div style={secLabel}>🏠 Operations</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
-              {[
-                { label: 'Properties', value: properties.length, sub: occupied.length + ' occupied · ' + vacant.length + ' vacant', color: 'var(--text)', href: '/properties' },
-                { label: 'Monthly Rent Roll', value: fm(totalRentRoll), sub: leases.length + ' active leases', color: 'var(--green)', href: '/reports?tab=rentroll' },
-                { label: 'Collected YTD', value: fm(totalCollectedYTD), sub: paidYTD.length + ' payments', color: 'var(--green)', href: '/payments' },
-                { label: 'Expenses YTD', value: fm(totalExpYTD), sub: 'Net: ' + fm(totalCollectedYTD - totalExpYTD), color: 'var(--amber)', href: '/expenses' },
-                { label: 'Late Payments', value: latePayments.length, sub: duePayments.length + ' upcoming', color: latePayments.length > 0 ? 'var(--red)' : 'var(--green)', href: '/payments' },
-              ].map(mc => <Tile key={mc.label} {...mc} />)}
-            </div>
-
-            {/* ⚠️ Needs Attention — the landlord's action list (one place, no duplicates) */}
-            <div style={secLabel}>⚠️ Needs Attention</div>
-            {attentionCount === 0 ? (
-              <div style={{ ...panel, padding: '16px', textAlign: 'center', color: 'var(--green)', fontSize: '13px', marginBottom: '20px' }}>✅ All caught up — nothing needs your attention.</div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px,1fr))', gap: '8px', marginBottom: '20px' }}>
-                {latePayments.map(p => <AlertCard key={'p' + p.id} href='/payments' color='var(--red)' title={'Late Rent — ' + (p.tenants?.full_name || 'Tenant')} sub={'Due ' + formatDate(p.due_date) + ' · ' + fm(p.amount_due)} />)}
-                {maintenance.map(m => <AlertCard key={'m' + m.id} href={'/maintenance/' + m.id} color={m.priority === 'emergency' ? 'var(--red)' : m.priority === 'high' ? 'var(--amber)' : 'var(--blue)'} title={'🔧 ' + m.title} sub={(m.priority || 'open') + ' · ' + (m.properties?.address || '')} />)}
-                {expiringLeases.map(l => <AlertCard key={'l' + l.id} href={'/leases/' + l.id} color='var(--amber)' title={'Lease Expiring — ' + (l.tenants?.full_name || 'Tenant')} sub={'Expires ' + formatDate(l.end_date) + ' · ' + (l.properties?.address || '')} />)}
-                {vacant.map(p => <AlertCard key={'v' + p.id} href={'/properties/' + p.id} color='var(--amber)' title={'Vacant — ' + p.address} sub={(p.city || '') + ' · needs a tenant'} />)}
-                {expiringWarranties.map((a: any) => <AlertCard key={'w' + a.id} href={'/properties/' + a.property_id + '?tab=appliances'} color='var(--amber)' title={'🧰 Warranty Expiring — ' + a.name} sub={'Expires ' + formatDate(a.warranty_expires) + ' · ' + (a.properties?.address || '')} />)}
-                {insuranceRenewing.map((p: any) => <AlertCard key={'ins' + p.id} href={'/properties/' + p.id + '?tab=insurance'} color='var(--amber)' title={'🛡 Insurance Renewing — ' + p.address} sub={'Expires ' + formatDate(p.insurance_expires) + (p.insurance_company ? ' · ' + p.insurance_company : '')} />)}
-                {taxDueSoon.map((p: any) => <AlertCard key={'tax' + p.id} href={'/properties/' + p.id + '?tab=insurance'} color='var(--amber)' title={'🧾 Property Tax Due — ' + p.address} sub={'Due ' + formatDate(p.tax_due_date)} />)}
+            {editMode && (
+              <div style={{ background: 'var(--bg3)', border: '0.5px dashed var(--border2)', borderRadius: '10px', padding: '12px 14px', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text2)' }}>⚙ Customize mode — use ▲▼ to reorder and Hide/Show to toggle sections. Saved to this browser.</div>
+                <button onClick={resetLayout} className='btn btn-ghost' style={{ fontSize: '11px' }}>Reset to default</button>
               </div>
             )}
-
-            {/* 📅 This Month — dated events (forward-looking complement to Needs Attention) */}
-            <div style={secLabel}>📅 This Month · {monthLabel}</div>
-            {monthEvents.length === 0 ? (
-              <div style={{ ...panel, padding: '16px', textAlign: 'center', color: 'var(--text3)', fontSize: '13px', marginBottom: '20px' }}>Nothing scheduled this month.</div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px,1fr))', gap: '8px', marginBottom: '20px' }}>
-                {monthEvents.map((e: any, i: number) => (
-                  <a key={i} href={e.href} style={{ textDecoration: 'none' }}>
-                    <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '11px', padding: '9px 12px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--bg3)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '0.5px solid var(--border)' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 800, color: e.color, lineHeight: 1 }}>{Number(e.date.slice(8, 10))}</div>
-                        <div style={{ fontSize: '8px', color: 'var(--text3)', textTransform: 'uppercase', marginTop: '1px' }}>{monthAbbr}</div>
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text)', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.icon} {e.label}</div>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            )}
-
-            {/* 💰 Rent Collection — this month + yearly trend, in one place */}
-            <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '20px 22px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-              <a href='/payments' style={{ textDecoration: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '12px' }}>
-                <div>
-                  <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)' }}>💰 Rent Collection · {monthLabel} <span style={{ color: 'var(--text3)' }}>›</span></div>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '30px', fontWeight: 800, color: 'var(--text)', marginTop: '6px' }}>{fm(collectedThisMonth)} <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text3)' }}>/ {fm(expectedThisMonth)} expected this month</span></div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '26px', fontWeight: 800, color: pctColor }}>{collectionPct}%</div>
-                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{fm(Math.max(0, expectedThisMonth - collectedThisMonth))} outstanding</div>
-                </div>
-              </a>
-              <div style={{ marginTop: '14px', height: '8px', background: 'var(--bg3)', borderRadius: '20px', overflow: 'hidden' }}>
-                <div style={{ width: collectionPct + '%', height: '100%', background: pctColor, borderRadius: '20px', transition: 'width 0.4s' }} />
-              </div>
-              <div style={{ borderTop: '0.5px solid var(--border)', marginTop: '18px', paddingTop: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{currentYear} Monthly Trend</div>
-                  <div style={{ display: 'flex', gap: '16px', fontSize: '11px' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--green)', display: 'inline-block' }} />Collected</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--border2)', display: 'inline-block' }} />Rent Roll</span>
+            {layout.order.map(key => {
+              const isHidden = layout.hidden.includes(key)
+              if (!editMode && isHidden) return null
+              if (!editMode) return <div key={key}>{widgets[key]}</div>
+              return (
+                <div key={key} style={{ border: '0.5px dashed var(--border2)', borderRadius: '10px', padding: '8px', marginBottom: '10px', background: 'var(--bg2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)', flex: 1 }}>{WIDGET_LABELS[key]}{isHidden && <span style={{ color: 'var(--text3)', fontWeight: 400 }}> · hidden</span>}</span>
+                    <button onClick={() => moveWidget(key, -1)} className='btn btn-ghost' style={{ padding: '3px 9px', fontSize: '12px' }}>▲</button>
+                    <button onClick={() => moveWidget(key, 1)} className='btn btn-ghost' style={{ padding: '3px 9px', fontSize: '12px' }}>▼</button>
+                    <button onClick={() => toggleHidden(key)} className='btn btn-ghost' style={{ padding: '3px 12px', fontSize: '11px', color: isHidden ? 'var(--green)' : 'var(--text2)' }}>{isHidden ? 'Show' : 'Hide'}</button>
                   </div>
+                  <div style={{ opacity: isHidden ? 0.4 : 1, pointerEvents: 'none' }}>{widgets[key]}</div>
                 </div>
-                <ResponsiveContainer width='100%' height={170}>
-                  <BarChart data={chartData} barGap={4} barCategoryGap='30%'>
-                    <CartesianGrid vertical={false} stroke='var(--border)' strokeDasharray='3 3' />
-                    <XAxis dataKey='month' tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? '$' + (v/1000).toFixed(0) + 'k' : '$' + v} width={40} />
-                    <Tooltip contentStyle={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '8px', fontSize: '12px' }} />
-                    <Bar dataKey='due' fill='var(--border2)' radius={[3,3,0,0]} />
-                    <Bar dataKey='collected' fill='var(--green)' radius={[3,3,0,0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Rent detail (sits right under the rent info) + quick actions */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
-              <div>
-                <div style={secLabel}>Rent Status · {monthLabel}</div>
-                <div style={panel}>
-                  <div style={{ padding: '9px 14px', borderBottom: '0.5px solid var(--border)', fontSize: '11px', color: 'var(--text3)', fontWeight: 600 }}>{paidCount} of {rentStatus.length} paid this month{rentStatus.length - paidCount > 0 ? ' · ' + (rentStatus.length - paidCount) + ' to collect' : ''}</div>
-                  {rentStatus.length === 0 ? <div style={{ padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No active tenants.</div> : rentStatus.map((s: any) => {
-                    const ch = stChip[s.status]
-                    const href = s.status === 'paid' ? '/tenants/' + s.id : '/payments?tenant_id=' + s.id
-                    return (
-                      <a key={s.id} href={href} style={{ textDecoration: 'none' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '10px 14px', borderBottom: '0.5px solid var(--border)' }}>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</div>
-                            <div style={{ fontSize: '11px', color: 'var(--text3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.where}{s.status !== 'paid' && s.status !== 'none' ? ' · tap to record' : ''}</div>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-                            <div style={{ fontSize: '13px', fontWeight: 600, color: s.status === 'paid' ? 'var(--green)' : 'var(--text2)' }}>{s.status === 'paid' ? fm(s.paid) : fm(s.amount)}</div>
-                            <span className={'chip ' + ch.c}>{ch.l}</span>
-                          </div>
-                        </div>
-                      </a>
-                    )
-                  })}
-                  <a href='/payments' style={{ display: 'block', padding: '10px 14px', fontSize: '12px', color: 'var(--green)', textDecoration: 'none' }}>View all payments →</a>
-                </div>
-              </div>
-              <div>
-                <div style={secLabel}>Quick Actions</div>
-                <div style={panel}>
-                  {[
-                    { href: '/payments', icon: '💳', label: 'Record Payment', sub: duePayments.length + ' payments due' },
-                    { href: '/tenants/new', icon: '👤', label: 'Add Tenant', sub: vacant.length + ' vacant' },
-                    { href: '/maintenance/new', icon: '🔧', label: 'New Maintenance Request', sub: maintenance.length + ' open' },
-                    { href: '/expenses/new', icon: '💰', label: 'Add Expense', sub: 'Track property costs' },
-                    { href: '/leases/new', icon: '📋', label: 'Create Lease', sub: 'Draft a new lease' },
-                    { href: '/reports?tab=returns', icon: '📊', label: 'Returns & Reports', sub: 'Cap rate, DSCR, cash flow' },
-                  ].map((item, i) => (
-                    <a key={i} href={item.href} style={{ textDecoration: 'none' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', borderBottom: '0.5px solid var(--border)', cursor: 'pointer' }}>
-                        <span style={{ fontSize: '16px' }}>{item.icon}</span>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text)' }}>{item.label}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '1px' }}>{item.sub}</div>
-                        </div>
-                        <span style={{ color: 'var(--text3)', fontSize: '12px' }}>→</span>
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Properties & Tenants — the vision board, grouped by entity when you have 2+ */}
-            <div style={secLabel}>🏠 Properties & Tenants</div>
-            {properties.length === 0 ? (
-              <div style={{ ...panel, padding: '20px', fontSize: '13px', color: 'var(--text3)' }}>No properties yet.</div>
-            ) : groupByEntity ? (
-              propGroups.map(([name, props]) => {
-                const grpRent = props.reduce((s: number, p: any) => s + (rentByProperty[p.id] || 0), 0)
-                return (
-                  <div key={name} style={{ marginBottom: '14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', padding: '0 2px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)' }}>🏛️ {name}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{props.length} propert{props.length === 1 ? 'y' : 'ies'} · {fm(grpRent)}/mo</div>
-                    </div>
-                    <div style={{ display: 'grid', gap: '8px' }}>{props.map((p: any) => <PropRow key={p.id} p={p} />)}</div>
-                  </div>
-                )
-              })
-            ) : (
-              <div style={{ display: 'grid', gap: '8px' }}>{properties.map((p: any) => <PropRow key={p.id} p={p} />)}</div>
-            )}
+              )
+            })}
           </>
         )}
       </div>
