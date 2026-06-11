@@ -34,6 +34,8 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const [finishModal, setFinishModal] = useState<any>(null) // form object or null
   const [savingFinish, setSavingFinish] = useState(false)
   const [finishErr, setFinishErr] = useState('')
+  const [importUrl, setImportUrl] = useState('')
+  const [importing, setImporting] = useState(false)
   const [roomModal, setRoomModal] = useState<any>(null)
   const [settingsModal, setSettingsModal] = useState<any>(null)
   const [noteText, setNoteText] = useState('')
@@ -88,9 +90,30 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
 
   // ---------- finishes ----------
   function openFinish(roomId: string | null, existing?: any) {
-    setFinishErr('')
+    setFinishErr(''); setImportUrl('')
     if (existing) setFinishModal({ ...emptyFinish, ...existing, price: existing.price ?? '', qty: existing.qty ?? '', actual_cost: existing.actual_cost ?? '', room_id: existing.room_id || '' })
     else setFinishModal({ ...emptyFinish, room_id: roomId || '' })
+  }
+  async function importFromUrl() {
+    const url = importUrl.trim()
+    if (!url) return
+    setImporting(true); setFinishErr('')
+    try {
+      const res = await fetch('/api/design/scrape', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
+      const d = await res.json()
+      if (!res.ok) { setFinishErr(d?.error === 'invalid_url' ? 'That doesn’t look like a valid product link.' : 'Couldn’t read that page — just fill the fields in below.'); setImporting(false); return }
+      setFinishModal((m: any) => ({
+        ...m,
+        name: m.name || d.name || '',
+        image_url: d.image || m.image_url,
+        price: (m.price === '' || m.price == null) && d.price != null ? String(d.price) : m.price,
+        brand: m.brand || d.brand || '',
+        supplier: m.supplier || d.site || '',
+        supplier_url: url,
+      }))
+      if (!d.name && !d.image && d.price == null) setFinishErr('That page didn’t expose product details — fill in what’s missing below.')
+    } catch { setFinishErr('Network error — try again or fill in manually.') }
+    setImporting(false)
   }
   async function saveFinish() {
     if (!finishModal.name?.trim()) { setFinishErr('Give this finish a name'); return }
@@ -585,6 +608,16 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
           <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '24px', width: '520px', maxHeight: '92vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>{finishModal.id ? 'Edit Finish' : 'Add Finish'}</div>
             {finishErr && <div style={{ background: 'var(--red-bg)', color: 'var(--red)', fontSize: '12px', padding: '10px 14px', borderRadius: '7px', marginBottom: '12px' }}>{finishErr}</div>}
+
+            {/* paste-a-link importer */}
+            <div style={{ background: 'var(--green-bg)', border: '0.5px solid var(--border)', borderRadius: '9px', padding: '12px 14px', marginBottom: '16px' }}>
+              <label style={{ ...lbl, color: 'var(--green-dk)' }}>🔗 Paste a product link to auto-fill</label>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <input style={{ ...inp, flex: 1, background: 'var(--bg2)' }} placeholder='https://… (tile, paint, fixture, furniture)' value={importUrl} onChange={e => setImportUrl(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); importFromUrl() } }} />
+                <button type='button' onClick={importFromUrl} disabled={importing || !importUrl.trim()} className='btn btn-primary' style={{ flexShrink: 0 }}>{importing ? 'Reading…' : 'Import'}</button>
+              </div>
+              <div style={{ fontSize: '10.5px', color: 'var(--text3)', marginTop: '5px' }}>Grabs the photo, name, price &amp; brand. Always double-check before saving.</div>
+            </div>
 
             {/* image */}
             <div style={{ display: 'flex', gap: '12px', marginBottom: '14px', alignItems: 'center' }}>
