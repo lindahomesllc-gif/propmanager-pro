@@ -42,7 +42,7 @@ const normalizeHex = (s: string): string | null => {
   return null
 }
 
-const emptyFinish = { id: '', room_id: '', category: 'Tile', name: '', brand: '', color_hex: '', material: '', dimensions: '', price: '', qty: '', sqft: '', actual_cost: '', supplier: '', supplier_url: '', image_url: '', images: [] as string[], status: 'idea', notes: '' }
+const emptyFinish = { id: '', room_id: '', category: 'Tile', name: '', brand: '', color_hex: '', material: '', dimensions: '', price: '', qty: '', sqft: '', actual_cost: '', supplier: '', supplier_url: '', image_url: '', images: [] as string[], docs: [] as { name: string; url: string }[], status: 'idea', notes: '' }
 // A finish's photos: gallery (image_urls) if present, else the legacy single image_url.
 const finishImages = (f: any): string[] => (Array.isArray(f?.image_urls) && f.image_urls.length ? f.image_urls : (f?.image_url ? [f.image_url] : []))
 
@@ -158,7 +158,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   // ---------- finishes ----------
   function openFinish(roomId: string | null, existing?: any) {
     setFinishErr(''); setImportUrl(''); setImportImg('')
-    if (existing) setFinishModal({ ...emptyFinish, ...existing, price: existing.price ?? '', qty: existing.qty ?? '', sqft: existing.sqft ?? '', actual_cost: existing.actual_cost ?? '', images: finishImages(existing), room_id: existing.room_id || '' })
+    if (existing) setFinishModal({ ...emptyFinish, ...existing, price: existing.price ?? '', qty: existing.qty ?? '', sqft: existing.sqft ?? '', actual_cost: existing.actual_cost ?? '', images: finishImages(existing), docs: Array.isArray(existing.docs) ? existing.docs : [], room_id: existing.room_id || '' })
     else setFinishModal({ ...emptyFinish, images: [], room_id: roomId || '' })
   }
   async function importFromUrl() {
@@ -193,7 +193,8 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
       material: finishModal.material?.trim() || null, dimensions: finishModal.dimensions?.trim() || null,
       price: numOrNull(finishModal.price), qty: numOrNull(finishModal.qty), sqft: numOrNull(finishModal.sqft), actual_cost: numOrNull(finishModal.actual_cost),
       supplier: finishModal.supplier?.trim() || null, supplier_url: finishModal.supplier_url?.trim() || null,
-      image_url: imgs[0] || null, image_urls: imgs, status: finishModal.status || 'idea', notes: finishModal.notes?.trim() || null,
+      image_url: imgs[0] || null, image_urls: imgs, docs: Array.isArray(finishModal.docs) ? finishModal.docs : [],
+      status: finishModal.status || 'idea', notes: finishModal.notes?.trim() || null,
     }
     if (finishModal.id) {
       const prev = items.find(i => i.id === finishModal.id)
@@ -214,6 +215,14 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
     for (const f of list) { const u = await uploadImage(f); if (u) urls.push(u) }
     setUploadingFor('')
     if (urls.length) setFinishModal((m: any) => m ? ({ ...m, images: [...(m.images || []), ...urls] }) : m)
+  }
+  async function addFinishDocs(files: FileList | File[]) {
+    const list = Array.from(files); if (!list.length) return
+    setUploadingFor('docs')
+    const added: { name: string; url: string }[] = []
+    for (const f of list) { const u = await uploadImage(f); if (u) added.push({ name: f.name, url: u }) }
+    setUploadingFor('')
+    if (added.length) setFinishModal((m: any) => m ? ({ ...m, docs: [...(m.docs || []), ...added] }) : m)
   }
   // Fetch a pasted image LINK server-side, then upload the bytes to storage.
   async function addImageFromLink() {
@@ -629,6 +638,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                               <span className={'chip ' + sm.chip} style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '9px' }}>{sm.label}</span>
                               {appr && <span className={'chip ' + (appr.decision === 'approved' ? 'chip-g' : appr.decision === 'rejected' ? 'chip-r' : 'chip-b')} style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '9px' }}>{appr.decision === 'approved' ? '✓ Client' : appr.decision === 'rejected' ? '✗ Client' : '💬 Client'}</span>}
                               {imgs.length > 1 && <span style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '9px', padding: '2px 6px', borderRadius: '6px' }}>📷 {imgs.length}</span>}
+                              {Array.isArray(f.docs) && f.docs.length > 0 && <span style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '9px', padding: '2px 6px', borderRadius: '6px' }}>📄 {f.docs.length}</span>}
                             </div>
                             <div style={{ padding: '11px 13px 13px' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '6px', alignItems: 'flex-start' }}>
@@ -968,6 +978,25 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                 <input style={inp} placeholder='https://…' value={finishModal.supplier_url} onChange={e => setFinishModal((m: any) => ({ ...m, supplier_url: e.target.value }))} />
               </div>
             </div>
+            <div style={{ marginBottom: '14px' }}>
+              <label style={lbl}>Specs &amp; installation</label>
+              {(finishModal.docs || []).length > 0 && (
+                <div style={{ display: 'grid', gap: '6px', marginBottom: '8px' }}>
+                  {(finishModal.docs || []).map((d: any, i: number) => (
+                    <div key={d.url} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '8px 11px', background: 'var(--bg3)', border: '0.5px solid var(--border)', borderRadius: '7px' }}>
+                      <a href={d.url} target='_blank' style={{ fontSize: '12px', color: 'var(--text)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📄 {d.name}</a>
+                      <button type='button' onClick={() => setFinishModal((m: any) => ({ ...m, docs: m.docs.filter((_: any, j: number) => j !== i) }))} style={{ background: 'transparent', border: 'none', color: 'var(--red)', fontSize: '11px', cursor: 'pointer', flexShrink: 0 }}>Remove</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <label className='btn btn-ghost' style={{ fontSize: '11px', cursor: 'pointer', display: 'inline-block' }}>
+                {uploadingFor === 'docs' ? 'Uploading…' : '⬆ Add spec / install sheet'}
+                <input type='file' accept='.pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.heic' multiple style={{ display: 'none' }} onChange={e => { const fs = e.target.files; if (fs && fs.length) addFinishDocs(fs); e.currentTarget.value = '' }} />
+              </label>
+              <div style={{ fontSize: '10.5px', color: 'var(--text3)', marginTop: '5px' }}>PDF spec sheets, installation guides, warranty docs — for appliances or any finish.</div>
+            </div>
+
             <div style={{ marginBottom: '18px' }}>
               <label style={lbl}>Notes</label>
               <textarea style={{ ...inp, resize: 'vertical' }} rows={2} value={finishModal.notes} onChange={e => setFinishModal((m: any) => ({ ...m, notes: e.target.value }))} />
@@ -1033,6 +1062,15 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                 </div>
 
                 {f.notes && <div style={{ fontSize: '13px', color: 'var(--text2)', marginTop: '16px', lineHeight: 1.6, background: 'var(--bg3)', borderRadius: '8px', padding: '12px 14px' }}>{f.notes}</div>}
+
+                {Array.isArray(f.docs) && f.docs.length > 0 && (
+                  <div style={{ marginTop: '16px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '6px' }}>Specs &amp; installation</div>
+                    <div style={{ display: 'grid', gap: '6px' }}>
+                      {f.docs.map((d: any) => <a key={d.url} href={d.url} target='_blank' style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text)', textDecoration: 'none', padding: '9px 12px', background: 'var(--bg3)', borderRadius: '7px', border: '0.5px solid var(--border)' }}>📄 {d.name}</a>)}
+                    </div>
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', gap: '8px', marginTop: '18px', alignItems: 'center' }}>
                   {f.supplier_url && <a href={f.supplier_url} target='_blank' className='btn btn-ghost' style={{ fontSize: '12px' }}>🔗 Source</a>}
