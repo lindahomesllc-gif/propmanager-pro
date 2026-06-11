@@ -26,6 +26,13 @@ const PRESET_COLORS = [
 ]
 // Rotating accent colors (Coastal palette) for room cards.
 const ROOM_ACCENTS = ['#0EA5A5', '#38BDF8', '#FB7185', '#F4C77B', '#5DCAA5', '#A78BFA']
+// A color per finish category — for the stripe on each finish card.
+const CATEGORY_COLORS: Record<string, string> = {
+  Tile: '#0EA5A5', Paint: '#FB7185', Flooring: '#B45309', Cabinetry: '#A78BFA', Countertop: '#38BDF8',
+  Fixture: '#14B8A6', Lighting: '#F59E0B', Hardware: '#64748B', Appliance: '#6366F1', Plumbing: '#0891B2',
+  Textile: '#EC4899', Furniture: '#84CC16', Wallpaper: '#F472B6', Window: '#22D3EE', Other: '#94A3B8',
+}
+const catColor = (c: string) => CATEGORY_COLORS[c] || '#94A3B8'
 // One-click area templates — create a whole suite of rooms at once.
 const ROOM_TEMPLATES: { label: string; area: string; rooms: string[] }[] = [
   { label: 'Master Suite', area: 'Master Suite', rooms: ['Bedroom', 'Bath', 'Closet'] },
@@ -476,7 +483,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
       <div className='design-theme' style={{ display: 'contents' }}>
       <div className='design-grad' style={{ height: '5px', flexShrink: 0 }} />
       {/* header */}
-      <div style={{ padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
+      <div style={{ padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'linear-gradient(100deg, rgba(14,165,165,0.16), rgba(56,189,248,0.09) 55%, rgba(251,113,133,0.14))', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>
             <a href='/design' style={{ fontSize: '11px', color: 'var(--text3)', textDecoration: 'none' }}>← Design Studio</a>
@@ -505,7 +512,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px', background: 'linear-gradient(180deg, rgba(56,189,248,0.07), rgba(251,113,133,0.04) 280px, transparent 560px)' }}>
         {loading ? (
           <div style={{ display: 'grid', gap: '10px' }}>{[0, 1, 2].map(i => <div key={i} className='skeleton' style={{ height: '90px' }} />)}</div>
         ) : (
@@ -652,6 +659,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                         const cover = imgs[0]
                         return (
                           <div key={f.id} onClick={() => setDetailFinish(f)} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
+                            <div style={{ height: '4px', background: catColor(f.category) }} />
                             <div style={{ height: '120px', background: 'var(--bg3)', position: 'relative' }}>
                               {cover
                                 ? <img src={cover} alt='' style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />

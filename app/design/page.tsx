@@ -70,7 +70,7 @@ export default function DesignPage() {
         <button onClick={openAdd} style={{ background: '#fff', color: '#0B7E7E', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>+ New Project</button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px', background: 'linear-gradient(180deg, rgba(56,189,248,0.07), rgba(251,113,133,0.04) 280px, transparent 560px)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
           <div style={{ fontSize: '12px', color: 'var(--text3)', maxWidth: '640px' }}>
             A vision board + finishes tracker for each home you design. Build the moodboard, log every tile, paint and fixture, track decisions, then share a private link your client can approve from.

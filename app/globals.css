@@ -149,6 +149,9 @@ body {
 /* keep status/approval chips their semantic green (approved = green, not brand teal) */
 .design-theme .chip-g { --green: #2D6A4F; --green-bg: rgba(45,106,79,0.10); }
 .design-grad { background: linear-gradient(100deg, #0EA5A5, #38BDF8 55%, #FB7185); }
+/* go-all-in: gradient primary buttons inside the Design area */
+.design-theme .btn-primary { background: linear-gradient(100deg, #0EA5A5, #2BA8C7 52%, #FB7185); border-color: transparent; }
+.design-theme .btn-primary:hover { background: linear-gradient(100deg, #0B8E8E, #1E96B4 52%, #F2566F); border-color: transparent; }
 .design-grad-text {
   background: linear-gradient(100deg, #0E9C9C, #2563EB 50%, #E0457B);
   -webkit-background-clip: text; background-clip: text;
