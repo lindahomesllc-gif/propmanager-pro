@@ -43,6 +43,9 @@ export default function DashboardPage() {
   const today = new Date()
   const in90 = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000)
   const expiringLeases = leases.filter(l => l.end_date && new Date(l.end_date) <= in90).sort((a, b) => new Date(a.end_date) - new Date(b.end_date))
+  const todayStr = today.toISOString().slice(0, 10)
+  const in90Str = in90.toISOString().slice(0, 10)
+  const expiringWarranties = assets.filter((a: any) => a.warranty_expires && a.warranty_expires >= todayStr && a.warranty_expires <= in90Str).sort((a: any, b: any) => a.warranty_expires.localeCompare(b.warranty_expires))
   const recentPayments = payments.filter(p => p.status === 'paid').slice(0, 5)
   const thisMonth = new Date().toISOString().slice(0, 7)
   const collectedThisMonth = payments.filter(p => p.status === 'paid' && p.paid_date?.startsWith(thisMonth)).reduce((s, p) => s + (p.amount_paid || 0), 0)
@@ -61,7 +64,7 @@ export default function DashboardPage() {
   })
 
   const returns = computeReturns({ properties, leases, expenses, mortgages, year: currentYear })
-  const attentionCount = latePayments.length + expiringLeases.length + maintenance.length + vacant.length
+  const attentionCount = latePayments.length + expiringLeases.length + maintenance.length + vacant.length + expiringWarranties.length
 
   // Per-tenant rent status for THIS month — who's paid vs who still owes (actionable).
   const leaseRentByTenant: Record<string, number> = {}
@@ -209,6 +212,7 @@ export default function DashboardPage() {
                 {maintenance.map(m => <AlertCard key={'m' + m.id} href={'/maintenance/' + m.id} color={m.priority === 'emergency' ? 'var(--red)' : m.priority === 'high' ? 'var(--amber)' : 'var(--blue)'} title={'🔧 ' + m.title} sub={(m.priority || 'open') + ' · ' + (m.properties?.address || '')} />)}
                 {expiringLeases.map(l => <AlertCard key={'l' + l.id} href={'/leases/' + l.id} color='var(--amber)' title={'Lease Expiring — ' + (l.tenants?.full_name || 'Tenant')} sub={'Expires ' + formatDate(l.end_date) + ' · ' + (l.properties?.address || '')} />)}
                 {vacant.map(p => <AlertCard key={'v' + p.id} href={'/properties/' + p.id} color='var(--amber)' title={'Vacant — ' + p.address} sub={(p.city || '') + ' · needs a tenant'} />)}
+                {expiringWarranties.map((a: any) => <AlertCard key={'w' + a.id} href={'/properties/' + a.property_id + '?tab=appliances'} color='var(--amber)' title={'🧰 Warranty Expiring — ' + a.name} sub={'Expires ' + formatDate(a.warranty_expires) + ' · ' + (a.properties?.address || '')} />)}
               </div>
             )}
 
