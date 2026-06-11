@@ -50,6 +50,12 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
+    label: 'Design',
+    items: [
+      { href: '/design', label: 'Design Studio', icon: '🎨' },
+    ],
+  },
+  {
     label: 'Account',
     items: [
       { href: '/billing', label: 'Billing', icon: '◆' },
