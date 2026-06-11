@@ -74,6 +74,21 @@ export const LOAN_TYPES: [string, string][] = [
   ['construction', 'Construction'], ['commercial', 'Commercial'], ['heloc', 'HELOC'],
   ['private_lender', 'Private Lender'], ['bridge', 'Bridge'], ['portfolio', 'Portfolio'], ['blanket', 'Blanket'],
 ]
+// Next annual-report / compliance due date for an entity (YYYY-MM-DD), or null.
+// Florida LLCs must file their annual report by May 1 each year; an explicit
+// annual_report_due overrides the state default.
+export function nextAnnualReportDue(e: { formation_state?: any; annual_report_due?: any }): string | null {
+  if (e?.annual_report_due) return e.annual_report_due
+  const st = (e?.formation_state || '').toString().trim().toUpperCase()
+  if (st === 'FL' || st === 'FLORIDA') {
+    const now = new Date()
+    const y = now.getFullYear()
+    const may1 = y + '-05-01'
+    return now.toISOString().slice(0, 10) <= may1 ? may1 : (y + 1) + '-05-01'
+  }
+  return null
+}
+
 // Monthly principal & interest for a loan (escrow-free) from amount / rate / term.
 // Used by the amortization schedule and the investor-returns metrics.
 export const monthlyPI = (m: { original_amount?: any; interest_rate?: any; term_years?: any }) => {

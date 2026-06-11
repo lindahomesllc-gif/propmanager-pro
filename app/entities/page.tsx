@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase } from '@/lib/supabase'
+import { supabase, nextAnnualReportDue, formatDate } from '@/lib/supabase'
 
 const TYPES = [
   { v: 'llc', label: 'LLC' },
@@ -21,7 +21,7 @@ export default function EntitiesPage() {
   const [editId, setEditId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({ name: '', type: 'llc', ein: '', notes: '' })
+  const [form, setForm] = useState({ name: '', type: 'llc', ein: '', notes: '', formation_state: '', annual_report_due: '' })
   const [docEntity, setDocEntity] = useState(null)
   const [docUploading, setDocUploading] = useState(false)
   const fileRef = useRef(null)
@@ -39,13 +39,13 @@ export default function EntitiesPage() {
   }
   useEffect(() => { load() }, [])
 
-  function openAdd() { setEditId(null); setForm({ name: '', type: 'llc', ein: '', notes: '' }); setError(''); setShowForm(true) }
-  function openEdit(e) { setEditId(e.id); setForm({ name: e.name || '', type: e.type || 'llc', ein: e.ein || '', notes: e.notes || '' }); setError(''); setShowForm(true) }
+  function openAdd() { setEditId(null); setForm({ name: '', type: 'llc', ein: '', notes: '', formation_state: '', annual_report_due: '' }); setError(''); setShowForm(true) }
+  function openEdit(e) { setEditId(e.id); setForm({ name: e.name || '', type: e.type || 'llc', ein: e.ein || '', notes: e.notes || '', formation_state: e.formation_state || '', annual_report_due: e.annual_report_due || '' }); setError(''); setShowForm(true) }
 
   async function save() {
     if (!form.name.trim()) { setError('Name is required'); return }
     setSaving(true); setError('')
-    const payload = { name: form.name.trim(), type: form.type, ein: form.ein || null, notes: form.notes || null }
+    const payload = { name: form.name.trim(), type: form.type, ein: form.ein || null, notes: form.notes || null, formation_state: form.formation_state || null, annual_report_due: form.annual_report_due || null }
     const { error: err } = editId
       ? await supabase.from('entities').update(payload).eq('id', editId)
       : await supabase.from('entities').insert(payload)
@@ -123,8 +123,15 @@ export default function EntitiesPage() {
                   <span className='chip chip-b'>{typeLabel(e.type)}</span>
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '4px' }}>
-                  {counts[e.id] || 0} propert{counts[e.id] === 1 ? 'y' : 'ies'}{e.ein ? ' · EIN ' + e.ein : ''}
+                  {counts[e.id] || 0} propert{counts[e.id] === 1 ? 'y' : 'ies'}{e.ein ? ' · EIN ' + e.ein : ''}{e.formation_state ? ' · ' + e.formation_state : ''}
                 </div>
+                {(() => {
+                  const due = nextAnnualReportDue(e)
+                  if (!due) return null
+                  const days = Math.ceil((new Date(due + 'T00:00:00').getTime() - Date.now()) / 86400000)
+                  const col = days < 0 ? 'var(--red)' : days <= 90 ? 'var(--amber)' : 'var(--text3)'
+                  return <div style={{ fontSize: '11px', color: col, marginTop: '5px', fontWeight: days <= 90 ? 600 : 400 }}>📋 Annual report due {formatDate(due)}{days >= 0 ? ' · ' + days + 'd' : ' · overdue'}</div>
+                })()}
                 {e.notes && <div style={{ fontSize: '12px', color: 'var(--text2)', marginTop: '8px', lineHeight: 1.5 }}>{e.notes}</div>}
                 <div style={{ display: 'flex', gap: '6px', marginTop: '12px', flexWrap: 'wrap' }}>
                   {(counts[e.id] || 0) > 0 && (
@@ -161,6 +168,17 @@ export default function EntitiesPage() {
                 <input style={inp} placeholder='12-3456789' value={form.ein} onChange={e => setForm(f => ({ ...f, ein: e.target.value }))} />
               </div>
             </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <label style={lbl}>Formation State</label>
+                <input style={inp} placeholder='FL' maxLength={20} value={form.formation_state} onChange={e => setForm(f => ({ ...f, formation_state: e.target.value }))} />
+              </div>
+              <div>
+                <label style={lbl}>Annual Report Due</label>
+                <input style={inp} type='date' value={form.annual_report_due} onChange={e => setForm(f => ({ ...f, annual_report_due: e.target.value }))} />
+              </div>
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '18px', marginTop: '-4px' }}>Enter <strong>FL</strong> and the May 1 annual-report deadline is tracked automatically — or set an exact date for any state.</div>
             <div style={{ marginBottom: '18px' }}>
               <label style={lbl}>Notes</label>
               <textarea style={{ ...inp, resize: 'vertical' }} rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
