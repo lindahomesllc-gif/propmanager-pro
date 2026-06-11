@@ -50,6 +50,14 @@ export default function DesignPage() {
     if (data?.id) router.push('/design/' + data.id)
   }
 
+  async function delProject(p: any, e: any) {
+    e.stopPropagation()
+    if (!confirm('Delete “' + p.name + '” and everything in it (rooms, finishes, photos)? This cannot be undone.')) return
+    const { error } = await supabase.from('design_projects').delete().eq('id', p.id)
+    if (error) { alert('Could not delete: ' + error.message); return }
+    setProjects(list => list.filter(x => x.id !== p.id))
+  }
+
   const visible = projects.filter(p => showArchived ? p.status === 'archived' : p.status !== 'archived')
   const inp = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' as const }
   const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
@@ -95,8 +103,11 @@ export default function DesignPage() {
                   <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '3px' }}>
                     {p.client_name || 'No client set'}{p.address ? ' · ' + p.address : ''}
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '8px' }}>
-                    {counts[p.id] || 0} finish{(counts[p.id] || 0) === 1 ? '' : 'es'}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)' }}>
+                      {counts[p.id] || 0} finish{(counts[p.id] || 0) === 1 ? '' : 'es'}
+                    </div>
+                    <button onClick={e => delProject(p, e)} title='Delete project' style={{ background: 'transparent', color: 'var(--red)', border: 'none', fontSize: '11px', cursor: 'pointer', padding: '2px 4px' }}>Delete</button>
                   </div>
                 </div>
               </div>

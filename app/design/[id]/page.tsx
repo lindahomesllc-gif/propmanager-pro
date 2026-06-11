@@ -388,7 +388,8 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   }
   async function deleteProject() {
     if (!confirm('Permanently delete this project and everything in it? This cannot be undone.')) return
-    await supabase.from('design_projects').delete().eq('id', pid)
+    const { error } = await supabase.from('design_projects').delete().eq('id', pid)
+    if (error) { alert('Could not delete: ' + error.message); return }
     router.push('/design')
   }
 
