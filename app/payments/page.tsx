@@ -15,6 +15,8 @@ export default function PaymentsPage() {
   const [filter, setFilter] = useState('all')
   const [filterTenant, setFilterTenant] = useState('all')
   const [filterProperty, setFilterProperty] = useState('all')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
   const [view, setView] = useState('list')
   const [leases, setLeases] = useState([])
   const [form, setForm] = useState({
@@ -132,18 +134,27 @@ export default function PaymentsPage() {
   const filtered = payments.filter(p =>
     (filter === 'all' || p.status === filter) &&
     (filterTenant === 'all' || p.tenant_id === filterTenant) &&
-    (filterProperty === 'all' || p.property_id === filterProperty)
+    (filterProperty === 'all' || p.property_id === filterProperty) &&
+    (!fromDate || (p.due_date && p.due_date >= fromDate)) &&
+    (!toDate || (p.due_date && p.due_date <= toDate))
   )
 
+  // summary totals respect tenant/property/date scope (but not the status filter — each card is a status)
+  const scoped = payments.filter(p =>
+    (filterTenant === 'all' || p.tenant_id === filterTenant) &&
+    (filterProperty === 'all' || p.property_id === filterProperty) &&
+    (!fromDate || (p.due_date && p.due_date >= fromDate)) &&
+    (!toDate || (p.due_date && p.due_date <= toDate))
+  )
   const summary = {
-    paid: payments.filter(p => p.status === 'paid').reduce((s, p) => s + (p.amount_paid || 0), 0),
-    due: payments.filter(p => p.status === 'due' || p.status === 'upcoming').reduce((s, p) => s + (p.amount_due || 0), 0),
-    late: payments.filter(p => p.status === 'late').reduce((s, p) => s + (p.amount_due || 0), 0),
-    partial: payments.filter(p => p.status === 'partial').reduce((s, p) => s + (p.amount_paid || 0), 0),
-    paidCount: payments.filter(p => p.status === 'paid').length,
-    dueCount: payments.filter(p => p.status === 'due' || p.status === 'upcoming').length,
-    lateCount: payments.filter(p => p.status === 'late').length,
-    partialCount: payments.filter(p => p.status === 'partial').length,
+    paid: scoped.filter(p => p.status === 'paid').reduce((s, p) => s + (p.amount_paid || 0), 0),
+    due: scoped.filter(p => p.status === 'due' || p.status === 'upcoming').reduce((s, p) => s + (p.amount_due || 0), 0),
+    late: scoped.filter(p => p.status === 'late').reduce((s, p) => s + (p.amount_due || 0), 0),
+    partial: scoped.filter(p => p.status === 'partial').reduce((s, p) => s + (p.amount_paid || 0), 0),
+    paidCount: scoped.filter(p => p.status === 'paid').length,
+    dueCount: scoped.filter(p => p.status === 'due' || p.status === 'upcoming').length,
+    lateCount: scoped.filter(p => p.status === 'late').length,
+    partialCount: scoped.filter(p => p.status === 'partial').length,
   }
 
   const inp = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' }
@@ -187,8 +198,13 @@ export default function PaymentsPage() {
             <option value='all'>All properties</option>
             {properties.map(pr => <option key={pr.id} value={pr.id}>{pr.address}</option>)}
           </select>
-          {(filterTenant !== 'all' || filterProperty !== 'all' || filter !== 'all') && (
-            <button onClick={() => { setFilter('all'); setFilterTenant('all'); setFilterProperty('all') }} style={{ padding: '5px 10px', fontSize: '11px', borderRadius: '7px', border: '0.5px solid var(--border2)', background: 'transparent', color: 'var(--text3)', cursor: 'pointer' }}>✕ Clear</button>
+          <span style={{ fontSize: '11px', color: 'var(--text3)' }}>Due</span>
+          <input type='date' value={fromDate} onChange={e => setFromDate(e.target.value)} title='From (due date)' style={{ ...inp, width: 'auto', padding: '5px 8px', fontSize: '12px' }} />
+          <span style={{ fontSize: '11px', color: 'var(--text3)' }}>–</span>
+          <input type='date' value={toDate} onChange={e => setToDate(e.target.value)} title='To (due date)' style={{ ...inp, width: 'auto', padding: '5px 8px', fontSize: '12px' }} />
+          <button onClick={() => { const y = new Date().getFullYear(); setFromDate(y + '-01-01'); setToDate(y + '-12-31') }} style={{ padding: '5px 10px', fontSize: '11px', borderRadius: '7px', border: '0.5px solid var(--border2)', background: 'transparent', color: 'var(--text2)', cursor: 'pointer' }}>This year</button>
+          {(filterTenant !== 'all' || filterProperty !== 'all' || filter !== 'all' || fromDate || toDate) && (
+            <button onClick={() => { setFilter('all'); setFilterTenant('all'); setFilterProperty('all'); setFromDate(''); setToDate('') }} style={{ padding: '5px 10px', fontSize: '11px', borderRadius: '7px', border: '0.5px solid var(--border2)', background: 'transparent', color: 'var(--text3)', cursor: 'pointer' }}>✕ Clear</button>
           )}
         </div>
       </div>
