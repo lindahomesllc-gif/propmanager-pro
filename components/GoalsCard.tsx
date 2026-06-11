@@ -6,10 +6,10 @@ import { supabase, fm } from '@/lib/supabase'
 type Current = { cashFlow: number; value: number; properties: number; occupancy: number }
 
 const DEFS = [
-  { key: 'target_cash_flow', label: 'Monthly Cash Flow', cur: 'cashFlow', kind: 'money' },
-  { key: 'target_value', label: 'Portfolio Value', cur: 'value', kind: 'money' },
-  { key: 'target_properties', label: 'Properties', cur: 'properties', kind: 'count' },
-  { key: 'target_occupancy', label: 'Occupancy', cur: 'occupancy', kind: 'pct' },
+  { key: 'target_cash_flow', label: 'Monthly Cash Flow', cur: 'cashFlow', kind: 'money', href: '/reports?tab=returns' },
+  { key: 'target_value', label: 'Portfolio Value', cur: 'value', kind: 'money', href: '/properties' },
+  { key: 'target_properties', label: 'Properties', cur: 'properties', kind: 'count', href: '/properties' },
+  { key: 'target_occupancy', label: 'Occupancy', cur: 'occupancy', kind: 'pct', href: '/properties' },
 ] as const
 
 const fmtVal = (v: number, kind: string) => kind === 'money' ? fm(v) : kind === 'pct' ? Math.round(v) + '%' : String(Math.round(v))
@@ -87,16 +87,16 @@ export default function GoalsCard({ current }: { current: Current }) {
             const pct = target > 0 ? Math.min(100, Math.round((cur / target) * 100)) : 0
             const done = pct >= 100
             return (
-              <div key={d.key}>
+              <a key={d.key} href={(d as any).href} style={{ textDecoration: 'none', display: 'block' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '5px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text2)' }}>{d.label}</span>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text2)' }}>{d.label} <span style={{ color: 'var(--text3)' }}>›</span></span>
                   <span style={{ fontSize: '11px', color: 'var(--text3)' }}>{fmtVal(cur, d.kind)} <span style={{ color: 'var(--text3)' }}>/ {fmtVal(target, d.kind)}</span></span>
                 </div>
                 <div style={{ height: '7px', background: 'var(--bg3)', borderRadius: '20px', overflow: 'hidden' }}>
                   <div style={{ width: pct + '%', height: '100%', background: done ? 'var(--green)' : 'var(--amber)', borderRadius: '20px', transition: 'width 0.4s' }} />
                 </div>
                 <div style={{ fontSize: '10px', color: done ? 'var(--green)' : 'var(--text3)', marginTop: '3px', fontWeight: done ? 700 : 400 }}>{done ? '✓ Reached' : pct + '% there'}</div>
-              </div>
+              </a>
             )
           })}
         </div>
