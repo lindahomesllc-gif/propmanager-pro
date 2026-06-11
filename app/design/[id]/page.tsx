@@ -65,6 +65,8 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const [finishErr, setFinishErr] = useState('')
   const [importUrl, setImportUrl] = useState('')
   const [importing, setImporting] = useState(false)
+  const [importImg, setImportImg] = useState('')
+  const [importingImg, setImportingImg] = useState(false)
   const [roomModal, setRoomModal] = useState<any>(null)
   const [detailFinish, setDetailFinish] = useState<any>(null)
   const [lightbox, setLightbox] = useState('')
@@ -95,6 +97,20 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
     setLoading(false)
   }
   useEffect(() => { load() }, [pid])
+
+  // While the finish form is open, ⌘V / Ctrl+V pastes a copied image straight in.
+  useEffect(() => {
+    if (!finishModal) return
+    const onPaste = async (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+      const files: File[] = []
+      for (const it of Array.from(items)) { if (it.type.startsWith('image/')) { const f = it.getAsFile(); if (f) files.push(f) } }
+      if (files.length) { e.preventDefault(); await addFinishPhotos(files) }
+    }
+    window.addEventListener('paste', onPaste)
+    return () => window.removeEventListener('paste', onPaste)
+  }, [!!finishModal])
 
   async function logActivity(text: string, kind: string, item_id?: string) {
     await supabase.from('design_activity').insert({ project_id: pid, text, kind, item_id: item_id || null, author: 'you' })
@@ -141,7 +157,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
 
   // ---------- finishes ----------
   function openFinish(roomId: string | null, existing?: any) {
-    setFinishErr(''); setImportUrl('')
+    setFinishErr(''); setImportUrl(''); setImportImg('')
     if (existing) setFinishModal({ ...emptyFinish, ...existing, price: existing.price ?? '', qty: existing.qty ?? '', sqft: existing.sqft ?? '', actual_cost: existing.actual_cost ?? '', images: finishImages(existing), room_id: existing.room_id || '' })
     else setFinishModal({ ...emptyFinish, images: [], room_id: roomId || '' })
   }
@@ -197,7 +213,22 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
     const urls: string[] = []
     for (const f of list) { const u = await uploadImage(f); if (u) urls.push(u) }
     setUploadingFor('')
-    if (urls.length) setFinishModal((m: any) => ({ ...m, images: [...(m.images || []), ...urls] }))
+    if (urls.length) setFinishModal((m: any) => m ? ({ ...m, images: [...(m.images || []), ...urls] }) : m)
+  }
+  // Fetch a pasted image LINK server-side, then upload the bytes to storage.
+  async function addImageFromLink() {
+    const url = importImg.trim(); if (!url) return
+    setImportingImg(true); setFinishErr('')
+    try {
+      const res = await fetch('/api/design/fetch-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
+      const d = await res.json()
+      if (!res.ok || !d.dataUrl) { setFinishErr('Couldn’t fetch that image link. Tip: right-click the image → “Copy Image”, then press ⌘V / Ctrl+V here.'); setImportingImg(false); return }
+      const blob = await (await fetch(d.dataUrl)).blob()
+      const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg')
+      await addFinishPhotos([new File([blob], 'pasted_' + Date.now() + '.' + ext, { type: blob.type })])
+      setImportImg('')
+    } catch { setFinishErr('Network error fetching the image.') }
+    setImportingImg(false)
   }
   async function deleteFinish(it: any) {
     if (!confirm('Delete “' + it.name + '”?')) return
@@ -842,6 +873,14 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                   </button>
                 )}
               </div>
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <input style={{ ...inp, flex: 1 }} placeholder='…or paste an image link' value={importImg} onChange={e => setImportImg(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addImageFromLink() } }} />
+                <button type='button' onClick={addImageFromLink} disabled={importingImg || !importImg.trim()} className='btn btn-ghost' style={{ flexShrink: 0 }}>{importingImg ? 'Adding…' : 'Add image'}</button>
+              </div>
+              <div style={{ fontSize: '10.5px', color: 'var(--text3)', marginTop: '4px' }}>Or copy an image (right-click → Copy Image) and press ⌘V / Ctrl+V anywhere in this window to paste it straight in.</div>
             </div>
 
             <div style={{ marginBottom: '12px' }}>
