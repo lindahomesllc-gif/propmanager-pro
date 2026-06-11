@@ -82,6 +82,11 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const [collapsedAreas, setCollapsedAreas] = useState<Set<string>>(new Set())
   const [photoPicker, setPhotoPicker] = useState<{ mode: 'finish' | 'room'; roomId?: string | null } | null>(null)
   const [compareGroup, setCompareGroup] = useState<string>('')
+  const [canvasRoom, setCanvasRoom] = useState<{ roomId: string | null } | null>(null)
+  const [drag, setDrag] = useState<{ id: string; dx: number; dy: number } | null>(null)
+  const [pos, setPos] = useState<Record<string, { x: number; y: number }>>({})
+  const posRef = useRef<Record<string, { x: number; y: number }>>({})
+  const canvasRef = useRef<HTMLDivElement>(null)
   const [settingsModal, setSettingsModal] = useState<any>(null)
   const [noteText, setNoteText] = useState('')
   const [finishFilter, setFinishFilter] = useState('')
@@ -264,6 +269,41 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
     await logActivity(it.name + ': ' + statusMeta(it.status).label + ' → ' + statusMeta(status).label, 'status', it.id)
     load()
   }
+  // ---------- free-arrange canvas ----------
+  function openCanvas(roomId: string | null) {
+    const its = items.filter(i => i.kind === 'inspiration' && (i.room_id || null) === (roomId || null))
+    const p: Record<string, { x: number; y: number }> = {}
+    its.forEach((it, idx) => {
+      p[it.id] = { x: it.pos_x != null ? Number(it.pos_x) : 16 + (idx % 4) * 172, y: it.pos_y != null ? Number(it.pos_y) : 16 + Math.floor(idx / 4) * 172 }
+    })
+    setPos(p); posRef.current = p; setCanvasRoom({ roomId })
+  }
+  function startDrag(e: React.MouseEvent, id: string) {
+    e.preventDefault()
+    const el = canvasRef.current; if (!el) return
+    const rect = el.getBoundingClientRect()
+    const cur = pos[id] || { x: 0, y: 0 }
+    setDrag({ id, dx: e.clientX - rect.left + el.scrollLeft - cur.x, dy: e.clientY - rect.top + el.scrollTop - cur.y })
+  }
+  useEffect(() => {
+    if (!drag) return
+    const move = (e: MouseEvent) => {
+      const el = canvasRef.current; if (!el) return
+      const rect = el.getBoundingClientRect()
+      const x = Math.max(0, e.clientX - rect.left + el.scrollLeft - drag.dx)
+      const y = Math.max(0, e.clientY - rect.top + el.scrollTop - drag.dy)
+      setPos(p => { const n = { ...p, [drag.id]: { x, y } }; posRef.current = n; return n })
+    }
+    const up = async () => {
+      const fp = posRef.current[drag.id]
+      setDrag(null)
+      if (fp) await supabase.from('design_items').update({ pos_x: Math.round(fp.x), pos_y: Math.round(fp.y) }).eq('id', drag.id)
+    }
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', up)
+    return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up) }
+  }, [drag])
+
   async function markDelivered(f: any) {
     await supabase.from('design_items').update({ delivered_date: todayStr }).eq('id', f.id)
     await logActivity('Delivered: ' + f.name, 'note', f.id)
@@ -637,6 +677,11 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                       </div>
 
                       {/* inspiration */}
+                      {inspo.length >= 2 && (
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px', marginBottom: '-4px' }}>
+                          <button onClick={() => openCanvas(b.id)} className='btn btn-ghost' style={{ fontSize: '10px', padding: '4px 10px' }}>↔ Arrange freely</button>
+                        </div>
+                      )}
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px,1fr))', gap: '8px', marginTop: '12px' }}>
                         {inspo.map(im => (
                           <div key={im.id} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', aspectRatio: '1', border: '0.5px solid var(--border)' }}>
@@ -1357,6 +1402,38 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                     </div>
                   )
                 })}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* ===== free-arrange canvas ===== */}
+      {canvasRoom && (() => {
+        const roomName = rooms.find(r => r.id === canvasRoom.roomId)?.name || 'Whole-home'
+        const its = items.filter(i => i.kind === 'inspiration' && (i.room_id || null) === (canvasRoom.roomId || null))
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1400, display: 'flex', flexDirection: 'column', padding: '16px' }} onClick={() => setCanvasRoom(null)}>
+            <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', maxWidth: '1100px', width: '100%', margin: '0 auto' }} onClick={e => e.stopPropagation()}>
+              <div style={{ padding: '12px 18px', borderBottom: '0.5px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>↔ Arrange — {roomName}</div>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text3)' }}>Drag photos to collage — saved automatically.</span>
+                  <button onClick={() => setCanvasRoom(null)} className='btn btn-primary' style={{ fontSize: '12px' }}>Done</button>
+                </div>
+              </div>
+              <div ref={canvasRef} style={{ flex: 1, position: 'relative', overflow: 'auto', background: 'var(--bg3)', backgroundImage: 'radial-gradient(var(--border2) 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
+                <div style={{ position: 'relative', minWidth: '100%', minHeight: '1200px' }}>
+                  {its.map(it => {
+                    const p = pos[it.id] || { x: 0, y: 0 }
+                    return (
+                      <div key={it.id} onMouseDown={e => startDrag(e, it.id)} style={{ position: 'absolute', left: p.x, top: p.y, width: '156px', height: '156px', borderRadius: '10px', overflow: 'hidden', border: '3px solid #fff', boxShadow: '0 3px 12px rgba(0,0,0,0.18)', cursor: drag?.id === it.id ? 'grabbing' : 'grab', userSelect: 'none' }}>
+                        <img src={it.image_url} alt='' draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} />
+                      </div>
+                    )
+                  })}
+                  {its.length === 0 && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)', fontSize: '13px' }}>Add photos to this room first.</div>}
+                </div>
               </div>
             </div>
           </div>
