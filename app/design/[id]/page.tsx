@@ -279,6 +279,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
             )}
           </div>
           <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+            <a href={'/design/' + pid + '/print'} target='_blank' className='btn btn-ghost' style={{ fontSize: '11px', padding: '6px 12px' }}>⤓ PDF</a>
             <button onClick={() => setSettingsModal({ ...project })} className='btn btn-ghost' style={{ fontSize: '11px', padding: '6px 12px' }}>⚙ Settings</button>
             <button onClick={() => openFinish(null)} className='btn btn-primary' style={{ fontSize: '11px', padding: '6px 12px' }}>+ Add Finish</button>
           </div>
