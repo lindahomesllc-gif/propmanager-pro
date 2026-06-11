@@ -51,7 +51,7 @@ const normalizeHex = (s: string): string | null => {
   return null
 }
 
-const emptyFinish = { id: '', room_id: '', category: 'Tile', name: '', brand: '', color_hex: '', material: '', dimensions: '', price: '', qty: '', sqft: '', actual_cost: '', supplier: '', supplier_url: '', image_url: '', images: [] as string[], docs: [] as { name: string; url: string }[], option_group: '', status: 'idea', notes: '' }
+const emptyFinish = { id: '', room_id: '', category: 'Tile', name: '', brand: '', color_hex: '', material: '', dimensions: '', price: '', qty: '', sqft: '', actual_cost: '', supplier: '', supplier_url: '', image_url: '', images: [] as string[], docs: [] as { name: string; url: string }[], option_group: '', ordered_date: '', eta_date: '', delivered_date: '', status: 'idea', notes: '' }
 // A finish's photos: gallery (image_urls) if present, else the legacy single image_url.
 const finishImages = (f: any): string[] => (Array.isArray(f?.image_urls) && f.image_urls.length ? f.image_urls : (f?.image_url ? [f.image_url] : []))
 
@@ -170,7 +170,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   // ---------- finishes ----------
   function openFinish(roomId: string | null, existing?: any) {
     setFinishErr(''); setImportUrl(''); setImportImg('')
-    if (existing) setFinishModal({ ...emptyFinish, ...existing, price: existing.price ?? '', qty: existing.qty ?? '', sqft: existing.sqft ?? '', actual_cost: existing.actual_cost ?? '', images: finishImages(existing), docs: Array.isArray(existing.docs) ? existing.docs : [], option_group: existing.option_group || '', room_id: existing.room_id || '' })
+    if (existing) setFinishModal({ ...emptyFinish, ...existing, price: existing.price ?? '', qty: existing.qty ?? '', sqft: existing.sqft ?? '', actual_cost: existing.actual_cost ?? '', images: finishImages(existing), docs: Array.isArray(existing.docs) ? existing.docs : [], option_group: existing.option_group || '', ordered_date: existing.ordered_date || '', eta_date: existing.eta_date || '', delivered_date: existing.delivered_date || '', room_id: existing.room_id || '' })
     else setFinishModal({ ...emptyFinish, images: [], room_id: roomId || '' })
   }
   async function importFromUrl() {
@@ -207,6 +207,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
       supplier: finishModal.supplier?.trim() || null, supplier_url: finishModal.supplier_url?.trim() || null,
       image_url: imgs[0] || null, image_urls: imgs, docs: Array.isArray(finishModal.docs) ? finishModal.docs : [],
       option_group: finishModal.option_group?.trim() || null,
+      ordered_date: finishModal.ordered_date || null, eta_date: finishModal.eta_date || null, delivered_date: finishModal.delivered_date || null,
       status: finishModal.status || 'idea', notes: finishModal.notes?.trim() || null,
     }
     if (finishModal.id) {
@@ -261,6 +262,11 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   async function quickStatus(it: any, status: string) {
     await supabase.from('design_items').update({ status }).eq('id', it.id)
     await logActivity(it.name + ': ' + statusMeta(it.status).label + ' → ' + statusMeta(status).label, 'status', it.id)
+    load()
+  }
+  async function markDelivered(f: any) {
+    await supabase.from('design_items').update({ delivered_date: todayStr }).eq('id', f.id)
+    await logActivity('Delivered: ' + f.name, 'note', f.id)
     load()
   }
   // Pick one option in a comparison group: approve it, mark the others rejected, log it.
@@ -432,6 +438,11 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   }
   const recurringMaterials = tally('material')
   const recurringBrands = tally('brand')
+  // Deliveries: ordered (or ETA'd) but not yet delivered, soonest first; overdue = ETA past.
+  const todayStr = new Date().toISOString().split('T')[0]
+  const deliveries = finishes.filter(f => !f.delivered_date && (f.eta_date || f.status === 'ordered'))
+    .sort((a, b) => (a.eta_date || '9999-99-99').localeCompare(b.eta_date || '9999-99-99'))
+  const overdueCount = deliveries.filter(f => f.eta_date && f.eta_date < todayStr).length
   // Every photo already uploaded to this project — for the "reuse a photo" picker.
   const allProjectPhotos: string[] = Array.from(new Set([
     ...items.filter(i => i.kind === 'inspiration' && i.image_url).map(i => i.image_url),
@@ -752,6 +763,28 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                     })}
                   </div>
                 )}
+                {deliveries.length > 0 && (
+                  <div style={{ marginBottom: '16px', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+                    <div style={{ padding: '10px 14px', borderBottom: '0.5px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>🚚 Deliveries</div>
+                      <div style={{ fontSize: '11px', color: overdueCount ? 'var(--red)' : 'var(--text3)' }}>{deliveries.length} pending{overdueCount ? ' · ' + overdueCount + ' overdue' : ''}</div>
+                    </div>
+                    {deliveries.map(f => {
+                      const overdue = f.eta_date && f.eta_date < todayStr
+                      return (
+                        <div key={f.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '9px 14px', borderBottom: '0.5px solid var(--border)' }}>
+                          <div onClick={() => setDetailFinish(f)} style={{ cursor: 'pointer', minWidth: 0 }}>
+                            <div style={{ fontSize: '12.5px', color: 'var(--text)' }}>{f.name}</div>
+                            <div style={{ fontSize: '11px', color: overdue ? 'var(--red)' : 'var(--text3)' }}>
+                              {f.eta_date ? (overdue ? '⚠ ETA passed ' + formatDate(f.eta_date) : 'ETA ' + formatDate(f.eta_date)) : 'Ordered'}{f.ordered_date ? ' · ordered ' + formatDate(f.ordered_date) : ''}
+                            </div>
+                          </div>
+                          <button onClick={() => markDelivered(f)} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 10px', flexShrink: 0 }}>Mark delivered</button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
                 {finishes.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>
                     <div style={{ fontSize: '30px', marginBottom: '8px' }}>🧱</div>
@@ -798,6 +831,9 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                               </div>
                               {f.option_group && <div style={{ marginTop: '5px' }}><span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', background: 'var(--green-bg)', color: 'var(--green-dk)' }}>⚖ {f.option_group}</span></div>}
                               {(f.material || f.dimensions || Number(f.sqft) > 0) && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{[f.material, f.dimensions, Number(f.sqft) > 0 ? f.sqft + ' SF' : null].filter(Boolean).join(' · ')}</div>}
+                              {f.delivered_date
+                                ? <div style={{ fontSize: '10.5px', marginTop: '4px', color: 'var(--green)' }}>✓ Delivered {formatDate(f.delivered_date)}</div>
+                                : (f.eta_date || f.status === 'ordered') && <div style={{ fontSize: '10.5px', marginTop: '4px', color: (f.eta_date && f.eta_date < todayStr) ? 'var(--red)' : 'var(--text3)' }}>🚚 {f.eta_date ? ((f.eta_date < todayStr ? 'ETA passed ' : 'ETA ') + formatDate(f.eta_date)) : 'Ordered'}</div>}
                               <div onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                                 <select value={f.status} onChange={e => quickStatus(f, e.target.value)} style={{ fontSize: '11px', padding: '3px 6px', border: '0.5px solid var(--border2)', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--text)' }}>
                                   {STATUSES.map(s => <option key={s.v} value={s.v}>{s.label}</option>)}
@@ -1134,6 +1170,24 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
               </div>
             </div>
             <div style={{ marginBottom: '14px' }}>
+              <label style={lbl}>Ordering &amp; delivery</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '3px' }}>Ordered</div>
+                  <input style={inp} type='date' value={finishModal.ordered_date} onChange={e => setFinishModal((m: any) => ({ ...m, ordered_date: e.target.value }))} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '3px' }}>Expected (ETA)</div>
+                  <input style={inp} type='date' value={finishModal.eta_date} onChange={e => setFinishModal((m: any) => ({ ...m, eta_date: e.target.value }))} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '3px' }}>Delivered</div>
+                  <input style={inp} type='date' value={finishModal.delivered_date} onChange={e => setFinishModal((m: any) => ({ ...m, delivered_date: e.target.value }))} />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
               <label style={lbl}>Specs &amp; installation</label>
               {(finishModal.docs || []).length > 0 && (
                 <div style={{ display: 'grid', gap: '6px', marginBottom: '8px' }}>
@@ -1180,6 +1234,10 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
           (f.price != null || f.actual_cost != null) ? ['Est. total', fm(lineEst(f))] : null,
           f.actual_cost != null ? ['Actual cost', fm(f.actual_cost)] : null,
           ['Supplier', f.supplier],
+          f.option_group ? ['Option for', f.option_group] : null,
+          f.ordered_date ? ['Ordered', formatDate(f.ordered_date)] : null,
+          f.eta_date && !f.delivered_date ? ['Expected', formatDate(f.eta_date)] : null,
+          f.delivered_date ? ['Delivered', formatDate(f.delivered_date)] : null,
         ].filter(r => r && r[1] != null && r[1] !== '') as [string, any][])
         return (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }} onClick={() => setDetailFinish(null)}>
