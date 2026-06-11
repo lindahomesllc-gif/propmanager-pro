@@ -152,10 +152,16 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   }
 
   // ---------- inspiration & color ----------
-  async function addInspiration(roomId: string | null, file: File) {
+  async function addInspiration(roomId: string | null, files: FileList | File[]) {
+    const list = Array.from(files)
+    if (!list.length) return
     setUploadingFor(roomId || 'whole')
-    const url = await uploadImage(file)
-    if (url) await supabase.from('design_items').insert({ project_id: pid, room_id: roomId, kind: 'inspiration', image_url: url, sort_order: items.length })
+    let i = 0
+    for (const file of list) {
+      const url = await uploadImage(file)
+      if (url) await supabase.from('design_items').insert({ project_id: pid, room_id: roomId, kind: 'inspiration', image_url: url, sort_order: items.length + i })
+      i++
+    }
     setUploadingFor(''); load()
   }
   async function addColor(roomId: string | null, hex: string) {
@@ -347,8 +353,8 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                           </div>
                         ))}
                         <label style={{ aspectRatio: '1', borderRadius: '8px', border: '1px dashed var(--border2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text3)', fontSize: '12px', textAlign: 'center', padding: '6px' }}>
-                          {uploadingFor === (b.id || 'whole') ? 'Uploading…' : <><div style={{ fontSize: '20px' }}>＋</div>Add photo</>}
-                          <input type='file' accept='image/*' style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) addInspiration(b.id, f); e.currentTarget.value = '' }} />
+                          {uploadingFor === (b.id || 'whole') ? 'Uploading…' : <><div style={{ fontSize: '20px' }}>＋</div>Add photos</>}
+                          <input type='file' accept='image/*' multiple style={{ display: 'none' }} onChange={e => { const fs = e.target.files; if (fs && fs.length) addInspiration(b.id, fs); e.currentTarget.value = '' }} />
                         </label>
                       </div>
 
