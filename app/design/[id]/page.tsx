@@ -15,7 +15,7 @@ const STATUSES: { v: string; label: string; chip: string }[] = [
 ]
 const statusMeta = (v: string) => STATUSES.find(s => s.v === v) || STATUSES[0]
 
-const emptyFinish = { id: '', room_id: '', category: 'Tile', name: '', brand: '', color_hex: '', material: '', dimensions: '', price: '', supplier: '', supplier_url: '', image_url: '', status: 'idea', notes: '' }
+const emptyFinish = { id: '', room_id: '', category: 'Tile', name: '', brand: '', color_hex: '', material: '', dimensions: '', price: '', qty: '', actual_cost: '', supplier: '', supplier_url: '', image_url: '', status: 'idea', notes: '' }
 
 export default function DesignProjectPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -25,8 +25,9 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const [items, setItems] = useState<any[]>([])
   const [activity, setActivity] = useState<any[]>([])
   const [approvals, setApprovals] = useState<any[]>([])
+  const [properties, setProperties] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'moodboard' | 'finishes' | 'decisions' | 'share'>('moodboard')
+  const [tab, setTab] = useState<'moodboard' | 'finishes' | 'budget' | 'decisions' | 'share'>('moodboard')
   const [notFound, setNotFound] = useState(false)
 
   // modals / editors
@@ -42,15 +43,16 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const finishFileRef = useRef<HTMLInputElement>(null)
 
   async function load() {
-    const [{ data: proj }, { data: rms }, { data: its }, { data: act }, { data: appr }] = await Promise.all([
+    const [{ data: proj }, { data: rms }, { data: its }, { data: act }, { data: appr }, { data: props }] = await Promise.all([
       supabase.from('design_projects').select('*').eq('id', pid).maybeSingle(),
       supabase.from('design_rooms').select('*').eq('project_id', pid).order('sort_order').order('created_at'),
       supabase.from('design_items').select('*').eq('project_id', pid).order('sort_order').order('created_at'),
       supabase.from('design_activity').select('*').eq('project_id', pid).order('created_at', { ascending: false }),
       supabase.from('design_approvals').select('*').eq('project_id', pid).order('created_at', { ascending: false }),
+      supabase.from('properties').select('id, address, market_value, purchase_price').order('address'),
     ])
     if (!proj) { setNotFound(true); setLoading(false); return }
-    setProject(proj); setRooms(rms || []); setItems(its || []); setActivity(act || []); setApprovals(appr || [])
+    setProject(proj); setRooms(rms || []); setItems(its || []); setActivity(act || []); setApprovals(appr || []); setProperties(props || [])
     setLoading(false)
   }
   useEffect(() => { load() }, [pid])
@@ -87,17 +89,18 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   // ---------- finishes ----------
   function openFinish(roomId: string | null, existing?: any) {
     setFinishErr('')
-    if (existing) setFinishModal({ ...emptyFinish, ...existing, price: existing.price ?? '', room_id: existing.room_id || '' })
+    if (existing) setFinishModal({ ...emptyFinish, ...existing, price: existing.price ?? '', qty: existing.qty ?? '', actual_cost: existing.actual_cost ?? '', room_id: existing.room_id || '' })
     else setFinishModal({ ...emptyFinish, room_id: roomId || '' })
   }
   async function saveFinish() {
     if (!finishModal.name?.trim()) { setFinishErr('Give this finish a name'); return }
     setSavingFinish(true); setFinishErr('')
+    const numOrNull = (v: any) => v === '' || v == null ? null : Number(v)
     const payload: any = {
       kind: 'finish', room_id: finishModal.room_id || null, category: finishModal.category || null,
       name: finishModal.name.trim(), brand: finishModal.brand?.trim() || null, color_hex: finishModal.color_hex?.trim() || null,
       material: finishModal.material?.trim() || null, dimensions: finishModal.dimensions?.trim() || null,
-      price: finishModal.price === '' || finishModal.price == null ? null : Number(finishModal.price),
+      price: numOrNull(finishModal.price), qty: numOrNull(finishModal.qty), actual_cost: numOrNull(finishModal.actual_cost),
       supplier: finishModal.supplier?.trim() || null, supplier_url: finishModal.supplier_url?.trim() || null,
       image_url: finishModal.image_url?.trim() || null, status: finishModal.status || 'idea', notes: finishModal.notes?.trim() || null,
     }
@@ -160,12 +163,17 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
     setCopied(true); setTimeout(() => setCopied(false), 1800)
   }
   async function saveSettings() {
+    const numOrNull = (v: any) => v === '' || v == null ? null : Number(v)
     const payload: any = {
       name: settingsModal.name?.trim() || project.name,
       client_name: settingsModal.client_name?.trim() || null,
       client_email: settingsModal.client_email?.trim() || null,
       address: settingsModal.address?.trim() || null,
       style_summary: settingsModal.style_summary?.trim() || null,
+      property_id: settingsModal.property_id || null,
+      budget_total: numOrNull(settingsModal.budget_total),
+      arv: numOrNull(settingsModal.arv),
+      rent_uplift: numOrNull(settingsModal.rent_uplift),
     }
     if (settingsModal._coverFile) {
       const url = await uploadImage(settingsModal._coverFile)
@@ -192,6 +200,27 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   approvals.forEach(a => { if (a.item_id && !latestApprovalByItem[a.item_id]) latestApprovalByItem[a.item_id] = a })
   const buckets = [...rooms.map(r => ({ id: r.id, room: r })), { id: null as any, room: null }]
   const itemsIn = (roomId: string | null, kind: string) => items.filter(i => i.kind === kind && (i.room_id || null) === (roomId || null))
+
+  // ---------- budget & ROI ----------
+  const lineEst = (f: any) => (Number(f.price) || 0) * (f.qty == null ? 1 : Number(f.qty) || 0)
+  const lineAllIn = (f: any) => (f.actual_cost != null ? Number(f.actual_cost) || 0 : lineEst(f))
+  const estTotal = finishes.reduce((s, f) => s + lineEst(f), 0)
+  const actualTotal = finishes.reduce((s, f) => s + (f.actual_cost != null ? Number(f.actual_cost) || 0 : 0), 0)
+  const allIn = finishes.reduce((s, f) => s + lineAllIn(f), 0)
+  const budget = project?.budget_total != null ? Number(project.budget_total) : null
+  const remaining = budget != null ? budget - allIn : null
+  const linkedProperty = properties.find(p => p.id === project?.property_id) || null
+  const propValue = linkedProperty ? (Number(linkedProperty.market_value) || Number(linkedProperty.purchase_price) || 0) : 0
+  const arv = project?.arv != null ? Number(project.arv) : null
+  const valueUplift = arv != null && propValue > 0 ? arv - propValue : null
+  const netCreated = arv != null ? arv - propValue - allIn : null
+  const roiReno = arv != null && allIn > 0 ? (netCreated as number) / allIn * 100 : null
+  const rentUpliftMo = project?.rent_uplift != null ? Number(project.rent_uplift) : null
+  const rentYield = rentUpliftMo && allIn > 0 ? (rentUpliftMo * 12) / allIn * 100 : null
+  const roomCost = (roomId: string | null) => {
+    const fs = finishes.filter(f => (f.room_id || null) === (roomId || null))
+    return { n: fs.length, est: fs.reduce((s, f) => s + lineEst(f), 0), actual: fs.reduce((s, f) => s + (f.actual_cost != null ? Number(f.actual_cost) || 0 : 0), 0) }
+  }
 
   const inp = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' as const }
   const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
@@ -235,6 +264,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
         <div style={{ display: 'flex', gap: '4px', marginTop: '10px', borderBottom: '0', marginBottom: '-12px' }}>
           {tabBtn('moodboard', '🖼 Moodboard')}
           {tabBtn('finishes', '🧱 Finishes' + (finishes.length ? ' (' + finishes.length + ')' : ''))}
+          {tabBtn('budget', '💰 Budget & ROI')}
           {tabBtn('decisions', '📝 Decisions')}
           {tabBtn('share', '🔗 Share' + (approvals.length ? ' (' + approvals.length + ')' : ''))}
         </div>
@@ -350,7 +380,13 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                             <div style={{ padding: '11px 13px 13px' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '6px', alignItems: 'flex-start' }}>
                                 <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)' }}>{f.name}</div>
-                                {f.price != null && <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', flexShrink: 0 }}>{fm(f.price)}</div>}
+                                {(f.price != null || f.actual_cost != null) && (
+                                  <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)' }}>{fm(lineAllIn(f))}</div>
+                                    {f.actual_cost != null && <div style={{ fontSize: '9px', fontWeight: 600, color: 'var(--green)' }}>actual</div>}
+                                    {f.actual_cost == null && f.qty != null && Number(f.qty) !== 1 && <div style={{ fontSize: '9px', color: 'var(--text3)' }}>{f.qty}× {fm(f.price)}</div>}
+                                  </div>
+                                )}
                               </div>
                               <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '3px' }}>
                                 {[f.category, roomName, f.brand].filter(Boolean).join(' · ')}
@@ -370,6 +406,100 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                       })}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* ============ BUDGET & ROI ============ */}
+            {tab === 'budget' && (
+              <div style={{ display: 'grid', gap: '20px', maxWidth: '860px' }}>
+                {/* budget summary */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>Renovation budget</div>
+                    <button onClick={() => setSettingsModal({ ...project })} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 12px' }}>⚙ Set budget & property</button>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px,1fr))', gap: '10px' }}>
+                    {[
+                      { label: 'Budget', val: budget != null ? fm(budget) : '— not set', c: 'var(--text)' },
+                      { label: 'Estimated', val: fm(estTotal), c: 'var(--text)' },
+                      { label: 'Actual spent', val: fm(actualTotal), c: 'var(--text)' },
+                      { label: budget != null && remaining != null && remaining < 0 ? 'Over budget' : 'Remaining', val: remaining != null ? fm(remaining) : '—', c: remaining != null && remaining < 0 ? 'var(--red)' : 'var(--green)' },
+                    ].map((m, i) => (
+                      <div key={i} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)' }}>{m.label}</div>
+                        <div style={{ fontSize: '20px', fontWeight: 700, color: m.c, marginTop: '4px' }}>{m.val}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {budget != null && budget > 0 && (
+                    <div style={{ marginTop: '12px' }}>
+                      <div style={{ height: '10px', background: 'var(--bg4)', borderRadius: '6px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: Math.min(100, allIn / budget * 100) + '%', background: allIn > budget ? 'var(--red)' : 'var(--green)', transition: 'width 0.3s' }} />
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '5px' }}>{fm(allIn)} of {fm(budget)} committed ({Math.round(allIn / budget * 100)}%) · actual where recorded, otherwise estimate</div>
+                    </div>
+                  )}
+                  {budget == null && (
+                    <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '10px' }}>Set a budget cap in ⚙ Settings to track spend against it. Estimates come from each finish’s price × quantity; record actual costs on a finish as you buy.</div>
+                  )}
+                </div>
+
+                {/* per-room breakdown */}
+                {finishes.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', marginBottom: '10px' }}>By room</div>
+                    <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+                      {[...rooms.map(r => ({ id: r.id, name: r.name })), { id: null as any, name: 'Whole-home / Unassigned' }].map(r => {
+                        const c = roomCost(r.id)
+                        if (c.n === 0) return null
+                        return (
+                          <div key={r.id || 'whole'} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 16px', borderBottom: '0.5px solid var(--border)' }}>
+                            <div style={{ fontSize: '13px', color: 'var(--text)' }}>{r.name} <span style={{ color: 'var(--text3)', fontSize: '11px' }}>· {c.n} item{c.n === 1 ? '' : 's'}</span></div>
+                            <div style={{ fontSize: '12px', color: 'var(--text2)', textAlign: 'right' }}>
+                              <span title='Estimated'>{fm(c.est)} est</span>
+                              {c.actual > 0 && <span style={{ marginLeft: '10px', color: 'var(--text)' }} title='Actual'>{fm(c.actual)} actual</span>}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* returns */}
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', marginBottom: '10px' }}>Return on the renovation</div>
+                  {!linkedProperty ? (
+                    <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '4px' }}>Link this project to a property to see ROI.</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '12px' }}>We’ll pull its current value automatically and compute equity created + return on every reno dollar.</div>
+                      <button onClick={() => setSettingsModal({ ...project })} className='btn btn-primary' style={{ fontSize: '12px' }}>⚙ Link a property</button>
+                    </div>
+                  ) : (
+                    <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '16px 18px' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '14px' }}>{linkedProperty.address} · current value {fm(propValue)}{arv == null ? ' · set a projected after-repair value in ⚙ Settings' : ''}</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))', gap: '10px' }}>
+                        {[
+                          { label: 'All-in reno cost', val: fm(allIn), c: 'var(--text)' },
+                          { label: 'Projected ARV', val: arv != null ? fm(arv) : '—', c: 'var(--text)' },
+                          { label: 'Value uplift', val: valueUplift != null ? fm(valueUplift) : '—', c: 'var(--text)' },
+                          { label: 'Net value created', val: netCreated != null ? fm(netCreated) : '—', c: netCreated != null && netCreated < 0 ? 'var(--red)' : 'var(--green)' },
+                          { label: 'Return on reno $', val: roiReno != null ? Math.round(roiReno) + '%' : '—', c: roiReno != null && roiReno < 0 ? 'var(--red)' : 'var(--green)' },
+                          { label: 'Added rent', val: rentUpliftMo ? fm(rentUpliftMo) + '/mo' : '—', c: 'var(--text)' },
+                          { label: 'Rent yield on reno', val: rentYield != null ? Math.round(rentYield) + '%/yr' : '—', c: 'var(--green)' },
+                        ].map((m, i) => (
+                          <div key={i} style={{ background: 'var(--bg3)', borderRadius: '9px', padding: '12px 14px' }}>
+                            <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)' }}>{m.label}</div>
+                            <div style={{ fontSize: '17px', fontWeight: 700, color: m.c, marginTop: '4px' }}>{m.val}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ fontSize: '10.5px', color: 'var(--text3)', marginTop: '12px', lineHeight: 1.5 }}>
+                        Net value created = projected ARV − current value − all-in reno cost (the forced equity left after paying for the work). Return on reno $ = net value created ÷ reno cost. Rent yield = added annual rent ÷ reno cost.
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -510,16 +640,29 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                 <input style={inp} placeholder='12"×24", 2" hex…' value={finishModal.dimensions} onChange={e => setFinishModal((m: any) => ({ ...m, dimensions: e.target.value }))} />
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
               <div>
-                <label style={lbl}>Price</label>
-                <input style={inp} type='number' placeholder='per unit or total' value={finishModal.price} onChange={e => setFinishModal((m: any) => ({ ...m, price: e.target.value }))} />
+                <label style={lbl}>Unit price</label>
+                <input style={inp} type='number' placeholder='per unit' value={finishModal.price} onChange={e => setFinishModal((m: any) => ({ ...m, price: e.target.value }))} />
               </div>
+              <div>
+                <label style={lbl}>Qty</label>
+                <input style={inp} type='number' placeholder='1' value={finishModal.qty} onChange={e => setFinishModal((m: any) => ({ ...m, qty: e.target.value }))} />
+              </div>
+              <div>
+                <label style={lbl}>Actual cost</label>
+                <input style={inp} type='number' placeholder='when bought' value={finishModal.actual_cost} onChange={e => setFinishModal((m: any) => ({ ...m, actual_cost: e.target.value }))} />
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px', alignItems: 'end' }}>
               <div>
                 <label style={lbl}>Status</label>
                 <select style={inp} value={finishModal.status} onChange={e => setFinishModal((m: any) => ({ ...m, status: e.target.value }))}>
                   {STATUSES.map(s => <option key={s.v} value={s.v}>{s.label}</option>)}
                 </select>
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text3)', paddingBottom: '9px' }}>
+                Est. line total: <b style={{ color: 'var(--text2)' }}>{fm((Number(finishModal.price) || 0) * (finishModal.qty === '' || finishModal.qty == null ? 1 : Number(finishModal.qty) || 0))}</b>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
@@ -595,10 +738,37 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
               <label style={lbl}>Address</label>
               <input style={inp} value={settingsModal.address || ''} onChange={e => setSettingsModal((m: any) => ({ ...m, address: e.target.value }))} />
             </div>
-            <div style={{ marginBottom: '18px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <label style={lbl}>Overall style / feel</label>
               <textarea style={{ ...inp, resize: 'vertical' }} rows={2} value={settingsModal.style_summary || ''} onChange={e => setSettingsModal((m: any) => ({ ...m, style_summary: e.target.value }))} />
             </div>
+
+            <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: '14px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', marginBottom: '10px' }}>💰 Renovation & ROI</div>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={lbl}>Linked property</label>
+                <select style={inp} value={settingsModal.property_id || ''} onChange={e => setSettingsModal((m: any) => ({ ...m, property_id: e.target.value }))}>
+                  <option value=''>— none —</option>
+                  {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
+                </select>
+                <div style={{ fontSize: '10.5px', color: 'var(--text3)', marginTop: '4px' }}>Pulls the property’s current value to compute ROI.</div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={lbl}>Budget cap</label>
+                  <input style={inp} type='number' placeholder='$' value={settingsModal.budget_total ?? ''} onChange={e => setSettingsModal((m: any) => ({ ...m, budget_total: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={lbl}>Projected ARV</label>
+                  <input style={inp} type='number' placeholder='after-repair $' value={settingsModal.arv ?? ''} onChange={e => setSettingsModal((m: any) => ({ ...m, arv: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={lbl}>Added rent /mo</label>
+                  <input style={inp} type='number' placeholder='$/mo' value={settingsModal.rent_uplift ?? ''} onChange={e => setSettingsModal((m: any) => ({ ...m, rent_uplift: e.target.value }))} />
+                </div>
+              </div>
+            </div>
+
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: '6px' }}>
                 <button onClick={toggleArchive} className='btn btn-ghost' style={{ fontSize: '11px' }}>{project?.status === 'archived' ? 'Restore' : 'Archive'}</button>
