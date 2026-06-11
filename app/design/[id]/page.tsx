@@ -76,6 +76,8 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const [noteText, setNoteText] = useState('')
   const [finishFilter, setFinishFilter] = useState('')
   const [copied, setCopied] = useState(false)
+  const [emailing, setEmailing] = useState(false)
+  const [emailSent, setEmailSent] = useState('')
   const [uploadingFor, setUploadingFor] = useState('') // roomId or 'finish' or 'cover'
   const [colorPicker, setColorPicker] = useState<{ roomId: string | null } | null>(null)
   const [suggested, setSuggested] = useState<{ roomId: string | null; colors: string[] } | null>(null)
@@ -343,6 +345,20 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   function copyShare() {
     navigator.clipboard?.writeText(shareUrl)
     setCopied(true); setTimeout(() => setCopied(false), 1800)
+  }
+  async function emailClient() {
+    let to = (project.client_email || '').trim()
+    if (!to) { to = (window.prompt('Send the board link to which email?') || '').trim(); if (!to) return }
+    setEmailing(true); setEmailSent('')
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/design/email-link', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session?.access_token || '') },
+      body: JSON.stringify({ projectId: pid, email: to }),
+    })
+    const d = await res.json().catch(() => ({}))
+    setEmailing(false)
+    if (res.ok) { setEmailSent(d.to || to); load() }
+    else alert(d.error === 'not_configured' ? 'Email isn’t set up on the server yet (SendGrid keys).' : d.error === 'no_email' ? 'Add a valid client email first (⚙ Settings).' : d.error === 'sharing_off' ? 'Turn sharing on first.' : 'Could not send the email. Please try again.')
   }
   async function saveSettings() {
     const numOrNull = (v: any) => v === '' || v == null ? null : Number(v)
@@ -807,11 +823,19 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                     <button onClick={toggleShare} className={project?.share_enabled ? 'btn btn-ghost' : 'btn btn-primary'} style={{ flexShrink: 0 }}>{project?.share_enabled ? 'Turn off' : 'Turn on sharing'}</button>
                   </div>
                   {project?.share_enabled && (
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '14px', flexWrap: 'wrap' }}>
-                      <input readOnly value={shareUrl} onFocus={e => e.target.select()} style={{ ...inp, flex: 1, minWidth: '220px' }} />
-                      <button onClick={copyShare} className='btn btn-ghost' style={{ flexShrink: 0 }}>{copied ? '✓ Copied' : 'Copy'}</button>
-                      <a href={shareUrl} target='_blank' className='btn btn-ghost' style={{ flexShrink: 0 }}>Preview →</a>
-                    </div>
+                    <>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '14px', flexWrap: 'wrap' }}>
+                        <input readOnly value={shareUrl} onFocus={e => e.target.select()} style={{ ...inp, flex: 1, minWidth: '220px' }} />
+                        <button onClick={copyShare} className='btn btn-ghost' style={{ flexShrink: 0 }}>{copied ? '✓ Copied' : 'Copy'}</button>
+                        <a href={shareUrl} target='_blank' className='btn btn-ghost' style={{ flexShrink: 0 }}>Preview →</a>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <button onClick={emailClient} disabled={emailing} className='btn btn-primary' style={{ flexShrink: 0 }}>{emailing ? 'Sending…' : '✉️ Email to client'}</button>
+                        <span style={{ fontSize: '12px', color: 'var(--text3)' }}>
+                          {emailSent ? '✓ Sent to ' + emailSent : project.client_email ? 'Sends to ' + project.client_email : 'No client email saved — you’ll be asked for one.'}
+                        </span>
+                      </div>
+                    </>
                   )}
                 </div>
 
