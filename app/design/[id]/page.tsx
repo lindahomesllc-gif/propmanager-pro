@@ -33,7 +33,9 @@ const normalizeHex = (s: string): string | null => {
   return null
 }
 
-const emptyFinish = { id: '', room_id: '', category: 'Tile', name: '', brand: '', color_hex: '', material: '', dimensions: '', price: '', qty: '', actual_cost: '', supplier: '', supplier_url: '', image_url: '', status: 'idea', notes: '' }
+const emptyFinish = { id: '', room_id: '', category: 'Tile', name: '', brand: '', color_hex: '', material: '', dimensions: '', price: '', qty: '', sqft: '', actual_cost: '', supplier: '', supplier_url: '', image_url: '', images: [] as string[], status: 'idea', notes: '' }
+// A finish's photos: gallery (image_urls) if present, else the legacy single image_url.
+const finishImages = (f: any): string[] => (Array.isArray(f?.image_urls) && f.image_urls.length ? f.image_urls : (f?.image_url ? [f.image_url] : []))
 
 export default function DesignProjectPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -55,6 +57,8 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const [importUrl, setImportUrl] = useState('')
   const [importing, setImporting] = useState(false)
   const [roomModal, setRoomModal] = useState<any>(null)
+  const [detailFinish, setDetailFinish] = useState<any>(null)
+  const [lightbox, setLightbox] = useState('')
   const [settingsModal, setSettingsModal] = useState<any>(null)
   const [noteText, setNoteText] = useState('')
   const [finishFilter, setFinishFilter] = useState('')
@@ -96,7 +100,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   // ---------- rooms ----------
   async function saveRoom() {
     if (!roomModal?.name?.trim()) return
-    const payload = { name: roomModal.name.trim(), feel: roomModal.feel?.trim() || null }
+    const payload = { name: roomModal.name.trim(), feel: roomModal.feel?.trim() || null, sqft: roomModal.sqft === '' || roomModal.sqft == null ? null : Number(roomModal.sqft) }
     if (roomModal.id) {
       await supabase.from('design_rooms').update(payload).eq('id', roomModal.id)
     } else {
@@ -113,8 +117,8 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   // ---------- finishes ----------
   function openFinish(roomId: string | null, existing?: any) {
     setFinishErr(''); setImportUrl('')
-    if (existing) setFinishModal({ ...emptyFinish, ...existing, price: existing.price ?? '', qty: existing.qty ?? '', actual_cost: existing.actual_cost ?? '', room_id: existing.room_id || '' })
-    else setFinishModal({ ...emptyFinish, room_id: roomId || '' })
+    if (existing) setFinishModal({ ...emptyFinish, ...existing, price: existing.price ?? '', qty: existing.qty ?? '', sqft: existing.sqft ?? '', actual_cost: existing.actual_cost ?? '', images: finishImages(existing), room_id: existing.room_id || '' })
+    else setFinishModal({ ...emptyFinish, images: [], room_id: roomId || '' })
   }
   async function importFromUrl() {
     const url = importUrl.trim()
@@ -141,13 +145,14 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
     if (!finishModal.name?.trim()) { setFinishErr('Give this finish a name'); return }
     setSavingFinish(true); setFinishErr('')
     const numOrNull = (v: any) => v === '' || v == null ? null : Number(v)
+    const imgs: string[] = Array.isArray(finishModal.images) ? finishModal.images : []
     const payload: any = {
       kind: 'finish', room_id: finishModal.room_id || null, category: finishModal.category || null,
       name: finishModal.name.trim(), brand: finishModal.brand?.trim() || null, color_hex: finishModal.color_hex?.trim() || null,
       material: finishModal.material?.trim() || null, dimensions: finishModal.dimensions?.trim() || null,
-      price: numOrNull(finishModal.price), qty: numOrNull(finishModal.qty), actual_cost: numOrNull(finishModal.actual_cost),
+      price: numOrNull(finishModal.price), qty: numOrNull(finishModal.qty), sqft: numOrNull(finishModal.sqft), actual_cost: numOrNull(finishModal.actual_cost),
       supplier: finishModal.supplier?.trim() || null, supplier_url: finishModal.supplier_url?.trim() || null,
-      image_url: finishModal.image_url?.trim() || null, status: finishModal.status || 'idea', notes: finishModal.notes?.trim() || null,
+      image_url: imgs[0] || null, image_urls: imgs, status: finishModal.status || 'idea', notes: finishModal.notes?.trim() || null,
     }
     if (finishModal.id) {
       const prev = items.find(i => i.id === finishModal.id)
@@ -160,6 +165,14 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
       await logActivity('Added “' + payload.name + '”' + (payload.category ? ' (' + payload.category + ')' : ''), 'change', data?.id)
     }
     setSavingFinish(false); setFinishModal(null); load()
+  }
+  async function addFinishPhotos(files: FileList | File[]) {
+    const list = Array.from(files); if (!list.length) return
+    setUploadingFor('finish')
+    const urls: string[] = []
+    for (const f of list) { const u = await uploadImage(f); if (u) urls.push(u) }
+    setUploadingFor('')
+    if (urls.length) setFinishModal((m: any) => ({ ...m, images: [...(m.images || []), ...urls] }))
   }
   async function deleteFinish(it: any) {
     if (!confirm('Delete “' + it.name + '”?')) return
@@ -291,7 +304,9 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const itemsIn = (roomId: string | null, kind: string) => items.filter(i => i.kind === kind && (i.room_id || null) === (roomId || null))
 
   // ---------- budget & ROI ----------
-  const lineEst = (f: any) => (Number(f.price) || 0) * (f.qty == null ? 1 : Number(f.qty) || 0)
+  // Cost basis: by area when sq ft is set (tile/flooring), otherwise by quantity.
+  const lineBase = (f: any) => { const s = Number(f.sqft) || 0; return s > 0 ? s : (f.qty == null || f.qty === '' ? 1 : Number(f.qty) || 0) }
+  const lineEst = (f: any) => (Number(f.price) || 0) * lineBase(f)
   const lineAllIn = (f: any) => (f.actual_cost != null ? Number(f.actual_cost) || 0 : lineEst(f))
   const estTotal = finishes.reduce((s, f) => s + lineEst(f), 0)
   const actualTotal = finishes.reduce((s, f) => s + (f.actual_cost != null ? Number(f.actual_cost) || 0 : 0), 0)
@@ -381,7 +396,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                     <div key={b.id || 'whole'} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '16px 18px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
                         <div>
-                          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>{b.room ? b.room.name : '🏠 Whole-home'}</div>
+                          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>{b.room ? b.room.name : '🏠 Whole-home'}{b.room?.sqft ? <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text3)' }}> · {b.room.sqft} sq ft</span> : ''}</div>
                           {b.room?.feel && <div style={{ fontSize: '12px', color: 'var(--text2)', marginTop: '3px', maxWidth: '600px' }}>{b.room.feel}</div>}
                         </div>
                         {b.room && (
@@ -437,7 +452,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px,1fr))', gap: '8px', marginTop: '12px' }}>
                         {inspo.map(im => (
                           <div key={im.id} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', aspectRatio: '1', border: '0.5px solid var(--border)' }}>
-                            <img src={im.image_url} alt='' style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            <img src={im.image_url} alt='' onClick={() => setLightbox(im.image_url)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
                             <button onClick={() => { if (confirm('Remove this image?')) deleteItem(im.id) }} style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '6px', width: '22px', height: '22px', cursor: 'pointer', fontSize: '13px', lineHeight: 1 }}>×</button>
                           </div>
                         ))}
@@ -486,15 +501,18 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                         const sm = statusMeta(f.status)
                         const appr = latestApprovalByItem[f.id]
                         const roomName = rooms.find(r => r.id === f.room_id)?.name
+                        const imgs = finishImages(f)
+                        const cover = imgs[0]
                         return (
-                          <div key={f.id} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                          <div key={f.id} onClick={() => setDetailFinish(f)} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
                             <div style={{ height: '120px', background: 'var(--bg3)', position: 'relative' }}>
-                              {f.image_url
-                                ? <img src={f.image_url} alt='' style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                              {cover
+                                ? <img src={cover} alt='' style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                                 : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text3)', fontSize: '26px' }}>{f.color_hex ? '' : '🧱'}</div>}
-                              {!f.image_url && f.color_hex && <div style={{ position: 'absolute', inset: 0, background: f.color_hex }} />}
+                              {!cover && f.color_hex && <div style={{ position: 'absolute', inset: 0, background: f.color_hex }} />}
                               <span className={'chip ' + sm.chip} style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '9px' }}>{sm.label}</span>
                               {appr && <span className={'chip ' + (appr.decision === 'approved' ? 'chip-g' : appr.decision === 'rejected' ? 'chip-r' : 'chip-b')} style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '9px' }}>{appr.decision === 'approved' ? '✓ Client' : appr.decision === 'rejected' ? '✗ Client' : '💬 Client'}</span>}
+                              {imgs.length > 1 && <span style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '9px', padding: '2px 6px', borderRadius: '6px' }}>📷 {imgs.length}</span>}
                             </div>
                             <div style={{ padding: '11px 13px 13px' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '6px', alignItems: 'flex-start' }}>
@@ -503,15 +521,16 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                                   <div style={{ flexShrink: 0, textAlign: 'right' }}>
                                     <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)' }}>{fm(lineAllIn(f))}</div>
                                     {f.actual_cost != null && <div style={{ fontSize: '9px', fontWeight: 600, color: 'var(--green)' }}>actual</div>}
-                                    {f.actual_cost == null && f.qty != null && Number(f.qty) !== 1 && <div style={{ fontSize: '9px', color: 'var(--text3)' }}>{f.qty}× {fm(f.price)}</div>}
+                                    {f.actual_cost == null && Number(f.sqft) > 0 && <div style={{ fontSize: '9px', color: 'var(--text3)' }}>{f.sqft} SF × {fm(f.price)}</div>}
+                                    {f.actual_cost == null && !(Number(f.sqft) > 0) && f.qty != null && Number(f.qty) !== 1 && <div style={{ fontSize: '9px', color: 'var(--text3)' }}>{f.qty}× {fm(f.price)}</div>}
                                   </div>
                                 )}
                               </div>
                               <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '3px' }}>
                                 {[f.category, roomName, f.brand].filter(Boolean).join(' · ')}
                               </div>
-                              {(f.material || f.dimensions) && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{[f.material, f.dimensions].filter(Boolean).join(' · ')}</div>}
-                              <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                              {(f.material || f.dimensions || Number(f.sqft) > 0) && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{[f.material, f.dimensions, Number(f.sqft) > 0 ? f.sqft + ' SF' : null].filter(Boolean).join(' · ')}</div>}
+                              <div onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                                 <select value={f.status} onChange={e => quickStatus(f, e.target.value)} style={{ fontSize: '11px', padding: '3px 6px', border: '0.5px solid var(--border2)', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--text)' }}>
                                   {STATUSES.map(s => <option key={s.v} value={s.v}>{s.label}</option>)}
                                 </select>
@@ -715,13 +734,23 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
               <div style={{ fontSize: '10.5px', color: 'var(--text3)', marginTop: '5px' }}>Grabs the photo, name, price &amp; brand. Always double-check before saving.</div>
             </div>
 
-            {/* image */}
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '14px', alignItems: 'center' }}>
-              <div style={{ width: '76px', height: '76px', borderRadius: '8px', background: finishModal.image_url ? `center/cover no-repeat url(${finishModal.image_url})` : (finishModal.color_hex || 'var(--bg3)'), border: '0.5px solid var(--border2)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)', fontSize: '22px' }}>{!finishModal.image_url && !finishModal.color_hex && '🧱'}</div>
-              <div>
-                <input ref={finishFileRef} type='file' accept='image/*' style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (!f) return; setUploadingFor('finish'); const url = await uploadImage(f); setUploadingFor(''); if (url) setFinishModal((m: any) => ({ ...m, image_url: url })); e.currentTarget.value = '' }} />
-                <button type='button' onClick={() => finishFileRef.current?.click()} className='btn btn-ghost' style={{ fontSize: '11px' }}>{uploadingFor === 'finish' ? 'Uploading…' : finishModal.image_url ? 'Replace photo' : '⬆ Add photo'}</button>
-                {finishModal.image_url && <button type='button' onClick={() => setFinishModal((m: any) => ({ ...m, image_url: '' }))} style={{ marginLeft: '6px', background: 'transparent', border: 'none', color: 'var(--red)', fontSize: '11px', cursor: 'pointer' }}>Remove</button>}
+            {/* photos (gallery — first is the cover) */}
+            <div style={{ marginBottom: '14px' }}>
+              <label style={lbl}>Photos {(finishModal.images || []).length > 1 ? '(first = cover · tap a photo to enlarge)' : ''}</label>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                {(finishModal.images || []).map((url: string, idx: number) => (
+                  <div key={url} style={{ position: 'relative', width: '70px', height: '70px', borderRadius: '8px', overflow: 'hidden', border: idx === 0 ? '2px solid var(--green)' : '0.5px solid var(--border2)' }}>
+                    <img src={url} alt='' onClick={() => setLightbox(url)} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in', display: 'block' }} />
+                    <button type='button' onClick={() => setFinishModal((m: any) => ({ ...m, images: m.images.filter((_: any, i: number) => i !== idx) }))} style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '5px', width: '18px', height: '18px', cursor: 'pointer', fontSize: '12px', lineHeight: 1 }}>×</button>
+                    {idx === 0
+                      ? <span style={{ position: 'absolute', bottom: 0, left: 0, right: 0, fontSize: '8px', textAlign: 'center', background: 'var(--green)', color: '#fff', padding: '1px 0' }}>cover</span>
+                      : <button type='button' title='Make cover' onClick={() => setFinishModal((m: any) => { const a = [...m.images]; const [x] = a.splice(idx, 1); a.unshift(x); return { ...m, images: a } })} style={{ position: 'absolute', bottom: '2px', left: '2px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '5px', padding: '1px 4px', cursor: 'pointer', fontSize: '9px' }}>★ cover</button>}
+                  </div>
+                ))}
+                <label style={{ width: '70px', height: '70px', borderRadius: '8px', border: '1px dashed var(--border2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text3)', fontSize: '11px', textAlign: 'center' }}>
+                  {uploadingFor === 'finish' ? '…' : <><div style={{ fontSize: '18px' }}>＋</div>Add</>}
+                  <input type='file' accept='image/*' multiple style={{ display: 'none' }} onChange={e => { const fs = e.target.files; if (fs && fs.length) addFinishPhotos(fs); e.currentTarget.value = '' }} />
+                </label>
               </div>
             </div>
 
@@ -769,20 +798,25 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                 <input style={inp} placeholder='12"×24", 2" hex…' value={finishModal.dimensions} onChange={e => setFinishModal((m: any) => ({ ...m, dimensions: e.target.value }))} />
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '6px' }}>
               <div>
                 <label style={lbl}>Unit price</label>
-                <input style={inp} type='number' placeholder='per unit' value={finishModal.price} onChange={e => setFinishModal((m: any) => ({ ...m, price: e.target.value }))} />
+                <input style={inp} type='number' placeholder='per unit/SF' value={finishModal.price} onChange={e => setFinishModal((m: any) => ({ ...m, price: e.target.value }))} />
               </div>
               <div>
                 <label style={lbl}>Qty</label>
                 <input style={inp} type='number' placeholder='1' value={finishModal.qty} onChange={e => setFinishModal((m: any) => ({ ...m, qty: e.target.value }))} />
               </div>
               <div>
+                <label style={lbl}>Sq ft</label>
+                <input style={inp} type='number' placeholder='area' value={finishModal.sqft} onChange={e => setFinishModal((m: any) => ({ ...m, sqft: e.target.value }))} />
+              </div>
+              <div>
                 <label style={lbl}>Actual cost</label>
-                <input style={inp} type='number' placeholder='when bought' value={finishModal.actual_cost} onChange={e => setFinishModal((m: any) => ({ ...m, actual_cost: e.target.value }))} />
+                <input style={inp} type='number' placeholder='paid' value={finishModal.actual_cost} onChange={e => setFinishModal((m: any) => ({ ...m, actual_cost: e.target.value }))} />
               </div>
             </div>
+            <div style={{ fontSize: '10.5px', color: 'var(--text3)', marginBottom: '12px' }}>Enter <b>Sq ft</b> for area-priced items (tile, flooring) — unit price is then per&nbsp;SF. Otherwise use <b>Qty</b> for counted items.</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px', alignItems: 'end' }}>
               <div>
                 <label style={lbl}>Status</label>
@@ -791,7 +825,8 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                 </select>
               </div>
               <div style={{ fontSize: '11px', color: 'var(--text3)', paddingBottom: '9px' }}>
-                Est. line total: <b style={{ color: 'var(--text2)' }}>{fm((Number(finishModal.price) || 0) * (finishModal.qty === '' || finishModal.qty == null ? 1 : Number(finishModal.qty) || 0))}</b>
+                Est. line total: <b style={{ color: 'var(--text2)' }}>{fm((Number(finishModal.price) || 0) * lineBase(finishModal))}</b>
+                {Number(finishModal.sqft) > 0 ? ' · ' + finishModal.sqft + ' SF' : (Number(finishModal.qty) > 1 ? ' · ' + finishModal.qty + '×' : '')}
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
@@ -816,6 +851,79 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
         </div>
       )}
 
+      {/* ===== finish detail (read view) ===== */}
+      {detailFinish && (() => {
+        const f = detailFinish
+        const imgs = finishImages(f)
+        const sm = statusMeta(f.status)
+        const appr = latestApprovalByItem[f.id]
+        const roomName = rooms.find(r => r.id === f.room_id)?.name
+        const rows: [string, any][] = ([
+          ['Category', f.category], ['Room', roomName], ['Brand', f.brand],
+          ['Material', f.material], ['Size', f.dimensions],
+          Number(f.sqft) > 0 ? ['Sq ft', f.sqft + ' SF'] : null,
+          f.qty != null ? ['Qty', f.qty] : null,
+          f.price != null ? ['Unit price', fm(f.price)] : null,
+          (f.price != null || f.actual_cost != null) ? ['Est. total', fm(lineEst(f))] : null,
+          f.actual_cost != null ? ['Actual cost', fm(f.actual_cost)] : null,
+          ['Supplier', f.supplier],
+        ].filter(r => r && r[1] != null && r[1] !== '') as [string, any][])
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }} onClick={() => setDetailFinish(null)}>
+            <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '0', width: '560px', maxHeight: '92vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+              {/* cover */}
+              <div style={{ position: 'relative', background: 'var(--bg3)' }}>
+                {imgs[0]
+                  ? <img src={imgs[0]} alt='' onClick={() => setLightbox(imgs[0])} style={{ width: '100%', maxHeight: '300px', objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
+                  : <div style={{ height: '120px', background: f.color_hex || 'var(--bg3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '30px', color: 'var(--text3)' }}>{f.color_hex ? '' : '🧱'}</div>}
+                <button onClick={() => setDetailFinish(null)} style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '8px', width: '30px', height: '30px', fontSize: '18px', cursor: 'pointer', lineHeight: 1 }}>×</button>
+                <span className={'chip ' + sm.chip} style={{ position: 'absolute', top: '10px', left: '10px' }}>{sm.label}</span>
+              </div>
+              {/* thumbnails */}
+              {imgs.length > 1 && (
+                <div style={{ display: 'flex', gap: '6px', padding: '10px 22px 0', flexWrap: 'wrap' }}>
+                  {imgs.map((u: string) => <img key={u} src={u} alt='' onClick={() => setLightbox(u)} style={{ width: '54px', height: '54px', objectFit: 'cover', borderRadius: '7px', border: '0.5px solid var(--border2)', cursor: 'zoom-in' }} />)}
+                </div>
+              )}
+              <div style={{ padding: '16px 22px 22px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>{f.name}</div>
+                  {(f.price != null || f.actual_cost != null) && <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text)', flexShrink: 0 }}>{fm(lineAllIn(f))}</div>}
+                </div>
+                {appr && <div style={{ marginTop: '8px' }}><span className={'chip ' + (appr.decision === 'approved' ? 'chip-g' : appr.decision === 'rejected' ? 'chip-r' : 'chip-b')}>{appr.decision === 'approved' ? '✓ Client approved' : appr.decision === 'rejected' ? '✗ Client requested change' : '💬 Client commented'}</span>{appr.comment && <span style={{ fontSize: '12px', color: 'var(--text2)', marginLeft: '8px' }}>“{appr.comment}”</span>}</div>}
+
+                {f.color_hex && <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px' }}><div style={{ width: '26px', height: '26px', borderRadius: '6px', background: f.color_hex, border: '1px solid var(--border2)' }} /><span style={{ fontSize: '12px', color: 'var(--text2)' }}>{f.color_hex}</span></div>}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', marginTop: '16px' }}>
+                  {rows.map(([k, v]) => (
+                    <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', borderBottom: '0.5px solid var(--border)', paddingBottom: '6px' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text3)' }}>{k}</span>
+                      <span style={{ fontSize: '12px', color: 'var(--text)', textAlign: 'right', fontWeight: 600 }}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {f.notes && <div style={{ fontSize: '13px', color: 'var(--text2)', marginTop: '16px', lineHeight: 1.6, background: 'var(--bg3)', borderRadius: '8px', padding: '12px 14px' }}>{f.notes}</div>}
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: '18px', alignItems: 'center' }}>
+                  {f.supplier_url && <a href={f.supplier_url} target='_blank' className='btn btn-ghost' style={{ fontSize: '12px' }}>🔗 Source</a>}
+                  <button onClick={() => { openFinish(f.room_id, f); setDetailFinish(null) }} className='btn btn-ghost' style={{ fontSize: '12px' }}>✎ Edit</button>
+                  <button onClick={() => setDetailFinish(null)} className='btn btn-primary' style={{ fontSize: '12px', marginLeft: 'auto' }}>Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* ===== lightbox ===== */}
+      {lightbox && (
+        <div onClick={() => setLightbox('')} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px', cursor: 'zoom-out' }}>
+          <img src={lightbox} alt='' style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '8px' }} />
+          <button onClick={() => setLightbox('')} style={{ position: 'absolute', top: '16px', right: '20px', background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', borderRadius: '8px', width: '40px', height: '40px', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}>×</button>
+        </div>
+      )}
+
       {/* ===== room modal ===== */}
       {roomModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setRoomModal(null)}>
@@ -825,9 +933,13 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
               <label style={lbl}>Room name *</label>
               <input style={inp} placeholder='e.g. Primary Bath, Kitchen, Living Room' value={roomModal.name} onChange={e => setRoomModal((m: any) => ({ ...m, name: e.target.value }))} />
             </div>
-            <div style={{ marginBottom: '18px' }}>
+            <div style={{ marginBottom: '12px' }}>
               <label style={lbl}>The feel / vibe</label>
               <textarea style={{ ...inp, resize: 'vertical' }} rows={3} placeholder='Spa-like, warm woods, soft light…' value={roomModal.feel || ''} onChange={e => setRoomModal((m: any) => ({ ...m, feel: e.target.value }))} />
+            </div>
+            <div style={{ marginBottom: '18px' }}>
+              <label style={lbl}>Room size (sq ft)</label>
+              <input style={inp} type='number' placeholder='e.g. 120' value={roomModal.sqft ?? ''} onChange={e => setRoomModal((m: any) => ({ ...m, sqft: e.target.value }))} />
             </div>
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
               <button onClick={() => setRoomModal(null)} className='btn btn-ghost'>Cancel</button>

@@ -41,7 +41,7 @@ export default function DesignPrintPage({ params }: { params: { id: string } }) 
   const finishes = items.filter((i: any) => i.kind === 'finish')
   const colors = (rid: string | null) => items.filter((i: any) => i.kind === 'color' && (i.room_id || null) === (rid || null))
   const inspo = (rid: string | null) => items.filter((i: any) => i.kind === 'inspiration' && (i.room_id || null) === (rid || null))
-  const lineEst = (f: any) => (Number(f.price) || 0) * (f.qty == null ? 1 : Number(f.qty) || 0)
+  const lineEst = (f: any) => { const s = Number(f.sqft) || 0; const base = s > 0 ? s : (f.qty == null || f.qty === '' ? 1 : Number(f.qty) || 0); return (Number(f.price) || 0) * base }
   const lineAllIn = (f: any) => (f.actual_cost != null ? Number(f.actual_cost) || 0 : lineEst(f))
   const allIn = finishes.reduce((s: number, f: any) => s + lineAllIn(f), 0)
   const estTotal = finishes.reduce((s: number, f: any) => s + lineEst(f), 0)
@@ -154,10 +154,10 @@ export default function DesignPrintPage({ params }: { params: { id: string } }) 
                             <div style={{ fontSize: '10px', color: FAINT, marginTop: '2px' }}>{[f.category, f.brand].filter(Boolean).join(' · ')}</div>
                           </td>
                           <td style={{ ...td, color: MUTE, fontSize: '10px' }}>
-                            {[f.material, f.dimensions, f.color_hex].filter(Boolean).join(' · ')}
+                            {[f.material, f.dimensions, Number(f.sqft) > 0 ? f.sqft + ' SF' : null, f.color_hex].filter(Boolean).join(' · ')}
                             {f.supplier && <div style={{ marginTop: '2px' }}>{f.supplier}</div>}
                           </td>
-                          <td style={{ ...td, textAlign: 'right' }}>{f.qty != null ? f.qty : 1}</td>
+                          <td style={{ ...td, textAlign: 'right' }}>{Number(f.sqft) > 0 ? f.sqft + ' SF' : (f.qty != null ? f.qty : 1)}</td>
                           <td style={{ ...td, textAlign: 'right' }}>
                             <div style={{ fontWeight: 700 }}>{fm(lineAllIn(f))}</div>
                             {f.actual_cost != null && <div style={{ fontSize: '8.5px', color: GREEN }}>actual</div>}
