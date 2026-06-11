@@ -69,6 +69,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const [detailFinish, setDetailFinish] = useState<any>(null)
   const [lightbox, setLightbox] = useState('')
   const [collapsedAreas, setCollapsedAreas] = useState<Set<string>>(new Set())
+  const [photoPicker, setPhotoPicker] = useState<{ mode: 'finish' | 'room'; roomId?: string | null } | null>(null)
   const [settingsModal, setSettingsModal] = useState<any>(null)
   const [noteText, setNoteText] = useState('')
   const [finishFilter, setFinishFilter] = useState('')
@@ -211,6 +212,21 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   }
 
   // ---------- inspiration & color ----------
+  // Reuse a photo already uploaded to this project (no re-upload).
+  async function reusePhoto(url: string) {
+    if (!photoPicker) return
+    if (photoPicker.mode === 'finish') {
+      setFinishModal((m: any) => !m ? m : ((m.images || []).includes(url) ? m : { ...m, images: [...(m.images || []), url] }))
+    } else {
+      await supabase.from('design_items').insert({ project_id: pid, room_id: photoPicker.roomId ?? null, kind: 'inspiration', image_url: url, sort_order: items.length })
+      load()
+    }
+  }
+  // Turn a moodboard photo into a new finish, reusing the image already stored.
+  function useInFinish(roomId: string | null, url: string) {
+    setFinishErr(''); setImportUrl('')
+    setFinishModal({ ...emptyFinish, images: [url], room_id: roomId || '' })
+  }
   async function addInspiration(roomId: string | null, files: FileList | File[]) {
     const list = Array.from(files)
     if (!list.length) return
@@ -322,6 +338,12 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
 
   // ---------- derived ----------
   const finishes = items.filter(i => i.kind === 'finish')
+  // Every photo already uploaded to this project — for the "reuse a photo" picker.
+  const allProjectPhotos: string[] = Array.from(new Set([
+    ...items.filter(i => i.kind === 'inspiration' && i.image_url).map(i => i.image_url),
+    ...finishes.flatMap(f => finishImages(f)),
+    project?.cover_image_url,
+  ].filter(Boolean)))
   const latestApprovalByItem: Record<string, any> = {}
   approvals.forEach(a => { if (a.item_id && !latestApprovalByItem[a.item_id]) latestApprovalByItem[a.item_id] = a })
   // Group rooms under Areas (e.g. Master Suite). Build a flat render list that
@@ -511,12 +533,18 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                           <div key={im.id} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', aspectRatio: '1', border: '0.5px solid var(--border)' }}>
                             <img src={im.image_url} alt='' onClick={() => setLightbox(im.image_url)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
                             <button onClick={() => { if (confirm('Remove this image?')) deleteItem(im.id) }} style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '6px', width: '22px', height: '22px', cursor: 'pointer', fontSize: '13px', lineHeight: 1 }}>×</button>
+                            <button onClick={() => useInFinish(b.id, im.image_url)} title='Use as a finish' style={{ position: 'absolute', bottom: '4px', left: '4px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '6px', padding: '2px 7px', cursor: 'pointer', fontSize: '9px' }}>→ Finish</button>
                           </div>
                         ))}
                         <label style={{ aspectRatio: '1', borderRadius: '8px', border: '1px dashed var(--border2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text3)', fontSize: '12px', textAlign: 'center', padding: '6px' }}>
                           {uploadingFor === (b.id || 'whole') ? 'Uploading…' : <><div style={{ fontSize: '20px' }}>＋</div>Add photos</>}
                           <input type='file' accept='image/*' multiple style={{ display: 'none' }} onChange={e => { const fs = e.target.files; if (fs && fs.length) addInspiration(b.id, fs); e.currentTarget.value = '' }} />
                         </label>
+                        {allProjectPhotos.length > 0 && (
+                          <button type='button' onClick={() => setPhotoPicker({ mode: 'room', roomId: b.id })} style={{ aspectRatio: '1', borderRadius: '8px', border: '1px dashed var(--border2)', background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text3)', fontSize: '11px', textAlign: 'center', padding: '6px' }} title='Reuse a photo already in this project'>
+                            <div style={{ fontSize: '18px' }}>📂</div>Reuse
+                          </button>
+                        )}
                       </div>
 
                       {roomFinishes.length > 0 && (
@@ -808,6 +836,11 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                   {uploadingFor === 'finish' ? '…' : <><div style={{ fontSize: '18px' }}>＋</div>Add</>}
                   <input type='file' accept='image/*' multiple style={{ display: 'none' }} onChange={e => { const fs = e.target.files; if (fs && fs.length) addFinishPhotos(fs); e.currentTarget.value = '' }} />
                 </label>
+                {allProjectPhotos.length > 0 && (
+                  <button type='button' onClick={() => setPhotoPicker({ mode: 'finish' })} style={{ width: '70px', height: '70px', borderRadius: '8px', border: '1px dashed var(--border2)', background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text3)', fontSize: '10px', textAlign: 'center' }} title='Reuse a photo already in this project'>
+                    <div style={{ fontSize: '16px' }}>📂</div>In&nbsp;app
+                  </button>
+                )}
               </div>
             </div>
 
@@ -972,6 +1005,37 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
           </div>
         )
       })()}
+
+      {/* ===== reuse-a-photo picker ===== */}
+      {photoPicker && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1500, padding: '16px' }} onClick={() => setPhotoPicker(null)}>
+          <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '20px', width: '560px', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>📂 Reuse a photo</div>
+              <button onClick={() => setPhotoPicker(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: '20px', cursor: 'pointer', lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '14px' }}>{photoPicker.mode === 'finish' ? 'Tap to add to this finish — no re-uploading. Added photos are checked.' : 'Tap a photo already in the project to add it to this room.'}</div>
+            {allProjectPhotos.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text3)', fontSize: '13px' }}>No photos in this project yet.</div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px,1fr))', gap: '8px' }}>
+                {allProjectPhotos.map(url => {
+                  const inFinish = photoPicker.mode === 'finish' && (finishModal?.images || []).includes(url)
+                  return (
+                    <div key={url} onClick={() => reusePhoto(url)} style={{ position: 'relative', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden', border: inFinish ? '2px solid var(--green)' : '0.5px solid var(--border)', cursor: 'pointer' }}>
+                      <img src={url} alt='' style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      {inFinish && <div style={{ position: 'absolute', top: '4px', right: '4px', background: 'var(--green)', color: '#fff', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>✓</div>}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+              <button onClick={() => setPhotoPicker(null)} className='btn btn-primary'>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ===== lightbox ===== */}
       {lightbox && (
