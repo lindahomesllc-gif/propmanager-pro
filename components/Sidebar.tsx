@@ -46,6 +46,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     items: [
       { href: '/calendar', label: 'Calendar',   icon: '📅' },
       { href: '/alerts',   label: 'Due Dates',  icon: '◉', badgeKey: 'expiringLeases' },
+      { href: '/capex',    label: 'Replacement Planner', icon: '🔮' },
       { href: '/market',   label: 'Market Data',icon: '↗' },
     ],
   },
