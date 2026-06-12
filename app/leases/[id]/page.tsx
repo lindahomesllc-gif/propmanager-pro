@@ -112,6 +112,13 @@ export default function LeaseDetailPage({ params }) {
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
 
+        {l.tenant_signed_at && (
+          <div style={{ background: 'var(--green-bg)', border: '0.5px solid var(--green)', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '18px' }}>✍️</span>
+            <div style={{ fontSize: '13px', color: 'var(--text)' }}>Tenant e-signed: <strong>{l.tenant_signed_name}</strong> on {formatDate(l.tenant_signed_at)}</div>
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
           {[
             { label: 'Monthly Rent', value: fm(l.rent_amount), color: 'var(--green)' },
