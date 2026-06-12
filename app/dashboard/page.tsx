@@ -17,7 +17,7 @@ const WIDGET_LABELS: Record<string, string> = {
 export default function DashboardPage() {
   const [editMode, setEditMode] = useState(false)
   const [layout, setLayout] = useState<{ order: string[]; hidden: string[] }>({ order: DEFAULT_ORDER, hidden: [] })
-  const [data, setData] = useState({ properties: [], tenants: [], payments: [], expenses: [], leases: [], maintenance: [], mortgages: [], assets: [], entities: [] })
+  const [data, setData] = useState({ properties: [], tenants: [], payments: [], expenses: [], leases: [], maintenance: [], mortgages: [], assets: [], entities: [], schedules: [] })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -31,8 +31,9 @@ export default function DashboardPage() {
       supabase.from('mortgages').select('*, properties(address)').eq('is_paid_off', false),
       supabase.from('property_assets').select('*, properties(address)'),
       supabase.from('entities').select('*'),
-    ]).then(([p, t, pay, exp, l, m, mo, as, en]) => {
-      setData({ properties: p.data || [], tenants: t.data || [], payments: pay.data || [], expenses: exp.data || [], leases: l.data || [], maintenance: m.data || [], mortgages: mo.data || [], assets: as.data || [], entities: en.data || [] })
+      supabase.from('maintenance_schedules').select('*, properties(address)').eq('active', true),
+    ]).then(([p, t, pay, exp, l, m, mo, as, en, ms]) => {
+      setData({ properties: p.data || [], tenants: t.data || [], payments: pay.data || [], expenses: exp.data || [], leases: l.data || [], maintenance: m.data || [], mortgages: mo.data || [], assets: as.data || [], entities: en.data || [], schedules: ms.data || [] })
       setLoading(false)
     })
   }, [])
@@ -64,7 +65,7 @@ export default function DashboardPage() {
   }
   function resetLayout() { persistLayout({ order: [...DEFAULT_ORDER], hidden: [] }) }
 
-  const { properties, tenants, payments, expenses, leases, maintenance, mortgages, assets, entities } = data
+  const { properties, tenants, payments, expenses, leases, maintenance, mortgages, assets, entities, schedules } = data
   const occupied = properties.filter(p => p.occupancy_status === 'occupied')
   const vacant = properties.filter(p => p.occupancy_status === 'vacant')
   const thisYear = new Date().getFullYear().toString()
@@ -87,6 +88,8 @@ export default function DashboardPage() {
   const insuranceRenewing = properties.filter((p: any) => p.insurance_expires && p.insurance_expires >= todayStr && p.insurance_expires <= in90Str).sort((a: any, b: any) => a.insurance_expires.localeCompare(b.insurance_expires))
   const taxDueSoon = properties.filter((p: any) => p.tax_due_date && p.tax_due_date >= todayStr && p.tax_due_date <= in90Str).sort((a: any, b: any) => a.tax_due_date.localeCompare(b.tax_due_date))
   const complianceDue = entities.map((e: any) => ({ e, due: nextAnnualReportDue(e) })).filter((x: any) => x.due && x.due >= todayStr && x.due <= in90Str).sort((a: any, b: any) => a.due.localeCompare(b.due))
+  const in30Str = new Date(today.getTime() + 30 * 86400000).toISOString().slice(0, 10)
+  const preventiveDue = schedules.filter((s: any) => s.next_due && s.next_due <= in30Str).sort((a: any, b: any) => a.next_due.localeCompare(b.next_due))
   const recentPayments = payments.filter(p => p.status === 'paid').slice(0, 5)
   const thisMonth = new Date().toISOString().slice(0, 7)
   const collectedThisMonth = payments.filter(p => p.status === 'paid' && p.paid_date?.startsWith(thisMonth)).reduce((s, p) => s + (p.amount_paid || 0), 0)
@@ -105,7 +108,7 @@ export default function DashboardPage() {
   })
 
   const returns = computeReturns({ properties, leases, expenses, mortgages, year: currentYear })
-  const attentionCount = latePayments.length + expiringLeases.length + maintenance.length + vacant.length + expiringWarranties.length + insuranceRenewing.length + taxDueSoon.length + complianceDue.length
+  const attentionCount = latePayments.length + expiringLeases.length + maintenance.length + vacant.length + expiringWarranties.length + insuranceRenewing.length + taxDueSoon.length + complianceDue.length + preventiveDue.length
 
   // Per-tenant rent status for THIS month — who's paid vs who still owes (actionable).
   const leaseRentByTenant: Record<string, number> = {}
@@ -247,6 +250,7 @@ export default function DashboardPage() {
             {insuranceRenewing.map((p: any) => <AlertCard key={'ins' + p.id} href={'/properties/' + p.id + '?tab=insurance'} color='var(--amber)' title={'🛡 Insurance Renewing — ' + p.address} sub={'Expires ' + formatDate(p.insurance_expires) + (p.insurance_company ? ' · ' + p.insurance_company : '')} />)}
             {taxDueSoon.map((p: any) => <AlertCard key={'tax' + p.id} href={'/properties/' + p.id + '?tab=insurance'} color='var(--amber)' title={'🧾 Property Tax Due — ' + p.address} sub={'Due ' + formatDate(p.tax_due_date)} />)}
             {complianceDue.map(({ e, due }: any) => <AlertCard key={'cmp' + e.id} href='/entities' color='var(--amber)' title={'🏛️ Annual Report Due — ' + e.name} sub={'File by ' + formatDate(due)} />)}
+                {preventiveDue.map((s: any) => <AlertCard key={'pm' + s.id} href='/preventive' color={s.next_due < todayStr ? 'var(--red)' : 'var(--amber)'} title={'🔁 ' + s.title} sub={(s.properties?.address || 'All properties') + ' · due ' + formatDate(s.next_due)} />)}
           </div>
         )}
       </>

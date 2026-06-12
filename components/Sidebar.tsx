@@ -16,6 +16,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { href: '/tenants',     label: 'Tenants',     icon: '◎' },
       { href: '/payments',    label: 'Payments',    icon: '◈', badgeKey: 'latePayments' },
       { href: '/maintenance', label: 'Maintenance', icon: '◧', badgeKey: 'openMaint' },
+      { href: '/preventive', label: 'Preventive', icon: '🔁' },
       { href: '/messages',    label: 'Messages',    icon: '◍', badgeKey: 'unreadMsgs' },
     ],
   },

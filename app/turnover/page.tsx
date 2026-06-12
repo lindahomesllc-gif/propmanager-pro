@@ -34,11 +34,17 @@ export default function TurnoverPage() {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
+  // make-ready reference: the selected property's paint colors + appliances
+  const [paints, setPaints] = useState<any[]>([])
+  const [assets, setAssets] = useState<any[]>([])
+
   useEffect(() => {
     if (form.property_id) {
       const t = tenants.find(x => x.property_id === form.property_id)
       if (t) set('tenant_id', t.id)
-    }
+      supabase.from('property_paints').select('area, brand, color_name, color_code, sheen').eq('property_id', form.property_id).order('area').then(({ data }) => setPaints(data || []))
+      supabase.from('property_assets').select('name, brand, category, warranty_expires').eq('property_id', form.property_id).then(({ data }) => setAssets(data || []))
+    } else { setPaints([]); setAssets([]) }
   }, [form.property_id])
 
   async function save() {
@@ -123,6 +129,32 @@ export default function TurnoverPage() {
                 </select>
               </div>
             </div>
+            {form.property_id && (paints.length > 0 || assets.length > 0) && (
+              <div style={{ background: 'var(--bg3)', border: '0.5px solid var(--border)', borderRadius: '8px', padding: '12px 14px', marginBottom: '12px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>🛠 Make-Ready Reference</div>
+                {paints.length > 0 && (
+                  <div style={{ marginBottom: assets.length ? '10px' : '0' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '4px' }}>🎨 Paint colors — for touch-ups</div>
+                    <div style={{ display: 'grid', gap: '3px' }}>
+                      {paints.map((p, i) => (
+                        <div key={i} style={{ fontSize: '12px', color: 'var(--text2)' }}><strong style={{ color: 'var(--text)' }}>{p.area}:</strong> {[p.color_name, p.color_code, p.brand, p.sheen].filter(Boolean).join(' · ')}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {assets.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '4px' }}>🧰 Appliances / systems — check condition</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {assets.map((a, i) => (
+                        <span key={i} style={{ fontSize: '11px', color: 'var(--text2)', border: '0.5px solid var(--border)', borderRadius: '6px', padding: '2px 8px' }}>{a.name}{a.brand ? ' · ' + a.brand : ''}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <a href={'/properties/' + form.property_id + '?tab=paint'} target='_blank' style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none', display: 'inline-block', marginTop: '8px' }}>Open property details →</a>
+              </div>
+            )}
             <div style={{ ...g2, marginBottom: '12px' }}>
               <div><label style={lbl}>Move Out Date</label><input className='input' type='date' value={form.move_out_date} onChange={e => set('move_out_date', e.target.value)} /></div>
               <div><label style={lbl}>Expected Move In</label><input className='input' type='date' value={form.expected_move_in} onChange={e => set('expected_move_in', e.target.value)} /></div>
