@@ -7,17 +7,17 @@ import GettingStarted from '@/components/GettingStarted'
 import GoalsCard from '@/components/GoalsCard'
 
 // Customizable dashboard: each section is a keyed widget the user can reorder or hide.
-const DEFAULT_ORDER = ['portfolio', 'goals', 'operations', 'attention', 'thisMonth', 'rentCollection', 'rentStatus', 'quickActions', 'propertiesTenants']
+const DEFAULT_ORDER = ['portfolio', 'goals', 'operations', 'attention', 'rentGaps', 'thisMonth', 'rentCollection', 'rentStatus', 'quickActions', 'propertiesTenants']
 const WIDGET_LABELS: Record<string, string> = {
   portfolio: '📈 Portfolio', goals: '🎯 Goals', operations: '🏠 Operations',
-  attention: '⚠️ Needs Attention', thisMonth: '📅 This Month', rentCollection: '💰 Rent Collection',
+  attention: '⚠️ Needs Attention', rentGaps: '💸 Rent vs Market', thisMonth: '📅 This Month', rentCollection: '💰 Rent Collection',
   rentStatus: '🧾 Rent Status', quickActions: '⚡ Quick Actions', propertiesTenants: '🏠 Properties & Tenants',
 }
 
 export default function DashboardPage() {
   const [editMode, setEditMode] = useState(false)
   const [layout, setLayout] = useState<{ order: string[]; hidden: string[] }>({ order: DEFAULT_ORDER, hidden: [] })
-  const [data, setData] = useState({ properties: [], tenants: [], payments: [], expenses: [], leases: [], maintenance: [], mortgages: [], assets: [], entities: [], schedules: [] })
+  const [data, setData] = useState({ properties: [], tenants: [], payments: [], expenses: [], leases: [], maintenance: [], mortgages: [], assets: [], entities: [], schedules: [], units: [] })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -32,8 +32,9 @@ export default function DashboardPage() {
       supabase.from('property_assets').select('*, properties(address)'),
       supabase.from('entities').select('*'),
       supabase.from('maintenance_schedules').select('*, properties(address)').eq('active', true),
-    ]).then(([p, t, pay, exp, l, m, mo, as, en, ms]) => {
-      setData({ properties: p.data || [], tenants: t.data || [], payments: pay.data || [], expenses: exp.data || [], leases: l.data || [], maintenance: m.data || [], mortgages: mo.data || [], assets: as.data || [], entities: en.data || [], schedules: ms.data || [] })
+      supabase.from('units').select('id, property_id, label, market_rent'),
+    ]).then(([p, t, pay, exp, l, m, mo, as, en, ms, un]) => {
+      setData({ properties: p.data || [], tenants: t.data || [], payments: pay.data || [], expenses: exp.data || [], leases: l.data || [], maintenance: m.data || [], mortgages: mo.data || [], assets: as.data || [], entities: en.data || [], schedules: ms.data || [], units: un.data || [] })
       setLoading(false)
     })
   }, [])
@@ -65,7 +66,7 @@ export default function DashboardPage() {
   }
   function resetLayout() { persistLayout({ order: [...DEFAULT_ORDER], hidden: [] }) }
 
-  const { properties, tenants, payments, expenses, leases, maintenance, mortgages, assets, entities, schedules } = data
+  const { properties, tenants, payments, expenses, leases, maintenance, mortgages, assets, entities, schedules, units } = data
   const occupied = properties.filter(p => p.occupancy_status === 'occupied')
   const vacant = properties.filter(p => p.occupancy_status === 'vacant')
   const thisYear = new Date().getFullYear().toString()
@@ -115,6 +116,13 @@ export default function DashboardPage() {
   leases.forEach(l => { if (l.tenant_id) leaseRentByTenant[l.tenant_id] = (leaseRentByTenant[l.tenant_id] || 0) + (l.rent_amount || 0) })
   const rentByProperty: Record<string, number> = {}
   leases.forEach(l => { if (l.property_id) rentByProperty[l.property_id] = (rentByProperty[l.property_id] || 0) + (l.rent_amount || 0) })
+  // rent vs market: under-rented occupied units (actual lease rent below the unit's target)
+  const leaseRentByUnit: Record<string, number> = {}
+  leases.forEach((l: any) => { if (l.unit_id) leaseRentByUnit[l.unit_id] = (leaseRentByUnit[l.unit_id] || 0) + (l.rent_amount || 0) })
+  const propAddr: Record<string, string> = Object.fromEntries(properties.map((p: any) => [p.id, p.address]))
+  const rentGaps = units.map((u: any) => { const cur = leaseRentByUnit[u.id] || 0; const target = u.market_rent || 0; return { ...u, cur, target, gap: target - cur } })
+    .filter((u: any) => u.target > 0 && u.cur > 0 && u.gap > 0).sort((a: any, b: any) => b.gap - a.gap)
+  const rentGapTotal = rentGaps.reduce((s: number, u: any) => s + u.gap, 0)
   // group properties by owning entity (for the vision-board roster) — only group when 2+ entities are in use
   const propGroups: [string, any[]][] = (() => {
     const g: Record<string, any[]> = {}
@@ -251,6 +259,32 @@ export default function DashboardPage() {
             {taxDueSoon.map((p: any) => <AlertCard key={'tax' + p.id} href={'/properties/' + p.id + '?tab=insurance'} color='var(--amber)' title={'🧾 Property Tax Due — ' + p.address} sub={'Due ' + formatDate(p.tax_due_date)} />)}
             {complianceDue.map(({ e, due }: any) => <AlertCard key={'cmp' + e.id} href='/entities' color='var(--amber)' title={'🏛️ Annual Report Due — ' + e.name} sub={'File by ' + formatDate(due)} />)}
                 {preventiveDue.map((s: any) => <AlertCard key={'pm' + s.id} href='/preventive' color={s.next_due < todayStr ? 'var(--red)' : 'var(--amber)'} title={'🔁 ' + s.title} sub={(s.properties?.address || 'All properties') + ' · due ' + formatDate(s.next_due)} />)}
+          </div>
+        )}
+      </>
+    ),
+    rentGaps: (
+      <>
+        <div style={secLabel}>💸 Rent vs Market</div>
+        {rentGaps.length === 0 ? (
+          <div style={{ ...panel, padding: '16px', textAlign: 'center', color: 'var(--text3)', fontSize: '13px', marginBottom: '20px' }}>Every leased unit is at or above its target rent. 👍</div>
+        ) : (
+          <div style={{ ...panel, marginBottom: '20px' }}>
+            <div style={{ padding: '9px 14px', borderBottom: '0.5px solid var(--border)', fontSize: '11px', color: 'var(--text3)', fontWeight: 600 }}>{rentGaps.length} unit{rentGaps.length > 1 ? 's' : ''} under target · <span style={{ color: 'var(--amber)' }}>{fm(rentGapTotal)}/mo · {fm(rentGapTotal * 12)}/yr</span> opportunity</div>
+            {rentGaps.map((u: any) => (
+              <a key={u.id} href={'/properties/' + u.property_id + '?tab=units'} style={{ textDecoration: 'none' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '10px 14px', borderBottom: '0.5px solid var(--border)' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.label}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{propAddr[u.property_id] || ''} · now {fm(u.cur)} / target {fm(u.target)}</div>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--amber)' }}>+{fm(u.gap)}/mo</div>
+                    <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{fm(u.gap * 12)}/yr</div>
+                  </div>
+                </div>
+              </a>
+            ))}
           </div>
         )}
       </>
