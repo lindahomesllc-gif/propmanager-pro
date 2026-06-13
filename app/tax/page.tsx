@@ -13,12 +13,16 @@ export default function TaxPage() {
   const [year, setYear] = useState(new Date().getFullYear())
   const [propFilter, setPropFilter] = useState('all')
   const [entityFilter, setEntityFilter] = useState('all')
+  const [landPct, setLandPct] = useState(20) // % of purchase price allocated to (non-depreciable) land
+
+  useEffect(() => { const v = parseFloat(localStorage.getItem('taxLandPct') || '') ; if (!isNaN(v)) setLandPct(v) }, [])
+  function setLand(v) { setLandPct(v); try { localStorage.setItem('taxLandPct', String(v)) } catch {} }
 
   useEffect(() => {
     Promise.all([
       supabase.from('expenses').select('*, properties(address)'),
       supabase.from('payments').select('*, properties(address), tenants(full_name)').eq('status', 'paid'),
-      supabase.from('properties').select('id, address, ownership_percentage, entity_id'),
+      supabase.from('properties').select('id, address, ownership_percentage, entity_id, purchase_price, purchase_date'),
       supabase.from('entities').select('id, name'),
     ]).then(([e, p, pr, en]) => {
       setExpenses(e.data || [])
@@ -40,7 +44,18 @@ export default function TaxPage() {
   const totalIncome = yearPay.reduce((s, p) => s + (p.amount_paid || 0) * pct(p.property_id), 0)
   const totalExp = yearExp.reduce((s, e) => s + (e.amount || 0) * pct(e.property_id), 0)
   const deductible = yearExp.filter(e => e.is_deductible).reduce((s, e) => s + (e.amount || 0) * pct(e.property_id), 0)
-  const netIncome = totalIncome - deductible
+
+  // Depreciation: residential rental = building basis ÷ 27.5 (land not depreciable). Full-year.
+  const landFrac = (Number(landPct) || 0) / 100
+  const annualDepFor = (p) => {
+    if (!p?.purchase_price) return 0
+    const pYear = p.purchase_date ? new Date(p.purchase_date).getFullYear() : null
+    if (pYear && pYear > year) return 0 // not yet placed in service
+    return (p.purchase_price * (1 - landFrac) / 27.5) * (p.ownership_percentage != null ? p.ownership_percentage / 100 : 1)
+  }
+  const depProps = properties.filter(p => (propFilter === 'all' || p.id === propFilter) && inEntity(p.id))
+  const depreciation = depProps.reduce((s, p) => s + annualDepFor(p), 0)
+  const netIncome = totalIncome - deductible - depreciation
 
   const categories = [...new Set(yearExp.map(e => e.category))].sort()
   const byCategory = categories.map(cat => ({
@@ -57,8 +72,9 @@ export default function TaxPage() {
     const match = (pid) => en.id === 'unassigned' ? !propMap[pid]?.entity_id : propMap[pid]?.entity_id === en.id
     const inc = allYearPay.filter(p => match(p.property_id)).reduce((s, p) => s + (p.amount_paid || 0) * pct(p.property_id), 0)
     const ded = allYearExp.filter(e => e.is_deductible && match(e.property_id)).reduce((s, e) => s + (e.amount || 0) * pct(e.property_id), 0)
-    return { name: en.name, inc, ded, net: inc - ded }
-  }).filter(r => r.inc > 0 || r.ded > 0)
+    const dep = properties.filter(p => match(p.id)).reduce((s, p) => s + annualDepFor(p), 0)
+    return { name: en.name, inc, ded, dep, net: inc - ded - dep }
+  }).filter(r => r.inc > 0 || r.ded > 0 || r.dep > 0)
 
   const sel = { padding: '6px 10px', fontSize: '12px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none' }
 
@@ -81,20 +97,26 @@ export default function TaxPage() {
           <select value={year} onChange={e => setYear(parseInt(e.target.value))} style={sel}>
             {[2023,2024,2025,2026,2027].map(y => <option key={y} value={y}>{y}</option>)}
           </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title='Share of purchase price allocated to land (not depreciable)'>
+            <span style={{ fontSize: '11px', color: 'var(--text3)' }}>Land %</span>
+            <input type='number' value={landPct} onChange={e => setLand(parseFloat(e.target.value) || 0)} style={{ ...sel, width: '58px' }} />
+          </div>
+          <button onClick={() => window.print()} className='btn btn-ghost' style={{ fontSize: '12px' }}>🖨 Print</button>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
         {loading && <div style={{ display: 'grid', gap: '8px' }}>{[0, 1, 2, 3].map(i => <div key={i} className='skeleton' style={{ height: '64px' }} />)}</div>}
         {!loading && (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden', marginBottom: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden', marginBottom: '20px' }}>
               {[
                 { label: '💰 Gross Income', value: fm(totalIncome), color: 'var(--green)' },
-                { label: '💸 Total Expenses', value: fm(totalExp), color: 'var(--red)' },
-                { label: '✅ Deductible', value: fm(deductible), color: 'var(--amber)' },
+                { label: '💸 Deductible', value: fm(deductible), color: 'var(--red)' },
+                { label: '🏚 Depreciation', value: fm(depreciation), color: 'var(--amber)' },
                 { label: '📈 Net Taxable', value: fm(netIncome), color: netIncome >= 0 ? 'var(--green)' : 'var(--red)' },
+                { label: '💵 Cash vs Paper', value: fm(totalIncome - deductible), color: 'var(--text2)' },
               ].map((mc, i) => (
-                <div key={mc.label} style={{ padding: '16px 20px', background: 'var(--bg2)', borderRight: i < 3 ? '0.5px solid var(--border)' : 'none' }}>
+                <div key={mc.label} style={{ padding: '16px 20px', background: 'var(--bg2)', borderRight: i < 4 ? '0.5px solid var(--border)' : 'none' }}>
                   <div style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: 600, marginBottom: '4px' }}>{mc.label}</div>
                   <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: mc.color }}>{mc.value}</div>
                 </div>
@@ -111,6 +133,10 @@ export default function TaxPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
                   <span style={{ fontSize: '13px', color: 'var(--text2)' }}>Total Deductible Expenses</span>
                   <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--red)' }}>({fm(deductible)})</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text2)' }}>Depreciation (27.5-yr)</span>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--amber)' }}>({fm(depreciation)})</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0' }}>
                   <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>Net Income / (Loss)</span>
@@ -141,7 +167,7 @@ export default function TaxPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ borderBottom: '0.5px solid var(--border)' }}>
-                      {['Entity', 'Gross Income', 'Deductible', 'Net'].map((h, i) => (
+                      {['Entity', 'Gross Income', 'Deductible', 'Depreciation', 'Net'].map((h, i) => (
                         <th key={h} style={{ padding: '8px 10px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text3)', textAlign: i === 0 ? 'left' : 'right' }}>{h}</th>
                       ))}
                     </tr>
@@ -152,9 +178,41 @@ export default function TaxPage() {
                         <td style={{ padding: '8px 10px', fontSize: '13px', color: 'var(--text)', fontWeight: 600 }}>{r.name}</td>
                         <td style={{ padding: '8px 10px', fontSize: '13px', color: 'var(--green)', textAlign: 'right' }}>{fm(r.inc)}</td>
                         <td style={{ padding: '8px 10px', fontSize: '13px', color: 'var(--red)', textAlign: 'right' }}>({fm(r.ded)})</td>
+                        <td style={{ padding: '8px 10px', fontSize: '13px', color: 'var(--amber)', textAlign: 'right' }}>({fm(r.dep)})</td>
                         <td style={{ padding: '8px 10px', fontSize: '13px', fontWeight: 700, color: r.net >= 0 ? 'var(--green)' : 'var(--red)', textAlign: 'right' }}>{fm(r.net)}</td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {depProps.filter(p => p.purchase_price).length > 0 && (
+              <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '14px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' }}>🏚 Depreciation Schedule · {year}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '12px' }}>Residential rental depreciates over 27.5 years on the <strong>building</strong> basis (purchase price minus {landPct}% land). A non-cash deduction — adjust Land % above to match your CPA&apos;s allocation.</div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '0.5px solid var(--border)' }}>
+                      {['Property', 'Purchase Price', 'Land', 'Building Basis', 'Annual Depreciation'].map((h, i) => (
+                        <th key={h} style={{ padding: '8px 10px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text3)', textAlign: i === 0 ? 'left' : 'right' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {depProps.filter(p => p.purchase_price).map(p => {
+                      const share = p.ownership_percentage != null ? p.ownership_percentage / 100 : 1
+                      const basis = p.purchase_price * (1 - landFrac) * share
+                      return (
+                        <tr key={p.id} style={{ borderBottom: '0.5px solid var(--border)' }}>
+                          <td style={{ padding: '8px 10px', fontSize: '13px', color: 'var(--text)', fontWeight: 600 }}>{p.address}</td>
+                          <td style={{ padding: '8px 10px', fontSize: '13px', color: 'var(--text2)', textAlign: 'right' }}>{fm(p.purchase_price * share)}</td>
+                          <td style={{ padding: '8px 10px', fontSize: '13px', color: 'var(--text3)', textAlign: 'right' }}>{fm(p.purchase_price * landFrac * share)}</td>
+                          <td style={{ padding: '8px 10px', fontSize: '13px', color: 'var(--text2)', textAlign: 'right' }}>{fm(basis)}</td>
+                          <td style={{ padding: '8px 10px', fontSize: '13px', fontWeight: 700, color: 'var(--amber)', textAlign: 'right' }}>{fm(annualDepFor(p))}</td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
