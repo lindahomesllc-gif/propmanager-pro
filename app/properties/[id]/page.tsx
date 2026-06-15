@@ -67,6 +67,18 @@ export default function PropertyDetailPage({ params }) {
     setUploading(false)
   }
 
+  async function removeDoc(url) {
+    if (!confirm('Delete this document? This cannot be undone.')) return
+    const next = (property.photo_urls || []).filter(u => u !== url)
+    const { error } = await supabase.from('properties').update({ photo_urls: next }).eq('id', params.id)
+    if (error) { alert('Error: ' + error.message); return }
+    setProperty(p => ({ ...p, photo_urls: next }))
+    // best-effort: also remove the underlying file from storage
+    const marker = '/lease-documents/'
+    const idx = url.indexOf(marker)
+    if (idx !== -1) { try { await supabase.storage.from('lease-documents').remove([decodeURIComponent(url.slice(idx + marker.length))]) } catch {} }
+  }
+
   if (loading) return <AppShell><div style={{ padding: '40px', color: 'var(--text3)', textAlign: 'center' }}>Loading...</div></AppShell>
   if (!property) return <AppShell><div style={{ padding: '40px', color: 'var(--text3)', textAlign: 'center' }}>Property not found.</div></AppShell>
 
@@ -449,6 +461,7 @@ export default function PropertyDetailPage({ params }) {
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <a href={url} target='_blank' className='btn btn-ghost'>View</a>
                       <a href={url} download className='btn btn-ghost'>Download</a>
+                      <button onClick={() => removeDoc(url)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '5px 12px', fontSize: '12px', cursor: 'pointer' }}>Delete</button>
                     </div>
                   </div>
                 ))}
