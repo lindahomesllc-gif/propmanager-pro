@@ -20,6 +20,8 @@ export default function ModelerPage() {
   const [closing, setClosing] = useState('6000')
   const [closingMode, setClosingMode] = useState<'amount' | 'pct'>('amount')
   const [closingPct, setClosingPct] = useState('3')
+  const [taxMo, setTaxMo] = useState('')   // monthly property tax (escrow)
+  const [insMo, setInsMo] = useState('')   // monthly insurance (escrow)
   // sell inputs
   const [salePrice, setSalePrice] = useState('')
   const [sellCostPct, setSellCostPct] = useState('6')
@@ -31,7 +33,7 @@ export default function ModelerPage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('properties').select('id, address, market_value, purchase_price'),
+      supabase.from('properties').select('id, address, market_value, purchase_price, annual_tax, insurance_premium'),
       supabase.from('mortgages').select('*').eq('is_paid_off', false),
       supabase.from('leases').select('property_id, rent_amount, status').eq('status', 'executed'),
       supabase.from('expenses').select('property_id, amount, expense_date'),
@@ -52,6 +54,8 @@ export default function ModelerPage() {
     setSalePrice(sel.market_value ? String(sel.market_value) : '')
     setNewRate(mtg?.interest_rate ? String(mtg.interest_rate) : '')
     setCashOut('0')
+    setTaxMo(sel.annual_tax ? (Math.round(sel.annual_tax / 12 * 100) / 100).toString() : '')
+    setInsMo(sel.insurance_premium ? (Math.round(sel.insurance_premium / 12 * 100) / 100).toString() : '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selId, properties.length])
 
@@ -78,6 +82,11 @@ export default function ModelerPage() {
   const monthlySavings = curPI - nPI
   const closingCost = closingMode === 'pct' ? nLoan * (parseFloat(closingPct) || 0) / 100 : (parseFloat(closing) || 0)
   const breakeven = monthlySavings > 0 ? closingCost / monthlySavings : null
+  // full payment + lender (DSCR-loan) ratio: gross rent ÷ PITI
+  const escrowMo = (parseFloat(taxMo) || 0) + (parseFloat(insMo) || 0)
+  const pitiMo = nPI + escrowMo
+  const monthlyRent = annualRent / 12
+  const lenderDSCR = pitiMo > 0 ? monthlyRent / pitiMo : null
 
   // sell
   const gross = parseFloat(salePrice) || 0
@@ -164,16 +173,23 @@ export default function ModelerPage() {
                       : <input style={inp} type='number' step='0.1' value={closingPct} onChange={e => setClosingPct(e.target.value)} />}
                     {closingMode === 'pct' && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '3px' }}>= {fm(closingCost)} of {fm(nLoan)}</div>}
                   </div>
+                  <div><label style={lbl}>Property Tax /mo</label><input style={inp} type='number' value={taxMo} onChange={e => setTaxMo(e.target.value)} /></div>
+                  <div><label style={lbl}>Insurance /mo</label><input style={inp} type='number' value={insMo} onChange={e => setInsMo(e.target.value)} /></div>
                 </div>
                 <div style={{ marginTop: '6px' }}>
                   {row('New loan amount', fm(nLoan))}
                   {row('Current P&I', fm(curPI) + '/mo', 'var(--text2)')}
                   {row('New P&I', fm(nPI) + '/mo', 'var(--text)', true)}
-                  {row(monthlyDelta <= 0 ? 'Monthly savings' : 'Monthly increase', fm(Math.abs(monthlyDelta)) + '/mo', monthlyDelta <= 0 ? 'var(--green)' : 'var(--red)', true)}
+                  {row('+ Taxes & insurance', fm(escrowMo) + '/mo', 'var(--text2)')}
+                  {row('Total payment (PITI)', fm(pitiMo) + '/mo', 'var(--text)', true)}
+                  {row(monthlyDelta <= 0 ? 'Monthly savings (P&I)' : 'Monthly increase (P&I)', fm(Math.abs(monthlyDelta)) + '/mo', monthlyDelta <= 0 ? 'var(--green)' : 'var(--red)', true)}
                   {row('New cash flow', fm(nCashFlow) + '/yr', nCashFlow >= 0 ? 'var(--green)' : 'var(--red)')}
-                  {row('New DSCR', nDSCR != null ? nDSCR.toFixed(2) + 'x' : '—')}
+                  {row('DSCR — lender (rent ÷ PITI)', lenderDSCR != null ? lenderDSCR.toFixed(2) + 'x' : '—', lenderDSCR != null ? (lenderDSCR >= 1.25 ? 'var(--green)' : lenderDSCR >= 1.0 ? 'var(--amber)' : 'var(--red)') : 'var(--text)', true)}
                   {row('Closing costs', fm(closingCost), 'var(--amber)')}
                   {row('Break-even on costs', breakeven != null ? Math.ceil(breakeven) + ' months' : '—', 'var(--text2)')}
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: 1.55, marginTop: '10px', background: 'var(--bg3)', borderRadius: '8px', padding: '10px 12px' }}>
+                    <strong>What&apos;s DSCR?</strong> Monthly rent ÷ the full payment (PITI). <strong>{lenderDSCR != null ? lenderDSCR.toFixed(2) + 'x' : '—'}</strong> means rent covers the payment{lenderDSCR != null ? ' ' + lenderDSCR.toFixed(2) + '×' : ''} over. <strong>DSCR lenders typically want ≥ 1.20–1.25x</strong>; below 1.0 means rent doesn&apos;t cover the payment. Higher = easier approval &amp; better terms.
+                  </div>
                 </div>
               </div>
 
