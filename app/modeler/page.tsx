@@ -18,6 +18,8 @@ export default function ModelerPage() {
   const [newTerm, setNewTerm] = useState('30')
   const [cashOut, setCashOut] = useState('0')
   const [closing, setClosing] = useState('6000')
+  const [closingMode, setClosingMode] = useState<'amount' | 'pct'>('amount')
+  const [closingPct, setClosingPct] = useState('3')
   // sell inputs
   const [salePrice, setSalePrice] = useState('')
   const [sellCostPct, setSellCostPct] = useState('6')
@@ -74,7 +76,8 @@ export default function ModelerPage() {
   const nDSCR = nAnnualDebt > 0 ? noi / nAnnualDebt : null
   const monthlyDelta = nPI - curPI // + = pay more
   const monthlySavings = curPI - nPI
-  const breakeven = monthlySavings > 0 ? (parseFloat(closing) || 0) / monthlySavings : null
+  const closingCost = closingMode === 'pct' ? nLoan * (parseFloat(closingPct) || 0) / 100 : (parseFloat(closing) || 0)
+  const breakeven = monthlySavings > 0 ? closingCost / monthlySavings : null
 
   // sell
   const gross = parseFloat(salePrice) || 0
@@ -147,7 +150,20 @@ export default function ModelerPage() {
                   <div><label style={lbl}>New Rate %</label><input style={inp} type='number' step='0.001' value={newRate} onChange={e => setNewRate(e.target.value)} /></div>
                   <div><label style={lbl}>New Term (yrs)</label><input style={inp} type='number' value={newTerm} onChange={e => setNewTerm(e.target.value)} /></div>
                   <div><label style={lbl}>Cash-Out</label><input style={inp} type='number' value={cashOut} onChange={e => setCashOut(e.target.value)} /></div>
-                  <div><label style={lbl}>Closing Costs</label><input style={inp} type='number' value={closing} onChange={e => setClosing(e.target.value)} /></div>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <label style={lbl}>Closing Costs</label>
+                      <div style={{ display: 'flex', gap: '2px', marginBottom: '4px' }}>
+                        {(['amount', 'pct'] as const).map(m => (
+                          <button key={m} onClick={() => setClosingMode(m)} style={{ fontSize: '10px', padding: '1px 7px', borderRadius: '5px', border: '0.5px solid var(--border2)', cursor: 'pointer', background: closingMode === m ? 'var(--green)' : 'transparent', color: closingMode === m ? '#fff' : 'var(--text3)', fontWeight: closingMode === m ? 700 : 400 }}>{m === 'amount' ? '$' : '% of loan'}</button>
+                        ))}
+                      </div>
+                    </div>
+                    {closingMode === 'amount'
+                      ? <input style={inp} type='number' value={closing} onChange={e => setClosing(e.target.value)} />
+                      : <input style={inp} type='number' step='0.1' value={closingPct} onChange={e => setClosingPct(e.target.value)} />}
+                    {closingMode === 'pct' && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '3px' }}>= {fm(closingCost)} of {fm(nLoan)}</div>}
+                  </div>
                 </div>
                 <div style={{ marginTop: '6px' }}>
                   {row('New loan amount', fm(nLoan))}
@@ -156,6 +172,7 @@ export default function ModelerPage() {
                   {row(monthlyDelta <= 0 ? 'Monthly savings' : 'Monthly increase', fm(Math.abs(monthlyDelta)) + '/mo', monthlyDelta <= 0 ? 'var(--green)' : 'var(--red)', true)}
                   {row('New cash flow', fm(nCashFlow) + '/yr', nCashFlow >= 0 ? 'var(--green)' : 'var(--red)')}
                   {row('New DSCR', nDSCR != null ? nDSCR.toFixed(2) + 'x' : '—')}
+                  {row('Closing costs', fm(closingCost), 'var(--amber)')}
                   {row('Break-even on costs', breakeven != null ? Math.ceil(breakeven) + ' months' : '—', 'var(--text2)')}
                 </div>
               </div>
