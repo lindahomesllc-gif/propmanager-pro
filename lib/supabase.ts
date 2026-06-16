@@ -96,7 +96,10 @@ export const monthlyPI = (m: { original_amount?: any; interest_rate?: any; term_
   // Interest-only loans never amortize — the payment is just interest on the
   // outstanding balance; principal stays put until the balloon/maturity.
   if (m.interest_only) {
-    const bal = Number(m.current_balance) || Number(m.original_amount) || 0
+    // IO loans don't amortize — interest is on the full loan amount (which is also the
+    // balance until the balloon). Prefer original_amount so cash flow/DSCR match the
+    // amortization schedule even if current_balance was left at a partial draw.
+    const bal = Number(m.original_amount) || Number(m.current_balance) || 0
     return bal > 0 ? bal * r : 0
   }
   const P = Number(m.original_amount) || 0
