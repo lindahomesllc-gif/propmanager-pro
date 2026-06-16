@@ -69,13 +69,13 @@ export async function GET(request: Request) {
   // of it already exists this YEAR (you're handling it yourself), and never duplicate
   // this month's auto entry.
   const manualOverride = new Set<string>()   // property:category handled manually this year
-  const haveThisMonth = new Set<string>()     // property:category already present this month
+  const haveRecThisMonth = new Set<string>()     // property:category already present this month
   ;(yearRec || []).forEach((e: any) => {
     const k = e.property_id + ':' + e.category
     if (!(e.description || '').includes('(auto)')) manualOverride.add(k)
-    if (e.expense_date >= monthPrefix + '-01' && e.expense_date < nextMonthFirst) haveThisMonth.add(k)
+    if (e.expense_date >= monthPrefix + '-01' && e.expense_date < nextMonthFirst) haveRecThisMonth.add(k)
   })
-  const canGen = (pid: string, cat: string) => !haveThisMonth.has(pid + ':' + cat) && !manualOverride.has(pid + ':' + cat)
+  const canGen = (pid: string, cat: string) => !haveRecThisMonth.has(pid + ':' + cat) && !manualOverride.has(pid + ':' + cat)
   const round2 = (n: number) => Math.round(n * 100) / 100
   const hoaInsert: any[] = []
   for (const p of recProps || []) {
