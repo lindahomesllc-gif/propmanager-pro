@@ -3,6 +3,19 @@ import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, fm, monthlyPI } from '@/lib/supabase'
 import StrategyFlow from '@/components/StrategyFlow'
+import InfoTip from '@/components/InfoTip'
+
+const FIELD_TIPS: Record<string, string> = {
+  price: 'The purchase price you’re underwriting. A lower price for the same rent = better cash flow.',
+  down: 'Down payment as a % of price. More down = smaller loan = more monthly cash flow, but ties up more cash (lower cash-on-cash return).',
+  cost: 'Closing costs + any rehab — part of your cash into the deal. Toggle to enter $ or a % of price.',
+  rent: 'Monthly rent — the #1 cash-flow lever. As a % of price, ~1%+ usually cash-flows; 0.8% often does NOT at today’s rates. Toggle to enter the actual $ rent.',
+  rate: 'Loan interest rate. Lower rate = lower payment = more cash flow. Shop 2–3 DSCR lenders.',
+  term: 'Loan length in years. A longer term = lower monthly payment = more cash flow.',
+  expense: 'Operating costs (taxes, insurance, repairs, vacancy, management) as a % of rent — usually 40–50%. Florida insurance can push this higher.',
+  minCoC: 'Your minimum acceptable cash-on-cash return — a pass/fail bar, not a lever. ~8%+ is a common target.',
+  minDSCR: 'Your minimum acceptable DSCR (rent ÷ payment). DSCR lenders want ≥1.25.',
+}
 
 // "Next Move" — Capital Deployment Planner. Enter the cash you'll pull (refi/sale)
 // + your Buy Box (deal criteria), see what it buys now and how the portfolio
@@ -11,12 +24,14 @@ const DEFAULT_BOX = {
   capital: '', market: '', maxPrice: '250000', downPct: '25', costPct: '5',
   rentPct: '0.8', rate: '7.5', term: '30', apprPct: '3', expenseRatio: '45',
   minCoC: '8', minDSCR: '1.25', recycle: true, reserveCash: '0',
+  rentMode: 'pct', rentAmt: '1800', costMode: 'pct', costAmt: '12000',
 }
 
 export default function DeployPage() {
   const [box, setBox] = useState<any>(DEFAULT_BOX)
   const [savedAt, setSavedAt] = useState(0)
   const [pullSuggest, setPullSuggest] = useState<number | null>(null)
+  const [showGuide, setShowGuide] = useState(false)
 
   useEffect(() => {
     let saved: any = null
@@ -46,10 +61,11 @@ export default function DeployPage() {
 
   // per-deal economics
   const price = N('maxPrice')
-  const cashPerDeal = price * (N('downPct') / 100) + price * (N('costPct') / 100)
+  const closingCost = box.costMode === 'amount' ? N('costAmt') : price * (N('costPct') / 100)
+  const cashPerDeal = price * (N('downPct') / 100) + closingCost
   const loan = price * (1 - N('downPct') / 100)
   const piMo = monthlyPI({ original_amount: loan, interest_rate: N('rate'), term_years: N('term') })
-  const rentMo = price * (N('rentPct') / 100)
+  const rentMo = box.rentMode === 'amount' ? N('rentAmt') : price * (N('rentPct') / 100)
   const annualRent = rentMo * 12
   const noi = annualRent * (1 - N('expenseRatio') / 100)
   const debtAnnual = piMo * 12
@@ -79,6 +95,13 @@ export default function DeployPage() {
   const card = { background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '18px 20px', marginBottom: '16px' }
   const sec = { fontSize: '13px', fontWeight: 700, color: 'var(--text)', marginBottom: '14px' }
   const Badge = ({ ok, text }: any) => <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: ok ? 'var(--green-bg)' : 'var(--amber-bg)', color: ok ? 'var(--green)' : 'var(--amber)' }}>{text}</span>
+  const ModeToggle = ({ field, val }: any) => (
+    <span style={{ display: 'inline-flex', gap: '2px', marginLeft: '5px' }}>
+      {(['pct', 'amount'] as const).map(m => (
+        <button key={m} type='button' onClick={() => set(field, m)} style={{ fontSize: '9px', padding: '0 6px', borderRadius: '4px', border: '0.5px solid var(--border2)', cursor: 'pointer', background: val === m ? 'var(--green)' : 'transparent', color: val === m ? '#fff' : 'var(--text3)', fontWeight: 700, lineHeight: '15px' }}>{m === 'pct' ? '%' : '$'}</button>
+      ))}
+    </span>
+  )
   const row = (label: string, val: string, color = 'var(--text)', strong = false) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '0.5px solid var(--border)', fontSize: '13px' }}>
       <span style={{ color: 'var(--text2)' }}>{label}</span><span style={{ color, fontWeight: strong ? 700 : 600 }}>{val}</span>
@@ -101,6 +124,29 @@ export default function DeployPage() {
           Turn pulled equity into your next deal. Enter the cash you&apos;ll free up (cash-out refi or sale) and your <strong>Buy Box</strong> — then see what it buys now and how the portfolio compounds if you recycle the capital. Planning estimates only — confirm with your CPA &amp; lender.
         </div>
 
+        <div style={{ marginBottom: '16px' }}>
+          <button onClick={() => setShowGuide(g => !g)} className='btn btn-ghost no-print' style={{ fontSize: '12px' }}>📘 Cash flow is negative? {showGuide ? 'Hide' : 'How to get it positive →'}</button>
+          {showGuide && (
+            <div style={{ ...card, marginTop: '10px', marginBottom: 0, background: 'var(--bg3)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.65 }}>
+                <p style={{ margin: '0 0 10px' }}><strong>Cash flow = rent − operating expenses − loan payment.</strong> It&apos;s negative when the rent doesn&apos;t cover the expenses + mortgage. At today&apos;s rates, the starting defaults (0.8% rent, 25% down, 7.5%) usually <em>are</em> negative — that&apos;s normal, and your job is to find the inputs that flip it green.</p>
+                <p style={{ margin: '0 0 6px' }}><strong>The levers, and which way to move them:</strong></p>
+                <div style={{ display: 'grid', gap: '4px', marginBottom: '10px' }}>
+                  {[
+                    ['⬆️ Rent', 'biggest lever — raise the rent, or find a property where rent is a higher % of price (aim ≥1%)'],
+                    ['⬇️ Price', 'a cheaper property for the same rent shrinks the loan'],
+                    ['⬆️ Down %', 'more down = smaller loan = lower payment (but uses more of your cash)'],
+                    ['⬇️ Rate', 'shop 2–3 DSCR lenders or buy down points'],
+                    ['⬇️ Expense %', 'only if your real costs are lower than ~45%'],
+                  ].map(([a, b]) => <div key={a} style={{ fontSize: '12px' }}><strong>{a}</strong> — {b}</div>)}
+                </div>
+                <p style={{ margin: '0 0 10px' }}><strong>The shortcut — the &ldquo;1% rule&rdquo;:</strong> monthly rent ÷ price. At <strong>≥1%</strong> a deal usually cash-flows; at <strong>0.8%</strong> it rarely does at current rates. On a $250k house that&apos;s $2,500/mo rent (1%) vs $2,000/mo (0.8%) — that $500 is the difference between green and red.</p>
+                <p style={{ margin: 0, color: 'var(--green)', fontWeight: 600 }}>👉 Try it now: set <strong>Rent</strong> to 1.0% (or toggle to $ and raise it) and watch the cash flow turn positive.</p>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(330px,1fr))', gap: '16px' }}>
           {/* CAPITAL + BUY BOX */}
           <div style={card}>
@@ -116,20 +162,28 @@ export default function DeployPage() {
               <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '3px' }}>Don&apos;t deploy 100% — hold ~6 months PITIA per door. Deployable now: <strong>{fm(deployable)}</strong>.</div>
             </div>
             <div style={{ marginBottom: '10px' }}><label style={lbl}>Target market / area</label><input style={inp} placeholder='e.g. Winter Garden, FL' value={box.market} onChange={e => set('market', e.target.value)} /></div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '10px' }}>
-              <div><label style={lbl}>Target Price</label><input style={inp} type='number' value={box.maxPrice} onChange={e => set('maxPrice', e.target.value)} /></div>
-              <div><label style={lbl}>Down %</label><input style={inp} type='number' value={box.downPct} onChange={e => set('downPct', e.target.value)} /></div>
-              <div><label style={lbl}>Close+Rehab %</label><input style={inp} type='number' value={box.costPct} onChange={e => set('costPct', e.target.value)} /></div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '10px' }}>
-              <div><label style={lbl}>Rent %/mo</label><input style={inp} type='number' step='0.05' value={box.rentPct} onChange={e => set('rentPct', e.target.value)} /></div>
-              <div><label style={lbl}>Rate %</label><input style={inp} type='number' step='0.1' value={box.rate} onChange={e => set('rate', e.target.value)} /></div>
-              <div><label style={lbl}>Term</label><input style={inp} type='number' value={box.term} onChange={e => set('term', e.target.value)} /></div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-              <div><label style={lbl}>Expense %</label><input style={inp} type='number' value={box.expenseRatio} onChange={e => set('expenseRatio', e.target.value)} /></div>
-              <div><label style={lbl}>Min CoC %</label><input style={inp} type='number' value={box.minCoC} onChange={e => set('minCoC', e.target.value)} /></div>
-              <div><label style={lbl}>Min DSCR</label><input style={inp} type='number' step='0.05' value={box.minDSCR} onChange={e => set('minDSCR', e.target.value)} /></div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+              <div><label style={lbl}>Target Price <InfoTip text={FIELD_TIPS.price} /></label><input style={inp} type='number' value={box.maxPrice} onChange={e => set('maxPrice', e.target.value)} /></div>
+              <div><label style={lbl}>Down % <InfoTip text={FIELD_TIPS.down} /></label><input style={inp} type='number' value={box.downPct} onChange={e => set('downPct', e.target.value)} /></div>
+              <div>
+                <label style={lbl}>Rent <InfoTip text={FIELD_TIPS.rent} /><ModeToggle field='rentMode' val={box.rentMode} /></label>
+                {box.rentMode === 'amount'
+                  ? <input style={inp} type='number' value={box.rentAmt} onChange={e => set('rentAmt', e.target.value)} />
+                  : <input style={inp} type='number' step='0.05' value={box.rentPct} onChange={e => set('rentPct', e.target.value)} />}
+                <div style={{ fontSize: '9px', color: 'var(--text3)', marginTop: '2px' }}>= {box.rentMode === 'amount' ? (price > 0 ? (rentMo / price * 100).toFixed(2) + '% of price' : '—') : fm(rentMo) + '/mo'}</div>
+              </div>
+              <div>
+                <label style={lbl}>Close+Rehab <InfoTip text={FIELD_TIPS.cost} /><ModeToggle field='costMode' val={box.costMode} /></label>
+                {box.costMode === 'amount'
+                  ? <input style={inp} type='number' value={box.costAmt} onChange={e => set('costAmt', e.target.value)} />
+                  : <input style={inp} type='number' value={box.costPct} onChange={e => set('costPct', e.target.value)} />}
+                <div style={{ fontSize: '9px', color: 'var(--text3)', marginTop: '2px' }}>= {fm(closingCost)}</div>
+              </div>
+              <div><label style={lbl}>Rate % <InfoTip text={FIELD_TIPS.rate} /></label><input style={inp} type='number' step='0.1' value={box.rate} onChange={e => set('rate', e.target.value)} /></div>
+              <div><label style={lbl}>Term <InfoTip text={FIELD_TIPS.term} /></label><input style={inp} type='number' value={box.term} onChange={e => set('term', e.target.value)} /></div>
+              <div><label style={lbl}>Expense % <InfoTip text={FIELD_TIPS.expense} /></label><input style={inp} type='number' value={box.expenseRatio} onChange={e => set('expenseRatio', e.target.value)} /></div>
+              <div><label style={lbl}>Min CoC % <InfoTip text={FIELD_TIPS.minCoC} /></label><input style={inp} type='number' value={box.minCoC} onChange={e => set('minCoC', e.target.value)} /></div>
+              <div><label style={lbl}>Min DSCR <InfoTip text={FIELD_TIPS.minDSCR} /></label><input style={inp} type='number' step='0.05' value={box.minDSCR} onChange={e => set('minDSCR', e.target.value)} /></div>
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px', fontSize: '12px', color: 'var(--text2)', cursor: 'pointer' }}>
               <input type='checkbox' checked={box.recycle} onChange={e => set('recycle', e.target.checked)} />
