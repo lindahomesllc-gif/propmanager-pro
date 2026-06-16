@@ -272,26 +272,36 @@ export default function EditPropertyPage({ params }) {
                     <option value='occupied'>Occupied</option>
                   </select>
                 </div>
-                <div><label style={lbl}>Purchase Date</label><input className='input' type='date' value={form.purchase_date} onChange={e => set('purchase_date', e.target.value)} /></div>
-              </div>
-              <div style={g3}>
-                <div><label style={lbl}>Purchase Price</label><input className='input' type='number' value={form.purchase_price} onChange={e => set('purchase_price', e.target.value)} /></div>
-                <div><label style={lbl}>Market Value</label><input className='input' type='number' value={form.market_value} onChange={e => set('market_value', e.target.value)} /></div>
-                <div><label style={lbl}>Your Ownership %</label><input className='input' type='number' min='0' max='100' step='0.01' placeholder='100' value={form.ownership_percentage} onChange={e => set('ownership_percentage', e.target.value)} /></div>
-                <div><label style={lbl}>Cash Invested</label><input className='input' type='number' placeholder='your out-of-pocket' value={form.cash_invested} onChange={e => set('cash_invested', e.target.value)} />
-                  <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '3px', lineHeight: 1.5 }}>
-                    Your out-of-pocket equity (not borrowed). Fill the cost breakdown below and it&apos;ll suggest this for you.
-                    {suggestedCash != null && (
-                      <> <button type='button' onClick={() => set('cash_invested', String(Math.round(suggestedCash)))} style={{ background: 'transparent', border: 'none', color: 'var(--green)', cursor: 'pointer', fontWeight: 700, padding: 0, fontSize: '10px' }}>↳ use ${Math.round(suggestedCash).toLocaleString()} (cost − loans)</button></>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
 
-            {/* Project / Acquisition Cost breakdown — works for both bought-existing and built ground-up */}
+            {/* Value & Equity — what it's worth now and your stake (mirrors the view) */}
             <div style={card}>
-              <div style={secTtl}>Project / Acquisition Costs</div>
+              <div style={secTtl}>📈 Value &amp; Equity</div>
+              <div style={g3}>
+                <div><label style={lbl}>{isBuild ? 'As-Built Value' : 'Market Value'}</label><input className='input' type='number' value={form.market_value} onChange={e => set('market_value', e.target.value)} /></div>
+                <div><label style={lbl}>{isBuild ? 'Completed Date' : 'Purchase Date'}</label><input className='input' type='date' value={form.purchase_date} onChange={e => set('purchase_date', e.target.value)} /></div>
+                <div><label style={lbl}>Your Ownership %</label><input className='input' type='number' min='0' max='100' step='0.01' placeholder='100' value={form.ownership_percentage} onChange={e => set('ownership_percentage', e.target.value)} /></div>
+                <div><label style={lbl}>Cash Invested</label><input className='input' type='number' placeholder='your out-of-pocket' value={form.cash_invested} onChange={e => set('cash_invested', e.target.value)} />
+                  {suggestedCash != null && <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '3px' }}><button type='button' onClick={() => set('cash_invested', String(Math.round(suggestedCash)))} style={{ background: 'transparent', border: 'none', color: 'var(--green)', cursor: 'pointer', fontWeight: 700, padding: 0, fontSize: '10px' }}>↳ use ${Math.round(suggestedCash).toLocaleString()} (cost − loans)</button></div>}
+                </div>
+              </div>
+              <div style={{ marginTop: '12px', padding: '12px 14px', background: 'var(--bg3)', borderRadius: '10px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))', gap: '10px' }}>
+                {[['Loan Debt', loanTotal > 0 ? fm(loanTotal) : '—', 'var(--red)', 'owed on mortgages'],
+                  ['Equity', mv > 0 ? fm(mv - loanTotal) : '—', mv - loanTotal >= 0 ? 'var(--green)' : 'var(--red)', 'value − debt'],
+                  ['Cash Invested', form.cash_invested ? fm(parseFloat(form.cash_invested)) : '—', 'var(--blue)', 'your out-of-pocket']].map(([k, v, c, h]) => (
+                  <div key={k as string}>
+                    <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>{k}</div>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: c as string, marginTop: '2px' }}>{v}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{h}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Cost Basis — what it cost you to acquire/build (mirrors the view) */}
+            <div style={card}>
+              <div style={secTtl}>🧱 Cost Basis <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--text3)' }}>— what it cost you</span></div>
               <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
                 {[['buy', '🏠 Bought existing'], ['build', '🏗 Built ground-up']].map(([v, l]) => (
                   <button key={v} type='button' onClick={() => set('deal_type', v)} style={{ padding: '7px 14px', fontSize: '12px', borderRadius: '8px', border: '0.5px solid ' + (form.deal_type === v ? 'var(--green)' : 'var(--border2)'), background: form.deal_type === v ? 'var(--green-bg)' : 'transparent', color: form.deal_type === v ? 'var(--green)' : 'var(--text2)', cursor: 'pointer', fontWeight: form.deal_type === v ? 700 : 400 }}>{l}</button>
@@ -306,33 +316,29 @@ export default function EditPropertyPage({ params }) {
                   </>
                 ) : (
                   <>
+                    <div><label style={lbl}>Purchase Price</label><input className='input' type='number' value={form.purchase_price} onChange={e => set('purchase_price', e.target.value)} /></div>
                     <div><label style={lbl}>Rehab / Improvements</label><input className='input' type='number' placeholder='renovation cost' value={form.rehab_cost} onChange={e => set('rehab_cost', e.target.value)} /></div>
                   </>
                 )}
                 <div><label style={lbl}>Closing Costs</label><input className='input' type='number' placeholder='title, fees' value={form.closing_costs} onChange={e => set('closing_costs', e.target.value)} /></div>
-                <div><label style={lbl}>Financing (points + constr. interest)</label><input className='input' type='number' placeholder='points + interest' value={form.financing_costs} onChange={e => set('financing_costs', e.target.value)} /></div>
+                <div><label style={lbl}>Financing (points + interest)</label><input className='input' type='number' placeholder='points + interest' value={form.financing_costs} onChange={e => set('financing_costs', e.target.value)} /></div>
               </div>
               <div style={{ marginTop: '14px', padding: '12px 14px', background: 'var(--bg3)', borderRadius: '10px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px,1fr))', gap: '10px' }}>
                 <div>
                   <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Total Project Cost</div>
                   <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--text)', marginTop: '2px' }}>{fm(totalProjectCost)}</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text3)' }}>your true cost basis</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Cash Invested (suggested)</div>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--blue)', marginTop: '2px' }}>{suggestedCash != null ? fm(suggestedCash) : '—'}</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text3)' }}>cost − {fm(loanTotal)} borrowed</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)' }}>your cost basis</div>
                 </div>
                 <div>
                   <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Created Equity</div>
                   <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: createdEquity == null ? 'var(--text3)' : createdEquity >= 0 ? 'var(--green)' : 'var(--red)', marginTop: '2px' }}>{createdEquity != null ? fm(createdEquity) : '—'}</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text3)' }}>market value − cost</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)' }}>value − cost</div>
                 </div>
               </div>
               <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '8px', lineHeight: 1.5 }}>
                 {isBuild
-                  ? 'For a build: Land + Construction + Soft + Closing + Financing = your basis. What the loan covers is debt; the rest is your cash. Set Market Value above to the as-built value to see the equity you created.'
-                  : 'For a purchase: Purchase Price (above) + Rehab + Closing + Financing = your basis.'}
+                  ? 'Land + Construction + Soft + Closing + Financing = your basis. What the loan covers is debt; the rest is your cash invested.'
+                  : 'Purchase Price + Rehab + Closing + Financing = your basis. Cash invested = this minus what you borrowed.'}
               </div>
             </div>
             <div style={card}>

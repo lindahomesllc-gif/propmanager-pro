@@ -308,33 +308,22 @@ export default function PropertyDetailPage({ params }) {
 
         {tab === 'financials' && (
           <>
+            {/* Value & Equity — what it's worth now and your stake */}
             <div style={card}>
-              <div style={secTtl}>{isBuild ? '📈 Value & Equity' : '📈 Purchase & Value'}</div>
+              <div style={secTtl}>📈 Value &amp; Equity</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
-                {(isBuild ? [
-                  ['As-Built Value', fm(p.market_value)],
-                  ['Total Project Cost', fm(totalProjectCost)],
-                  ['Created Equity', p.market_value ? fm(createdEquity) : '—'],
+                {[
+                  [isBuild ? 'As-Built Value' : 'Market Value', fm(p.market_value)],
+                  ['Loan Debt', loanBalance > 0 ? fm(loanBalance) : '—'],
+                  ['Equity', fm(trueEquity)],
                   ['Cash Invested', p.cash_invested ? fm(p.cash_invested) : '—'],
-                  ['Completed', p.purchase_date ? formatDate(p.purchase_date) : '—'],
+                  [isBuild ? 'Completed' : 'Purchased', p.purchase_date ? formatDate(p.purchase_date) : '—'],
                   ['Ownership', (p.owner_entity || 'Self') + (p.ownership_percentage != null && p.ownership_percentage < 100 ? ' · ' + p.ownership_percentage + '%' : '')],
                   ...(p.ownership_percentage != null && p.ownership_percentage < 100 ? [
                     ['Your Share (Value)', fm(share(p.market_value, p))],
-                    ['Your Share (Equity)', fm(share(createdEquity, p))],
+                    ['Your Share (Equity)', fm(share(trueEquity, p))],
                   ] : []),
-                ] : [
-                  ['Purchase Price', fm(p.purchase_price)],
-                  ['Purchase Date', p.purchase_date ? formatDate(p.purchase_date) : '—'],
-                  ['Market Value', fm(p.market_value)],
-                  ['Equity', fm(equity)],
-                  ['Cash Invested', p.cash_invested ? fm(p.cash_invested) : '—'],
-                  ['Appreciation', p.purchase_price ? ((equity / p.purchase_price) * 100).toFixed(1) + '%' : '—'],
-                  ['Ownership', (p.owner_entity || 'Self') + (p.ownership_percentage != null && p.ownership_percentage < 100 ? ' · ' + p.ownership_percentage + '%' : '')],
-                  ...(p.ownership_percentage != null && p.ownership_percentage < 100 ? [
-                    ['Your Share (Value)', fm(share(p.market_value, p))],
-                    ['Your Share (Equity)', fm(share(equity, p))],
-                  ] : []),
-                ]).map(([k, v]) => (
+                ].map(([k, v]) => (
                   <div key={k} style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '10px 12px' }}>
                     <div style={lbl}>{k}</div>
                     <div style={val}>{v}</div>
@@ -343,27 +332,31 @@ export default function PropertyDetailPage({ params }) {
               </div>
             </div>
 
-            {hasCostBreakdown && (
-              <div style={card}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div style={secTtl}>{isBuild ? '🏗 Build / Project Costs' : '🧱 Project Costs'}</div>
-                  {isBuild && <a href={'/analyze?property=' + p.id} className='btn btn-ghost' style={{ fontSize: '11px' }}>🏗 Rent vs Sell →</a>}
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
-                  {costRows.filter(([, v]) => v > 0).map(([k, v]) => (
-                    <div key={k} style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '10px 12px' }}>
-                      <div style={lbl}>{k}</div>
-                      <div style={val}>{fm(v)}</div>
-                    </div>
-                  ))}
-                  <div style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '10px 12px', border: '0.5px solid var(--border)' }}>
-                    <div style={lbl}>Total Project Cost</div>
-                    <div style={{ ...val, color: 'var(--text)' }}>{fm(totalProjectCost)}</div>
-                    <div style={{ fontSize: '10px', color: 'var(--text3)' }}>your cost basis</div>
+            {/* Cost Basis — what it cost you to acquire/build */}
+            <div style={card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <div style={secTtl}>🧱 Cost Basis <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--text3)' }}>— {isBuild ? 'built ground-up' : 'bought existing'}</span></div>
+                {isBuild && <a href={'/analyze?property=' + p.id} className='btn btn-ghost' style={{ fontSize: '11px' }}>🏗 Rent vs Sell →</a>}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
+                {costRows.filter(([, v]) => v > 0).map(([k, v]) => (
+                  <div key={k} style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '10px 12px' }}>
+                    <div style={lbl}>{k}</div>
+                    <div style={val}>{fm(v)}</div>
                   </div>
+                ))}
+                <div style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '10px 12px', border: '0.5px solid var(--border)' }}>
+                  <div style={lbl}>Total Project Cost</div>
+                  <div style={{ ...val, color: 'var(--text)' }}>{fm(totalProjectCost)}</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)' }}>your cost basis</div>
+                </div>
+                <div style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '10px 12px', border: '0.5px solid var(--border)' }}>
+                  <div style={lbl}>Created Equity</div>
+                  <div style={{ ...val, color: !p.market_value ? 'var(--text3)' : createdEquity >= 0 ? 'var(--green)' : 'var(--red)' }}>{p.market_value ? fm(createdEquity) : '—'}</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)' }}>value − cost</div>
                 </div>
               </div>
-            )}
+            </div>
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={secTtl}>🏦 Mortgage{mortgages.length > 1 ? 's' : ''}</div>
