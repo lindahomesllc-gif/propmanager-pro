@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, monthlyPI, loanBalance } from '@/lib/supabase'
+import { supabase, fm, monthlyPI, loanBalance, projectCost } from '@/lib/supabase'
 import StrategyFlow from '@/components/StrategyFlow'
 
 // Deal Analyzer — confirms profitability beyond surface cash flow:
@@ -121,9 +121,7 @@ export default function AnalyzePage() {
 
   // 🏗 Build completion — rent-vs-sell at completion (shown for build deals)
   const isBuild = sel?.deal_type === 'build'
-  const pc = (k: string) => Number((sel as any)?.[k]) || 0
-  const acquisitionCost = isBuild ? pc('land_cost') : price
-  const totalProjectCost = acquisitionCost + pc('construction_cost') + pc('soft_costs') + pc('rehab_cost') + pc('closing_costs') + pc('financing_costs')
+  const totalProjectCost = sel ? projectCost(sel) : 0
   const asBuilt = value
   const payoff = balance
   // SELL exit

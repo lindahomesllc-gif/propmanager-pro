@@ -113,6 +113,15 @@ export const monthlyPI = (m: { original_amount?: any; interest_rate?: any; term_
 export const loanBalance = (m: { interest_only?: any; original_amount?: any; current_balance?: any }) =>
   m.interest_only ? (Number(m.original_amount) || Number(m.current_balance) || 0) : (Number(m.current_balance) || 0)
 
+// Total all-in cost basis for a property. Build: land + construction + soft + rehab +
+// closing + financing. Buy: purchase price + rehab + closing + financing. Accepts the DB
+// row or the edit form (numbers may be strings). Single source so every screen agrees.
+export const projectCost = (p: any) => {
+  const n = (k: string) => Number(p?.[k]) || 0
+  const acquisition = p?.deal_type === 'build' ? n('land_cost') : n('purchase_price')
+  return acquisition + n('construction_cost') + n('soft_costs') + n('rehab_cost') + n('closing_costs') + n('financing_costs')
+}
+
 // Single source of truth for investor returns — used by Reports AND the Dashboard.
 // NOI = annualized in-place rent (active leases ×12) − that year's expenses.
 // Debt service = P&I only (escrow excluded). Returns per-property metrics,

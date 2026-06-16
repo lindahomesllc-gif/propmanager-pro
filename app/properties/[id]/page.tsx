@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, share, formatDate, loanTypeLabel } from '@/lib/supabase'
+import { supabase, fm, share, formatDate, loanTypeLabel, projectCost } from '@/lib/supabase'
 import UnitsManager from '@/components/UnitsManager'
 import AssetsManager from '@/components/AssetsManager'
 import PaintManager from '@/components/PaintManager'
@@ -91,9 +91,9 @@ export default function PropertyDetailPage({ params }) {
   const pc = (k: string) => Number((p as any)[k]) || 0
   const isBuild = p.deal_type === 'build'
   const costRows: [string, number][] = isBuild
-    ? [['Land / Lot', pc('land_cost')], ['Construction', pc('construction_cost')], ['Soft costs', pc('soft_costs')], ['Closing', pc('closing_costs')], ['Financing', pc('financing_costs')]]
+    ? [['Land / Lot', pc('land_cost')], ['Construction', pc('construction_cost')], ['Soft costs', pc('soft_costs')], ['Rehab', pc('rehab_cost')], ['Closing', pc('closing_costs')], ['Financing', pc('financing_costs')]]
     : [['Purchase Price', pc('purchase_price')], ['Rehab', pc('rehab_cost')], ['Closing', pc('closing_costs')], ['Financing', pc('financing_costs')]]
-  const totalProjectCost = costRows.reduce((s, [, v]) => s + v, 0)
+  const totalProjectCost = projectCost(p)
   const createdEquity = (p.market_value || 0) - totalProjectCost
   const hasCostBreakdown = isBuild || costRows.some(([k, v]) => k !== 'Purchase Price' && v > 0)
   // interest-only loans owe their full amount until the balloon — use original_amount so

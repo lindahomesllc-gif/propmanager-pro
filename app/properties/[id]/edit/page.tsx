@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm } from '@/lib/supabase'
+import { supabase, fm, projectCost } from '@/lib/supabase'
 
 export default function EditPropertyPage({ params }) {
   const [saving, setSaving] = useState(false)
@@ -105,12 +105,11 @@ export default function EditPropertyPage({ params }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   // Project cost breakdown → total basis, suggested cash invested, and created equity.
-  const nf = (v: string) => parseFloat(v) || 0
   const isBuild = form.deal_type === 'build'
-  const acquisition = isBuild ? nf(form.land_cost) : nf(form.purchase_price)
-  const totalProjectCost = acquisition + nf(form.construction_cost) + nf(form.soft_costs) + nf(form.rehab_cost) + nf(form.closing_costs) + nf(form.financing_costs)
+  const totalProjectCost = projectCost(form)
   const suggestedCash = totalProjectCost > 0 ? Math.max(0, totalProjectCost - loanTotal) : null
-  const createdEquity = nf(form.market_value) > 0 && totalProjectCost > 0 ? nf(form.market_value) - totalProjectCost : null
+  const mv = parseFloat(form.market_value) || 0
+  const createdEquity = mv > 0 && totalProjectCost > 0 ? mv - totalProjectCost : null
 
   async function save() {
     setError('')
