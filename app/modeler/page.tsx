@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, fm, monthlyPI } from '@/lib/supabase'
+import StrategyFlow from '@/components/StrategyFlow'
 
 // plain-English guide (same "know these numbers" concept as Reports)
 const GLOSSARY = [
@@ -55,7 +56,7 @@ export default function ModelerPage() {
     ]).then(([p, m, l, e, a]) => {
       const props = p.data || []
       setProperties(props); setMortgages(m.data || []); setLeases(l.data || []); setExpenses(e.data || []); setAssets(a.data || [])
-      if (props.length) setSelId(props[0].id)
+      if (props.length) { const qp = new URLSearchParams(window.location.search).get('property'); setSelId(qp && props.find((x: any) => x.id === qp) ? qp : props[0].id) }
       setLoading(false)
     })
   }, [])
@@ -177,6 +178,7 @@ export default function ModelerPage() {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+        <StrategyFlow step={2} propertyId={selId} />
         {loading ? (
           <div style={{ display: 'grid', gap: '14px' }}><div className='skeleton' style={{ height: '80px' }} /><div className='skeleton' style={{ height: '260px' }} /></div>
         ) : !sel ? (
@@ -297,6 +299,10 @@ export default function ModelerPage() {
                     <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '2px' }}>{o.b}</div>
                   </div>
                 ))}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '12px' }}>
+                {(() => { const cash = Math.round(recVerdict === 'Sell' ? afterTax : Math.max(0, netCashOut)); return cash > 0 ? <a href={'/deploy?capital=' + cash} className='btn btn-primary no-print'>🌱 Plan next move with this {fm(cash)} →</a> : <a href='/deploy' className='btn btn-ghost no-print'>🌱 Plan next move →</a> })()}
+                <span style={{ fontSize: '11px', color: 'var(--text3)' }}>Take the freed-up cash to the Deployment Planner.</span>
               </div>
               <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '10px' }}>Directional guide from the numbers above — “Hold” compares total earned over your hold window vs cash in hand now; “Refinance &amp; Hold” appears when a cash-out keeps DSCR healthy. Confirm with your CPA &amp; lender.</div>
             </div>

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, fm, monthlyPI } from '@/lib/supabase'
+import StrategyFlow from '@/components/StrategyFlow'
 
 // "Next Move" — Capital Deployment Planner. Enter the cash you'll pull (refi/sale)
 // + your Buy Box (deal criteria), see what it buys now and how the portfolio
@@ -9,7 +10,7 @@ import { supabase, fm, monthlyPI } from '@/lib/supabase'
 const DEFAULT_BOX = {
   capital: '', market: '', maxPrice: '250000', downPct: '25', costPct: '5',
   rentPct: '0.8', rate: '7.5', term: '30', apprPct: '3', expenseRatio: '45',
-  minCoC: '8', minDSCR: '1.25', recycle: true,
+  minCoC: '8', minDSCR: '1.25', recycle: true, reserveCash: '0',
 }
 
 export default function DeployPage() {
@@ -21,6 +22,8 @@ export default function DeployPage() {
     let saved: any = null
     try { saved = JSON.parse(localStorage.getItem('buyBox') || 'null') } catch {}
     if (saved) setBox({ ...DEFAULT_BOX, ...saved })
+    const qc = new URLSearchParams(window.location.search).get('capital')
+    if (qc) setBox((b: any) => ({ ...b, capital: qc }))
     // suggest deployable capital = idle equity on free-&-clear + low-debt props (rough)
     Promise.all([
       supabase.from('properties').select('id, market_value, purchase_price'),
@@ -56,11 +59,12 @@ export default function DeployPage() {
   const meets = (coc ?? -1) >= N('minCoC') && (dscr == null || dscr >= N('minDSCR')) && cfAnnual >= 0
 
   const capital = N('capital')
-  const dealsNow = cashPerDeal > 0 ? Math.floor(capital / cashPerDeal) : 0
-  const leftover = capital - dealsNow * cashPerDeal
+  const deployable = Math.max(0, capital - N('reserveCash')) // keep a reserve back
+  const dealsNow = cashPerDeal > 0 ? Math.floor(deployable / cashPerDeal) : 0
+  const leftover = deployable - dealsNow * cashPerDeal
 
   // 10-year compounding snowball
-  let cap = capital, doors = 0, portCF = 0
+  let cap = deployable, doors = 0, portCF = 0
   const snap: any[] = []
   for (let y = 1; y <= 10; y++) {
     const buy = cashPerDeal > 0 ? Math.floor(cap / cashPerDeal) : 0
@@ -92,6 +96,7 @@ export default function DeployPage() {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+        <StrategyFlow step={3} />
         <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '16px', maxWidth: '720px' }}>
           Turn pulled equity into your next deal. Enter the cash you&apos;ll free up (cash-out refi or sale) and your <strong>Buy Box</strong> — then see what it buys now and how the portfolio compounds if you recycle the capital. Planning estimates only — confirm with your CPA &amp; lender.
         </div>
@@ -104,6 +109,11 @@ export default function DeployPage() {
               <label style={lbl}>Cash available to deploy</label>
               <input style={inp} type='number' placeholder='from a refi cash-out or sale' value={box.capital} onChange={e => set('capital', e.target.value)} />
               {pullSuggest != null && pullSuggest > 0 && <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '3px' }}>Rough portfolio cash-out headroom (~75% LTV): <button onClick={() => set('capital', String(pullSuggest))} style={{ background: 'transparent', border: 'none', color: 'var(--green)', cursor: 'pointer', fontWeight: 700, padding: 0, fontSize: '10px' }}>use {fm(pullSuggest)}</button></div>}
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <label style={lbl}>Reserve to keep back ($)</label>
+              <input style={inp} type='number' value={box.reserveCash} onChange={e => set('reserveCash', e.target.value)} />
+              <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '3px' }}>Don&apos;t deploy 100% — hold ~6 months PITIA per door. Deployable now: <strong>{fm(deployable)}</strong>.</div>
             </div>
             <div style={{ marginBottom: '10px' }}><label style={lbl}>Target market / area</label><input style={inp} placeholder='e.g. Winter Garden, FL' value={box.market} onChange={e => set('market', e.target.value)} /></div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '10px' }}>
@@ -178,7 +188,7 @@ export default function DeployPage() {
         </div>
 
         <div style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: 1.6, maxWidth: '740px' }}>
-          <strong>The discipline:</strong> keep a reserve (don&apos;t deploy 100%), only buy what clears your Buy Box, and have criteria set <em>before</em> the cash lands so you act fast without forcing a bad deal. Education &amp; planning — not financial advice.
+          <strong>The discipline:</strong> keep a reserve (don&apos;t deploy 100%), only buy what clears your Buy Box, and have criteria set <em>before</em> the cash lands so you act fast without forcing a bad deal. <strong>🌴 Florida note:</strong> insurance (wind/hurricane) and non-homestead property taxes run high and can jump after purchase — bake them into your rent % / expense % so DSCR holds up. Education &amp; planning — not financial advice.
         </div>
       </div>
     </AppShell>

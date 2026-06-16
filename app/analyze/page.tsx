@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, fm, monthlyPI } from '@/lib/supabase'
+import StrategyFlow from '@/components/StrategyFlow'
 
 // Deal Analyzer — confirms profitability beyond surface cash flow:
 // 1) reserves-adjusted "true" cash flow, 2) total return + multi-year projection,
@@ -149,6 +150,7 @@ export default function AnalyzePage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>🔍 Deal Analyzer</div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {selId && <a href={'/modeler?property=' + selId} className='btn btn-ghost no-print'>🧮 Model →</a>}
           <button onClick={() => window.print()} className='btn btn-ghost no-print'>🖨 PDF</button>
           {properties.length > 0 && (
             <select value={selId} onChange={e => setSelId(e.target.value)} style={{ ...inp, width: 'auto', minWidth: '220px' }}>
@@ -159,6 +161,7 @@ export default function AnalyzePage() {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+        <StrategyFlow step={1} propertyId={selId} />
         {loading ? <div className='skeleton' style={{ height: '300px' }} /> : !sel ? (
           <div style={{ textAlign: 'center', padding: '50px', color: 'var(--text3)' }}>Add a property to analyze.</div>
         ) : (
