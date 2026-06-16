@@ -147,6 +147,24 @@ export function computeReturns(opts: { properties: any[]; leases: any[]; expense
   }).filter((r: any) => r.count > 0).sort((a: any, b: any) => b.cf - a.cf)
   return { metrics, totals, entityRows }
 }
+// Lightweight per-property "what should I do next" moves, using default reserve
+// assumptions (29% of rent). Used by the dashboard widget; the Deal Analyzer has
+// an interactive version. Caller supplies the property's rent/loan/unit context.
+export function propertyMoves(a: { id: string; address: string; value: number; balance: number; monthlyRent: number; unitMarketRent: number; annualTax: number; insurance: number; annualPI: number }) {
+  const grossRent = a.monthlyRent * 12
+  const reserves = grossRent * 0.29 // vacancy+maint+capex+mgmt defaults
+  const trueCF = grossRent - (a.annualTax || 0) - (a.insurance || 0) - reserves - (a.annualPI || 0)
+  const equity = a.value - a.balance
+  const roe = equity > 0 ? trueCF / equity * 100 : null
+  const rentGapMo = a.unitMarketRent > 0 ? a.unitMarketRent - a.monthlyRent : 0
+  const moves: { icon: string; title: string; why: string; href: string }[] = []
+  if (rentGapMo > 25) moves.push({ icon: '💸', title: 'Raise rent · ' + a.address, why: '~' + fm(rentGapMo) + '/mo under market (' + fm(rentGapMo * 12) + '/yr)', href: '/properties/' + a.id + '?tab=units' })
+  if (a.balance === 0 && equity > 50000) moves.push({ icon: '🏦', title: 'Tap equity · ' + a.address, why: fm(equity) + ' idle — a cash-out could fund the next buy', href: '/modeler' })
+  else if (roe != null && roe < 5 && equity > 50000) moves.push({ icon: '🐌', title: 'Lazy equity · ' + a.address, why: 'equity returning only ' + roe.toFixed(0) + '% — refi or 1031 to redeploy', href: '/modeler' })
+  if (trueCF < 0) moves.push({ icon: '⚠️', title: 'Thin cash flow · ' + a.address, why: fm(trueCF / 12) + '/mo after honest reserves', href: '/analyze' })
+  return moves
+}
+
 const LOAN_TYPE_MAP: Record<string, string> = Object.fromEntries(LOAN_TYPES)
 export const loanTypeLabel = (t: string | null | undefined) => {
   if (!t) return '—'

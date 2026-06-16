@@ -1,16 +1,16 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, share, formatDate, computeReturns, nextAnnualReportDue } from '@/lib/supabase'
+import { supabase, fm, share, formatDate, computeReturns, nextAnnualReportDue, monthlyPI, propertyMoves } from '@/lib/supabase'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import GettingStarted from '@/components/GettingStarted'
 import GoalsCard from '@/components/GoalsCard'
 
 // Customizable dashboard: each section is a keyed widget the user can reorder or hide.
-const DEFAULT_ORDER = ['portfolio', 'goals', 'operations', 'attention', 'rentGaps', 'thisMonth', 'rentCollection', 'rentStatus', 'quickActions', 'propertiesTenants']
+const DEFAULT_ORDER = ['portfolio', 'goals', 'operations', 'attention', 'moves', 'rentGaps', 'thisMonth', 'rentCollection', 'rentStatus', 'quickActions', 'propertiesTenants']
 const WIDGET_LABELS: Record<string, string> = {
   portfolio: '📈 Portfolio', goals: '🎯 Goals', operations: '🏠 Operations',
-  attention: '⚠️ Needs Attention', rentGaps: '💸 Rent vs Market', thisMonth: '📅 This Month', rentCollection: '💰 Rent Collection',
+  attention: '⚠️ Needs Attention', moves: '💡 Moves to Consider', rentGaps: '💸 Rent vs Market', thisMonth: '📅 This Month', rentCollection: '💰 Rent Collection',
   rentStatus: '🧾 Rent Status', quickActions: '⚡ Quick Actions', propertiesTenants: '🏠 Properties & Tenants',
 }
 
@@ -123,6 +123,18 @@ export default function DashboardPage() {
   const rentGaps = units.map((u: any) => { const cur = leaseRentByUnit[u.id] || 0; const target = u.market_rent || 0; return { ...u, cur, target, gap: target - cur } })
     .filter((u: any) => u.target > 0 && u.cur > 0 && u.gap > 0).sort((a: any, b: any) => b.gap - a.gap)
   const rentGapTotal = rentGaps.reduce((s: number, u: any) => s + u.gap, 0)
+  // 💡 top "moves to consider" across all properties (advisor nudges)
+  const unitMarketByProp: Record<string, number> = {}
+  units.forEach((u: any) => { if (u.property_id) unitMarketByProp[u.property_id] = (unitMarketByProp[u.property_id] || 0) + (u.market_rent || 0) })
+  const piByProp: Record<string, number> = {}
+  mortgages.forEach((m: any) => { if (m.property_id && !m.is_paid_off) piByProp[m.property_id] = (piByProp[m.property_id] || 0) + monthlyPI(m) * 12 })
+  const balByProp2: Record<string, number> = {}
+  mortgages.forEach((m: any) => { if (m.property_id && !m.is_paid_off) balByProp2[m.property_id] = (balByProp2[m.property_id] || 0) + (m.current_balance || 0) })
+  const moves = properties.flatMap((p: any) => propertyMoves({
+    id: p.id, address: p.address, value: p.market_value || p.purchase_price || 0, balance: balByProp2[p.id] || 0,
+    monthlyRent: rentByProperty[p.id] || 0, unitMarketRent: unitMarketByProp[p.id] || 0,
+    annualTax: p.annual_tax || 0, insurance: p.insurance_premium || 0, annualPI: piByProp[p.id] || 0,
+  })).slice(0, 8)
   // group properties by owning entity (for the vision-board roster) — only group when 2+ entities are in use
   const propGroups: [string, any[]][] = (() => {
     const g: Record<string, any[]> = {}
@@ -281,6 +293,31 @@ export default function DashboardPage() {
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--amber)' }}>+{fm(u.gap)}/mo</div>
                     <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{fm(u.gap * 12)}/yr</div>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+      </>
+    ),
+    moves: (
+      <>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <div style={secLabel}>💡 Moves to Consider</div>
+          <a href='/analyze' style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none' }}>Deal Analyzer →</a>
+        </div>
+        {moves.length === 0 ? (
+          <div style={{ ...panel, padding: '16px', textAlign: 'center', color: 'var(--text3)', fontSize: '13px', marginBottom: '20px' }}>No standout moves right now — your portfolio looks balanced. 👍</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px,1fr))', gap: '8px', marginBottom: '20px' }}>
+            {moves.map((m: any, i: number) => (
+              <a key={i} href={m.href} style={{ textDecoration: 'none' }}>
+                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid var(--green)', borderRadius: '8px', padding: '10px 14px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '16px', flexShrink: 0 }}>{m.icon}</span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)' }}>{m.title}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{m.why}</div>
                   </div>
                 </div>
               </a>
