@@ -22,6 +22,7 @@ export default function ModelerPage() {
   const [mortgages, setMortgages] = useState<any[]>([])
   const [leases, setLeases] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
+  const [assets, setAssets] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selId, setSelId] = useState('')
   const [showGuide, setShowGuide] = useState(false)
@@ -50,9 +51,10 @@ export default function ModelerPage() {
       supabase.from('mortgages').select('*').eq('is_paid_off', false),
       supabase.from('leases').select('property_id, rent_amount, status').eq('status', 'executed'),
       supabase.from('expenses').select('property_id, amount, expense_date'),
-    ]).then(([p, m, l, e]) => {
+      supabase.from('property_assets').select('property_id, cost'),
+    ]).then(([p, m, l, e, a]) => {
       const props = p.data || []
-      setProperties(props); setMortgages(m.data || []); setLeases(l.data || []); setExpenses(e.data || [])
+      setProperties(props); setMortgages(m.data || []); setLeases(l.data || []); setExpenses(e.data || []); setAssets(a.data || [])
       if (props.length) setSelId(props[0].id)
       setLoading(false)
     })
@@ -71,6 +73,13 @@ export default function ModelerPage() {
     setInsMo(sel.insurance_premium ? (Math.round(sel.insurance_premium / 12 * 100) / 100).toString() : '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selId, properties.length])
+
+  // prefill Capital Improvements from logged appliance/system costs (editable)
+  const improvementsFromAssets = assets.filter(a => a.property_id === selId).reduce((s, a) => s + (a.cost || 0), 0)
+  useEffect(() => {
+    if (selId) setImprovements(String(Math.round(improvementsFromAssets)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selId, assets.length])
 
   const yr = String(new Date().getFullYear())
   const annualRent = leases.filter(l => l.property_id === selId).reduce((s, l) => s + (l.rent_amount || 0), 0) * 12
@@ -126,6 +135,22 @@ export default function ModelerPage() {
   const apprGain = futureValue - value
   const cumCashFlow = curCashFlow * hy
   const holdBenefit = cumCashFlow + apprGain
+
+  // --- Recommendation: Refinance & Hold vs Hold vs Sell ---
+  const refiEntered = (parseFloat(newRate) || 0) > 0
+  const refiHelpful = refiEntered && (parseFloat(cashOut) || 0) > 0 && netCashOut > 0 && nCashFlow >= 0 && (lenderDSCR == null || lenderDSCR >= 1.2) && (newLTV == null || newLTV <= 78)
+  const holdWins = holdBenefit > afterTax
+  let recVerdict = 'Hold', recColor = 'var(--green)', recWhy = ''
+  if (refiHelpful && holdBenefit > 0) {
+    recVerdict = 'Refinance & Hold'; recColor = 'var(--blue)'
+    recWhy = `Pull ${fm(netCashOut)} tax-free now while DSCR stays ${lenderDSCR != null ? '~' + lenderDSCR.toFixed(2) + 'x' : 'healthy'} and it still cash-flows ${fm(nCashFlow)}/yr — and keep the ~${fm(holdBenefit)} you'd earn over ${hy} years. You get the cash and keep the asset.`
+  } else if (holdWins) {
+    recVerdict = 'Hold'; recColor = 'var(--green)'
+    recWhy = `Holding earns ~${fm(holdBenefit)} over ${hy} years vs ${fm(afterTax)} after-tax cash from selling now${curCashFlow < 0 ? ' — though watch the negative cash flow' : ''}.`
+  } else {
+    recVerdict = 'Sell'; recColor = 'var(--amber)'
+    recWhy = `Selling nets ${fm(afterTax)} after tax now — ahead of the ~${fm(holdBenefit)} you'd earn holding ${hy} years. Cash out and redeploy into a stronger deal.`
+  }
 
   const inp = { width: '100%', padding: '8px 11px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' as const }
   const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
@@ -226,7 +251,7 @@ export default function ModelerPage() {
                   <div><label style={lbl}>Sale Price</label><input style={inp} type='number' value={salePrice} onChange={e => setSalePrice(e.target.value)} /></div>
                   <div><label style={lbl}>Selling Cost %</label><input style={inp} type='number' step='0.1' value={sellCostPct} onChange={e => setSellCostPct(e.target.value)} /></div>
                   <div><label style={lbl}>Accum. Depreciation</label><input style={inp} type='number' value={accumDep} onChange={e => setAccumDep(e.target.value)} /></div>
-                  <div><label style={lbl}>Capital Improvements</label><input style={inp} type='number' value={improvements} onChange={e => setImprovements(e.target.value)} /></div>
+                  <div><label style={lbl}>Capital Improvements</label><input style={inp} type='number' value={improvements} onChange={e => setImprovements(e.target.value)} />{improvementsFromAssets > 0 && <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '3px' }}>Pulled from your logged appliances/systems ({fm(improvementsFromAssets)}). Add other improvements (roof, renos…).</div>}</div>
                   <div><label style={lbl}>Cap-Gains Rate %</label><input style={inp} type='number' value={ltcgRate} onChange={e => setLtcgRate(e.target.value)} /></div>
                 </div>
                 <div style={{ marginTop: '6px' }}>
@@ -251,6 +276,29 @@ export default function ModelerPage() {
                   <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '8px' }}>…plus loan paydown (equity build) not shown. Compare <strong>{fm(afterTax)}</strong> in hand now vs <strong>{fm(holdBenefit)}</strong> earned over {hy || 0} years.</div>
                 </div>
               </div>
+            </div>
+
+            {/* RECOMMENDATION */}
+            <div style={{ ...card, borderColor: recColor, marginTop: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>💡 Recommendation</div>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#fff', background: recColor, borderRadius: '20px', padding: '4px 14px' }}>{recVerdict}</span>
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.55, marginBottom: '12px' }}>{recWhy}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                {[
+                  { t: '♻️ Refinance', a: refiEntered ? fm(netCashOut) + ' cash' : 'enter a rate →', b: refiEntered && lenderDSCR != null ? 'DSCR ' + lenderDSCR.toFixed(2) + 'x · CF ' + fm(nCashFlow) + '/yr' : 'model a refi above' },
+                  { t: '⏳ Hold ' + (hy || 0) + 'yr', a: fm(holdBenefit), b: 'cash flow + appreciation' },
+                  { t: '🏷️ Sell now', a: fm(afterTax), b: 'after-tax cash' },
+                ].map(o => (
+                  <div key={o.t} style={{ background: 'var(--bg3)', borderRadius: '8px', padding: '10px 12px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: 600 }}>{o.t}</div>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', fontFamily: 'Syne, sans-serif', marginTop: '3px' }}>{o.a}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '2px' }}>{o.b}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '10px' }}>Directional guide from the numbers above — “Hold” compares total earned over your hold window vs cash in hand now; “Refinance &amp; Hold” appears when a cash-out keeps DSCR healthy. Confirm with your CPA &amp; lender.</div>
             </div>
 
             {/* New-investor guide — same look as Reports */}
