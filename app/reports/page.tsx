@@ -15,6 +15,10 @@ const HDR_TIPS: Record<string, string> = {
   ROI: 'Cash-on-Cash ROI = cash flow ÷ cash invested (down payment + closing + rehab). What your invested cash earns. Set "Cash invested" on the property to see it.',
 }
 
+// rough benchmark bands → 🟢 strong / 🟡 fair / 🔴 weak (null = grey)
+const band = (v: number | null | undefined, amber: number, green: number) =>
+  v == null ? 'var(--text3)' : v >= green ? 'var(--green)' : v >= amber ? 'var(--amber)' : 'var(--red)'
+
 // plain-English learner's guide
 const GLOSSARY = [
   { k: 'Cap Rate', what: "The property's yield if you paid all cash — NOI ÷ value.", good: 'Often ~5–8% for rentals (varies by market).', use: 'Compare deals & markets. Higher = more income per dollar of value; very high can also signal more risk or a rougher area.' },
@@ -250,12 +254,12 @@ export default function ReportsPage() {
                       <td style={td}>{m.address}</td>
                       <td style={{ ...td, textAlign: 'right' }}>{fm(m.value)}</td>
                       <td style={{ ...td, textAlign: 'right', color: 'var(--green)' }}>{fm(m.noi)}</td>
-                      <td style={{ ...td, textAlign: 'right' }}>{m.cap != null ? m.cap.toFixed(2) + '%' : '—'}</td>
+                      <td style={{ ...td, textAlign: 'right', color: band(m.cap, 4, 5.5), fontWeight: 600 }}>{m.cap != null ? m.cap.toFixed(2) + '%' : '—'}</td>
                       <td style={{ ...td, textAlign: 'right', color: 'var(--red)' }}>{fm(m.debt)}</td>
-                      <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>{m.dscr != null ? m.dscr.toFixed(2) + 'x' : '—'}</td>
+                      <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: band(m.dscr, 1.0, 1.25) }}>{m.dscr != null ? m.dscr.toFixed(2) + 'x' : '—'}</td>
                       <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: m.cashFlow >= 0 ? 'var(--green)' : 'var(--red)' }}>{fm(m.cashFlow)}</td>
-                      <td style={{ ...td, textAlign: 'right' }}>{m.roe != null ? m.roe.toFixed(1) + '%' : '—'}</td>
-                      <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: m.roi != null ? (m.roi >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)' }} title={m.roi == null ? 'Set "Cash invested" on this property to see ROI' : undefined}>{m.roi != null ? m.roi.toFixed(1) + '%' : '—'}</td>
+                      <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: band(m.roe, 5, 8) }}>{m.roe != null ? m.roe.toFixed(1) + '%' : '—'}</td>
+                      <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: band(m.roi, 5, 8) }} title={m.roi == null ? 'Set "Cash invested" on this property to see ROI' : undefined}>{m.roi != null ? m.roi.toFixed(1) + '%' : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -264,15 +268,20 @@ export default function ReportsPage() {
                     <td style={{ ...td, fontWeight: 700 }}>Portfolio</td>
                     <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{fm(mTotValue)}</td>
                     <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: 'var(--green)' }}>{fm(mTotNOI)}</td>
-                    <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{blendedCap.toFixed(2)}%</td>
+                    <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: band(blendedCap, 4, 5.5) }}>{blendedCap.toFixed(2)}%</td>
                     <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: 'var(--red)' }}>{fm(mTotDebt)}</td>
-                    <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{portDSCR != null ? portDSCR.toFixed(2) + 'x' : '—'}</td>
+                    <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: band(portDSCR, 1.0, 1.25) }}>{portDSCR != null ? portDSCR.toFixed(2) + 'x' : '—'}</td>
                     <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: mTotCF >= 0 ? 'var(--green)' : 'var(--red)' }}>{fm(mTotCF)}</td>
                     <td style={{ ...td, textAlign: 'right' }}></td>
-                    <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{totals.roi != null ? totals.roi.toFixed(1) + '%' : '—'}</td>
+                    <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: band(totals.roi, 5, 8) }}>{totals.roi != null ? totals.roi.toFixed(1) + '%' : '—'}</td>
                   </tr></tfoot>
                 )}
               </table>
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '8px', display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <span>Color guide:</span>
+              <span><span style={{ color: 'var(--green)', fontWeight: 700 }}>● strong</span> · <span style={{ color: 'var(--amber)', fontWeight: 700 }}>fair</span> · <span style={{ color: 'var(--red)', fontWeight: 700 }}>weak</span></span>
+              <span style={{ color: 'var(--text3)' }}>Cap ≥5.5% · DSCR ≥1.25x · RoE/ROI ≥8% = strong (rough benchmarks; vary by market)</span>
             </div>
             {/* New-investor guide */}
             <div style={{ marginTop: '14px' }}>
