@@ -21,6 +21,7 @@ export async function GET(request: Request) {
   if (!serviceKey) return NextResponse.json({ status: 'setup_required', message: 'Set SUPABASE_SERVICE_ROLE_KEY.' }, { status: 503 })
 
   const dryRun = url.searchParams.get('dryRun') === '1'
+  const backfill = url.searchParams.get('backfill') === '1'
   const svc = createClient(SUPABASE_URL, serviceKey, { auth: { persistSession: false } })
 
   const today = new Date()
@@ -65,24 +66,28 @@ export async function GET(request: Request) {
     svc.from('properties').select('id, user_id, hoa, hoa_fee, hoa_name, annual_tax, insurance_premium, insurance_company'),
     svc.from('expenses').select('property_id, category, description, expense_date').in('category', ['hoa', 'property_tax', 'insurance']).gte('expense_date', yearStart).lt('expense_date', yearEnd),
   ])
-  // Guardrails against double-counting: skip a category if a MANUAL (non-auto) expense
-  // of it already exists this YEAR (you're handling it yourself), and never duplicate
-  // this month's auto entry.
-  const manualOverride = new Set<string>()   // property:category handled manually this year
-  const haveRecThisMonth = new Set<string>()     // property:category already present this month
+  // Guardrails against double-counting: skip a category for the whole year if a MANUAL
+  // (non-auto) expense of it exists (you're recording the bill yourself), and never
+  // duplicate a month that already has its auto entry. With ?backfill=1 we book every
+  // missing month from Jan 1 through the current month (so YTD NOI reflects the full
+  // accrued tax/insurance even if the cron started mid-year); normally just this month.
+  const manualOverride = new Set<string>()        // property:category handled manually this year
+  const presentMonth = new Set<string>()          // property:category:YYYY-MM already present
   ;(yearRec || []).forEach((e: any) => {
-    const k = e.property_id + ':' + e.category
-    if (!(e.description || '').includes('(auto)')) manualOverride.add(k)
-    if (e.expense_date >= monthPrefix + '-01' && e.expense_date < nextMonthFirst) haveRecThisMonth.add(k)
+    if (!(e.description || '').includes('(auto)')) manualOverride.add(e.property_id + ':' + e.category)
+    presentMonth.add(e.property_id + ':' + e.category + ':' + (e.expense_date || '').slice(0, 7))
   })
-  const canGen = (pid: string, cat: string) => !haveRecThisMonth.has(pid + ':' + cat) && !manualOverride.has(pid + ':' + cat)
+  const months = backfill ? Array.from({ length: m }, (_, i) => `${y}-${pad(i + 1)}`) : [monthPrefix]
   const round2 = (n: number) => Math.round(n * 100) / 100
   const hoaInsert: any[] = []
   for (const p of recProps || []) {
-    const base = { user_id: p.user_id, property_id: p.id, expense_date: monthPrefix + '-01', is_deductible: true }
-    if (p.hoa && (p.hoa_fee || 0) > 0 && canGen(p.id, 'hoa')) hoaInsert.push({ ...base, category: 'hoa', amount: p.hoa_fee, vendor_name: p.hoa_name || null, description: 'HOA dues (auto)' })
-    if ((p.annual_tax || 0) > 0 && canGen(p.id, 'property_tax')) hoaInsert.push({ ...base, category: 'property_tax', amount: round2(p.annual_tax / 12), description: 'Property tax 1/12 (auto)' })
-    if ((p.insurance_premium || 0) > 0 && canGen(p.id, 'insurance')) hoaInsert.push({ ...base, category: 'insurance', amount: round2(p.insurance_premium / 12), vendor_name: p.insurance_company || null, description: 'Insurance 1/12 (auto)' })
+    for (const mp of months) {
+      const base = { user_id: p.user_id, property_id: p.id, expense_date: mp + '-01', is_deductible: true }
+      const can = (cat: string) => !manualOverride.has(p.id + ':' + cat) && !presentMonth.has(p.id + ':' + cat + ':' + mp)
+      if (p.hoa && (p.hoa_fee || 0) > 0 && can('hoa')) hoaInsert.push({ ...base, category: 'hoa', amount: p.hoa_fee, vendor_name: p.hoa_name || null, description: 'HOA dues (auto)' })
+      if ((p.annual_tax || 0) > 0 && can('property_tax')) hoaInsert.push({ ...base, category: 'property_tax', amount: round2(p.annual_tax / 12), description: 'Property tax 1/12 (auto)' })
+      if ((p.insurance_premium || 0) > 0 && can('insurance')) hoaInsert.push({ ...base, category: 'insurance', amount: round2(p.insurance_premium / 12), vendor_name: p.insurance_company || null, description: 'Insurance 1/12 (auto)' })
+    }
   }
 
   // Overdue unpaid charges past their grace period become 'late' (so the badge,
@@ -109,7 +114,7 @@ export async function GET(request: Request) {
   }
 
   if (dryRun) {
-    return NextResponse.json({ status: 'dry_run', month: monthPrefix, activeLeases: (leases || []).length, wouldCreate: toInsert.length, wouldCreateRecurring: hoaInsert.length, wouldMarkLate: lateNow.length, wouldApplyFees: lateNow.filter(p => feeFor(p) > 0).length, preview: toInsert })
+    return NextResponse.json({ status: 'dry_run', month: monthPrefix, backfill, monthsCovered: months, activeLeases: (leases || []).length, wouldCreate: toInsert.length, wouldCreateRecurring: hoaInsert.length, recurringPreview: hoaInsert, wouldMarkLate: lateNow.length, wouldApplyFees: lateNow.filter(p => feeFor(p) > 0).length, preview: toInsert })
   }
 
   let created = 0
@@ -137,5 +142,5 @@ export async function GET(request: Request) {
     if (!uErr) { markedLate++; if (fee > 0) feesApplied++ }
   }
 
-  return NextResponse.json({ status: 'done', month: monthPrefix, activeLeases: (leases || []).length, created, recurringCreated, markedLate, feesApplied })
+  return NextResponse.json({ status: 'done', month: monthPrefix, backfill, monthsCovered: months.length, activeLeases: (leases || []).length, created, recurringCreated, markedLate, feesApplied })
 }
