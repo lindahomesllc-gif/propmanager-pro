@@ -124,10 +124,11 @@ export async function GET(request: Request) {
     created = data?.length || 0
   }
 
-  let recurringCreated = 0
+  let recurringCreated = 0, recurringError: string | null = null
   if (hoaInsert.length) {
     const { data, error } = await svc.from('expenses').insert(hoaInsert).select('id')
-    if (!error) recurringCreated = data?.length || 0
+    if (error) recurringError = error.message    // surface instead of swallowing (e.g. a category check-constraint reject)
+    else recurringCreated = data?.length || 0
   }
 
   let markedLate = 0, feesApplied = 0
@@ -142,5 +143,5 @@ export async function GET(request: Request) {
     if (!uErr) { markedLate++; if (fee > 0) feesApplied++ }
   }
 
-  return NextResponse.json({ status: 'done', month: monthPrefix, backfill, monthsCovered: months.length, activeLeases: (leases || []).length, created, recurringCreated, markedLate, feesApplied })
+  return NextResponse.json({ status: 'done', month: monthPrefix, backfill, monthsCovered: months.length, activeLeases: (leases || []).length, created, recurringCreated, recurringError, markedLate, feesApplied })
 }

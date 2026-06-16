@@ -9,6 +9,10 @@ import GoalsCard from '@/components/GoalsCard'
 // Customizable dashboard: each section is a keyed widget the user can reorder or hide.
 // investor-first: financial position → opportunities → goals → problems → income → ops
 const DEFAULT_ORDER = ['portfolio', 'moves', 'goals', 'attention', 'rentGaps', 'operations', 'rentCollection', 'thisMonth', 'rentStatus', 'quickActions', 'propertiesTenants']
+// Bump when DEFAULT_ORDER changes meaningfully so an older saved order is superseded
+// once (the new investor-first order re-applies); the user's hidden choices are kept,
+// and any reorder they make afterward persists under the current version.
+const LAYOUT_VERSION = 2
 const WIDGET_LABELS: Record<string, string> = {
   portfolio: '📈 Portfolio', goals: '🎯 Goals', operations: '🏠 Operations',
   attention: '⚠️ Needs Attention', moves: '💡 Moves to Consider', rentGaps: '💸 Rent vs Market', thisMonth: '📅 This Month', rentCollection: '💰 Rent Collection',
@@ -44,15 +48,19 @@ export default function DashboardPage() {
   useEffect(() => {
     let saved: any = null
     try { saved = JSON.parse(localStorage.getItem('dashboardLayout') || 'null') } catch {}
-    const savedOrder: string[] = Array.isArray(saved?.order) ? saved.order.filter((k: string) => DEFAULT_ORDER.includes(k)) : []
+    // If the saved layout predates the current LAYOUT_VERSION, discard its order so the
+    // new investor-first default applies; keep the user's hidden choices either way.
+    const stale = saved?.v !== LAYOUT_VERSION
+    const savedOrder: string[] = !stale && Array.isArray(saved?.order) ? saved.order.filter((k: string) => DEFAULT_ORDER.includes(k)) : []
     const order = [...savedOrder, ...DEFAULT_ORDER.filter(k => !savedOrder.includes(k))]
     const hidden: string[] = Array.isArray(saved?.hidden) ? saved.hidden.filter((k: string) => DEFAULT_ORDER.includes(k)) : []
     setLayout({ order, hidden })
+    if (stale) { try { localStorage.setItem('dashboardLayout', JSON.stringify({ v: LAYOUT_VERSION, order, hidden })) } catch {} }
   }, [])
 
   function persistLayout(next: { order: string[]; hidden: string[] }) {
     setLayout(next)
-    try { localStorage.setItem('dashboardLayout', JSON.stringify(next)) } catch {}
+    try { localStorage.setItem('dashboardLayout', JSON.stringify({ v: LAYOUT_VERSION, ...next })) } catch {}
   }
   function moveWidget(key: string, dir: number) {
     const order = [...layout.order]
