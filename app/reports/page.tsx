@@ -12,6 +12,7 @@ const HDR_TIPS: Record<string, string> = {
   DSCR: 'Income ÷ debt payment. 1.0 covers itself; lenders like ≥1.25.',
   'Cash Flow': "What's left after the mortgage — your spendable return (before reserves).",
   RoE: 'Return on Equity = cash flow ÷ your equity. What your tied-up equity is earning.',
+  ROI: 'Cash-on-Cash ROI = cash flow ÷ cash invested (down payment + closing + rehab). What your invested cash earns. Set "Cash invested" on the property to see it.',
 }
 
 // plain-English learner's guide
@@ -21,7 +22,7 @@ const GLOSSARY = [
   { k: 'Cash Flow', what: "What's left each year after the mortgage (NOI − debt payment).", good: 'Positive — money in your pocket.', use: 'Your real spendable return. Negative means the property costs you each month. (Shown before setting aside vacancy/repair reserves.)' },
   { k: 'DSCR', what: 'Does income cover the loan? NOI ÷ debt payment (lenders often use rent ÷ full PITI).', good: '≥1.0 covers itself; lenders want ≥1.20–1.25.', use: 'How lenders qualify you (especially DSCR loans). Higher = safer and better terms.' },
   { k: 'RoE — Return on Equity', what: 'Cash flow ÷ your equity (value − loan balance).', good: 'No fixed target — compare to what that money could earn elsewhere.', use: 'Is your trapped equity working hard? A low RoE is a nudge to refinance and pull cash out, or sell and redeploy.' },
-  { k: 'ROI — Cash-on-Cash', what: 'Annual cash flow ÷ the cash you actually put in (down payment + closing + rehab).', good: 'Many investors aim for ~8%+.', use: 'What your invested cash is earning. (Not tracked yet — say the word and I’ll add a "cash invested" field so this shows up.)' },
+  { k: 'ROI — Cash-on-Cash', what: 'Annual cash flow ÷ the cash you actually put in (down payment + closing + rehab).', good: 'Many investors aim for ~8%+.', use: 'What your invested cash is earning. Enter "Cash Invested" on a property (Edit) and its ROI shows in the table above.' },
 ]
 
 export default function ReportsPage() {
@@ -41,7 +42,7 @@ export default function ReportsPage() {
       supabase.from('leases').select('*, properties(address), tenants(full_name), units(label)').eq('status', 'executed'),
       supabase.from('payments').select('property_id, amount_paid, paid_date, status'),
       supabase.from('expenses').select('property_id, amount, expense_date'),
-      supabase.from('properties').select('id, address, market_value, purchase_price, entity_id'),
+      supabase.from('properties').select('id, address, market_value, purchase_price, entity_id, cash_invested'),
       supabase.from('mortgages').select('property_id, current_balance, original_amount, interest_rate, term_years, is_paid_off'),
       supabase.from('entities').select('id, name'),
     ]).then(([l, p, e, pr, m, en]) => {
@@ -239,11 +240,11 @@ export default function ReportsPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead><tr style={{ borderBottom: '0.5px solid var(--border)' }}>
                   <th style={th}>Property</th>
-                  {['Value', 'NOI', 'Cap', 'Debt Svc', 'DSCR', 'Cash Flow', 'RoE'].map(h => <th key={h} title={HDR_TIPS[h]} style={{ ...th, textAlign: 'right', cursor: 'help' }}>{h}{HDR_TIPS[h] ? <span style={{ color: 'var(--text3)', fontWeight: 400 }}> ⓘ</span> : null}</th>)}
+                  {['Value', 'NOI', 'Cap', 'Debt Svc', 'DSCR', 'Cash Flow', 'RoE', 'ROI'].map(h => <th key={h} title={HDR_TIPS[h]} style={{ ...th, textAlign: 'right', cursor: 'help' }}>{h}{HDR_TIPS[h] ? <span style={{ color: 'var(--text3)', fontWeight: 400 }}> ⓘ</span> : null}</th>)}
                 </tr></thead>
                 <tbody>
                   {metrics.length === 0 ? (
-                    <tr><td style={{ ...td, color: 'var(--text3)' }} colSpan={8}>Add property values, rents, and loans to see returns.</td></tr>
+                    <tr><td style={{ ...td, color: 'var(--text3)' }} colSpan={9}>Add property values, rents, and loans to see returns.</td></tr>
                   ) : metrics.map(m => (
                     <tr key={m.id} style={{ borderBottom: '0.5px solid var(--border)' }}>
                       <td style={td}>{m.address}</td>
@@ -254,6 +255,7 @@ export default function ReportsPage() {
                       <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>{m.dscr != null ? m.dscr.toFixed(2) + 'x' : '—'}</td>
                       <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: m.cashFlow >= 0 ? 'var(--green)' : 'var(--red)' }}>{fm(m.cashFlow)}</td>
                       <td style={{ ...td, textAlign: 'right' }}>{m.roe != null ? m.roe.toFixed(1) + '%' : '—'}</td>
+                      <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: m.roi != null ? (m.roi >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)' }} title={m.roi == null ? 'Set "Cash invested" on this property to see ROI' : undefined}>{m.roi != null ? m.roi.toFixed(1) + '%' : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -267,6 +269,7 @@ export default function ReportsPage() {
                     <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{portDSCR != null ? portDSCR.toFixed(2) + 'x' : '—'}</td>
                     <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: mTotCF >= 0 ? 'var(--green)' : 'var(--red)' }}>{fm(mTotCF)}</td>
                     <td style={{ ...td, textAlign: 'right' }}></td>
+                    <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{totals.roi != null ? totals.roi.toFixed(1) + '%' : '—'}</td>
                   </tr></tfoot>
                 )}
               </table>

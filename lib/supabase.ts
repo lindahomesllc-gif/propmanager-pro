@@ -125,16 +125,18 @@ export function computeReturns(opts: { properties: any[]; leases: any[]; expense
     const cashFlow = noi - debt
     const balance = balByProp[p.id] || 0
     const equity = value - balance
+    const cashInvested = p.cash_invested || 0
     return {
-      id: p.id, address: p.address, entity_id: p.entity_id || null, value, income, opex, noi, debt, cashFlow, balance, equity,
+      id: p.id, address: p.address, entity_id: p.entity_id || null, value, income, opex, noi, debt, cashFlow, balance, equity, cashInvested,
       cap: value > 0 ? noi / value * 100 : null,
       dscr: debt > 0 ? noi / debt : null,
       roe: equity > 0 ? cashFlow / equity * 100 : null,
+      roi: cashInvested > 0 ? cashFlow / cashInvested * 100 : null, // cash-on-cash
     }
   }).filter((m: any) => m.value > 0 || m.noi !== 0).sort((a: any, b: any) => b.cashFlow - a.cashFlow)
   const sum = (k: string) => metrics.reduce((s: number, m: any) => s + m[k], 0)
-  const tV = sum('value'), tNOI = sum('noi'), tDebt = sum('debt'), tBal = sum('balance'), tCF = sum('cashFlow')
-  const totals = { value: tV, noi: tNOI, debt: tDebt, balance: tBal, cashFlow: tCF, cap: tV > 0 ? tNOI / tV * 100 : 0, dscr: tDebt > 0 ? tNOI / tDebt : null }
+  const tV = sum('value'), tNOI = sum('noi'), tDebt = sum('debt'), tBal = sum('balance'), tCF = sum('cashFlow'), tCI = sum('cashInvested')
+  const totals = { value: tV, noi: tNOI, debt: tDebt, balance: tBal, cashFlow: tCF, cashInvested: tCI, cap: tV > 0 ? tNOI / tV * 100 : 0, dscr: tDebt > 0 ? tNOI / tDebt : null, roi: tCI > 0 ? tCF / tCI * 100 : null }
   const entityRows = [...entities, { id: null, name: 'Unassigned / Self' }].map((en: any) => {
     const ms = metrics.filter((m: any) => (m.entity_id || null) === (en.id || null))
     const value = ms.reduce((s: number, m: any) => s + m.value, 0)
