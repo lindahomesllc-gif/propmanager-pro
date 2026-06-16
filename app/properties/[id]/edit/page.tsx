@@ -9,6 +9,7 @@ export default function EditPropertyPage({ params }) {
   const [error, setError] = useState('')
   const [tab, setTab] = useState('basic')
   const [entities, setEntities] = useState<any[]>([])
+  const [suggestedCash, setSuggestedCash] = useState<number | null>(null)
 
   useEffect(() => { supabase.from('entities').select('id, name').order('name').then(({ data }) => setEntities(data || [])) }, [])
 
@@ -86,6 +87,13 @@ export default function EditPropertyPage({ params }) {
           hoa_contact: data.hoa_contact || '',
         })
         setLoading(false)
+        // suggest cash invested = your cash at purchase (price − original loan); free & clear = full price
+        if (data?.purchase_price) {
+          supabase.from('mortgages').select('original_amount').eq('property_id', params.id).then(({ data: ms }) => {
+            const loans = (ms || []).reduce((s: number, m: any) => s + (m.original_amount || 0), 0)
+            setSuggestedCash(Math.max(0, (data.purchase_price || 0) - loans))
+          })
+        }
       })
   }, [params.id])
 
@@ -251,7 +259,14 @@ export default function EditPropertyPage({ params }) {
                 <div><label style={lbl}>Purchase Price</label><input className='input' type='number' value={form.purchase_price} onChange={e => set('purchase_price', e.target.value)} /></div>
                 <div><label style={lbl}>Market Value</label><input className='input' type='number' value={form.market_value} onChange={e => set('market_value', e.target.value)} /></div>
                 <div><label style={lbl}>Your Ownership %</label><input className='input' type='number' min='0' max='100' step='0.01' placeholder='100' value={form.ownership_percentage} onChange={e => set('ownership_percentage', e.target.value)} /></div>
-                <div><label style={lbl}>Cash Invested</label><input className='input' type='number' placeholder='down + closing + rehab' value={form.cash_invested} onChange={e => set('cash_invested', e.target.value)} /><div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '3px' }}>Powers Cash-on-Cash ROI on Reports.</div></div>
+                <div><label style={lbl}>Cash Invested</label><input className='input' type='number' placeholder='down + closing + rehab' value={form.cash_invested} onChange={e => set('cash_invested', e.target.value)} />
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '3px' }}>
+                    Your actual cash in (down payment + closing + rehab) — powers Cash-on-Cash ROI.
+                    {suggestedCash != null && (
+                      <> <button type='button' onClick={() => set('cash_invested', String(Math.round(suggestedCash)))} style={{ background: 'transparent', border: 'none', color: 'var(--green)', cursor: 'pointer', fontWeight: 700, padding: 0, fontSize: '10px' }}>Use ${Math.round(suggestedCash).toLocaleString()} (purchase − loan)</button> then add closing/rehab.</>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
             <div style={card}>

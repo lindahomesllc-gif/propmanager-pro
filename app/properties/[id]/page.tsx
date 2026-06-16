@@ -100,8 +100,9 @@ export default function PropertyDetailPage({ params }) {
   return (
     <AppShell>
       <div style={{ background: 'var(--bg2)', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
-        <div style={{ padding: '10px 20px 0', fontSize: '11px', color: 'var(--text3)' }}>
-          <a href='/properties' style={{ color: 'var(--text3)', textDecoration: 'none' }}>← Properties</a>
+        <div style={{ padding: '10px 20px 0', fontSize: '11px', color: 'var(--text3)', display: 'flex', gap: '14px', alignItems: 'center' }}>
+          <button onClick={() => window.history.back()} style={{ background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: '11px', fontWeight: 700, padding: 0 }}>← Back</button>
+          <a href='/properties' style={{ color: 'var(--text3)', textDecoration: 'none' }}>All Properties</a>
         </div>
         <div style={{ padding: '14px 20px 0', display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
           <div style={{ width: '52px', height: '52px', borderRadius: '12px', background: p.occupancy_status === 'occupied' ? 'var(--green-bg)' : 'var(--amber-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', flexShrink: 0 }}>
