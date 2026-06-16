@@ -96,6 +96,11 @@ export default function PropertyDetailPage({ params }) {
   const totalProjectCost = costRows.reduce((s, [, v]) => s + v, 0)
   const createdEquity = (p.market_value || 0) - totalProjectCost
   const hasCostBreakdown = isBuild || costRows.some(([k, v]) => k !== 'Purchase Price' && v > 0)
+  // interest-only loans owe their full amount until the balloon — use original_amount so
+  // equity isn't overstated if current_balance reflects a partial construction draw.
+  const effBal = (m: any) => m.interest_only ? (Number(m.original_amount) || Number(m.current_balance) || 0) : (Number(m.current_balance) || 0)
+  const loanBalance = mortgages.filter((m: any) => !m.is_paid_off).reduce((s: number, m: any) => s + effBal(m), 0)
+  const trueEquity = (p.market_value || 0) - loanBalance
   const extra = p.notes ? JSON.parse(p.notes.startsWith('{') ? p.notes : '{}') : {}
   const isDuplex = p.type === 'duplex' || p.type === 'multi_family'
 
@@ -131,8 +136,8 @@ export default function PropertyDetailPage({ params }) {
         <div style={{ padding: '12px 20px 16px', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
           <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Market Value</div><div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--green)' }}>{fm(p.market_value)}</div></div>
           {monthlyRent > 0 && <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Rent Revenue</div><div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--green)' }}>{fm(monthlyRent)}<span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--text3)' }}>/mo</span></div><div style={{ fontSize: '11px', color: 'var(--text3)' }}>{fm(monthlyRent * 12)}/yr</div></div>}
-          <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Equity</div><div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--green)' }}>{fm(equity)}</div></div>
-          <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Purchased</div><div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', marginTop: '4px' }}>{fm(p.purchase_price)}</div></div>
+          <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Equity</div><div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: trueEquity >= 0 ? 'var(--green)' : 'var(--red)' }}>{fm(trueEquity)}</div><div style={{ fontSize: '10px', color: 'var(--text3)' }}>value − {fm(loanBalance)} debt</div></div>
+          <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>{isBuild ? 'Total Cost' : 'Purchased'}</div><div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', marginTop: '4px' }}>{fm(isBuild ? totalProjectCost : p.purchase_price)}</div></div>
           {p.bedrooms && <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Beds/Baths</div><div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', marginTop: '4px' }}>{p.bedrooms}bd / {p.bathrooms}ba</div></div>}
           {p.sqft && <div><div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Sq Ft</div><div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', marginTop: '4px' }}>{p.sqft.toLocaleString()}</div></div>}
           {p.ownership_percentage != null && p.ownership_percentage < 100 && (
@@ -371,11 +376,11 @@ export default function PropertyDetailPage({ params }) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{m.lender_name || 'Lender'} {m.is_paid_off && <span style={{ fontSize: '10px', color: 'var(--green)', fontWeight: 700 }}>· PAID OFF</span>}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{loanTypeLabel(m.loan_type)} · {m.term_years}yr · {m.interest_rate}%</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{loanTypeLabel(m.loan_type)} · {m.term_years}yr · {m.interest_rate}%{m.interest_only ? ' · interest-only' : ''}{m.balloon_date ? ' · 🎈 balloon ' + formatDate(m.balloon_date) : ''}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '17px', fontWeight: 700, color: m.is_paid_off ? 'var(--green)' : 'var(--text)' }}>{fm(m.current_balance)}</div>
-                      <div style={{ fontSize: '10px', color: 'var(--text3)' }}>balance</div>
+                      <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '17px', fontWeight: 700, color: m.is_paid_off ? 'var(--green)' : 'var(--text)' }}>{fm(effBal(m))}</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{m.interest_only ? 'owed (interest-only)' : 'balance'}</div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '11px', color: 'var(--text3)' }}>

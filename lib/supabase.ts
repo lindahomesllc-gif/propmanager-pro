@@ -123,7 +123,10 @@ export function computeReturns(opts: { properties: any[]; leases: any[]; expense
   mortgages.filter((m: any) => !m.is_paid_off).forEach((m: any) => {
     if (!m.property_id) return
     piByProp[m.property_id] = (piByProp[m.property_id] || 0) + monthlyPI(m) * 12
-    balByProp[m.property_id] = (balByProp[m.property_id] || 0) + (m.current_balance || 0)
+    // interest-only loans owe their full amount until the balloon (no amortization),
+    // so use original_amount unless a real paid-down balance is recorded.
+    const bal = m.interest_only ? (m.original_amount || m.current_balance || 0) : (m.current_balance || 0)
+    balByProp[m.property_id] = (balByProp[m.property_id] || 0) + bal
   })
   const metrics = properties.map((p: any) => {
     const value = p.market_value || p.purchase_price || 0
