@@ -91,9 +91,10 @@ export default function TenantDetailPage({ params }) {
   return (
     <AppShell>
       <div style={{ background: 'var(--bg2)', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
-        <div style={{ padding: '10px 20px 0', display: 'flex', gap: '8px', fontSize: '11px', color: 'var(--text3)' }}>
-          <a href='/tenants' style={{ color: 'var(--text3)', textDecoration: 'none' }}>← Tenants</a>
-          {t.property_id && <><span>·</span><a href={'/properties/' + t.property_id} style={{ color: 'var(--text3)', textDecoration: 'none' }}>← Back to Property</a></>}
+        <div style={{ padding: '10px 20px 0', display: 'flex', gap: '12px', fontSize: '11px', color: 'var(--text3)', alignItems: 'center' }}>
+          <button onClick={() => window.history.back()} style={{ background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: '11px', fontWeight: 700, padding: 0 }}>← Back</button>
+          <a href='/tenants' style={{ color: 'var(--text3)', textDecoration: 'none' }}>All Tenants</a>
+          {t.property_id && <><span>·</span><a href={'/properties/' + t.property_id} style={{ color: 'var(--text3)', textDecoration: 'none' }}>Property</a></>}
         </div>
         <div style={{ padding: '14px 20px 0', display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
           <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: statusBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 700, color: statusColor, flexShrink: 0, border: '2px solid ' + statusColor }}>

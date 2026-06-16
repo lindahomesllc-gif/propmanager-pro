@@ -99,8 +99,9 @@ export default function LeaseDetailPage({ params }) {
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div>
-          <a href='/leases' style={{ fontSize: '11px', color: 'var(--text3)', textDecoration: 'none' }}>← Leases</a>
-        {l.tenant_id && <a href={'/tenants/' + l.tenant_id} style={{ fontSize: '11px', color: 'var(--text3)', textDecoration: 'none', marginLeft: '12px' }}>← Back to Tenant</a>}
+          <button onClick={() => window.history.back()} style={{ background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: '11px', fontWeight: 700, padding: 0 }}>← Back</button>
+          <a href='/leases' style={{ fontSize: '11px', color: 'var(--text3)', textDecoration: 'none', marginLeft: '12px' }}>All Leases</a>
+        {l.tenant_id && <a href={'/tenants/' + l.tenant_id} style={{ fontSize: '11px', color: 'var(--text3)', textDecoration: 'none', marginLeft: '12px' }}>Tenant</a>}
           <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginTop: '2px' }}>{l.tenants?.full_name}</div>
           <div style={{ fontSize: '12px', color: 'var(--text3)' }}>{l.properties?.address}</div>
         </div>
