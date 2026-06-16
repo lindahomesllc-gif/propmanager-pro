@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase } from '@/lib/supabase'
+import { supabase, fm } from '@/lib/supabase'
 
 export default function EditPropertyPage({ params }) {
   const [saving, setSaving] = useState(false)
@@ -9,7 +9,7 @@ export default function EditPropertyPage({ params }) {
   const [error, setError] = useState('')
   const [tab, setTab] = useState('basic')
   const [entities, setEntities] = useState<any[]>([])
-  const [suggestedCash, setSuggestedCash] = useState<number | null>(null)
+  const [loanTotal, setLoanTotal] = useState(0)
 
   useEffect(() => { supabase.from('entities').select('id, name').order('name').then(({ data }) => setEntities(data || [])) }, [])
 
@@ -25,6 +25,7 @@ export default function EditPropertyPage({ params }) {
     type: 'single_family', bedrooms: '', bathrooms: '',
     sqft: '', year_built: '', entity_id: '',
     purchase_price: '', purchase_date: '', market_value: '', ownership_percentage: '100', cash_invested: '',
+    deal_type: 'buy', land_cost: '', construction_cost: '', soft_costs: '', rehab_cost: '', closing_costs: '', financing_costs: '',
     occupancy_status: 'vacant', notes: '',
     county: '', parcel_id: '', alt_key: '', prop_description: '',
     assessed_value: '', annual_tax: '', tax_due_date: '',
@@ -54,6 +55,13 @@ export default function EditPropertyPage({ params }) {
           purchase_date: data.purchase_date || '',
           market_value: data.market_value ? String(data.market_value) : '',
           cash_invested: data.cash_invested ? String(data.cash_invested) : '',
+          deal_type: data.deal_type || 'buy',
+          land_cost: data.land_cost ? String(data.land_cost) : '',
+          construction_cost: data.construction_cost ? String(data.construction_cost) : '',
+          soft_costs: data.soft_costs ? String(data.soft_costs) : '',
+          rehab_cost: data.rehab_cost ? String(data.rehab_cost) : '',
+          closing_costs: data.closing_costs ? String(data.closing_costs) : '',
+          financing_costs: data.financing_costs ? String(data.financing_costs) : '',
           ownership_percentage: data.ownership_percentage != null ? String(data.ownership_percentage) : '100',
           num_units: data.num_units ? String(data.num_units) : '1',
           occupancy_status: data.occupancy_status || 'vacant',
@@ -87,17 +95,22 @@ export default function EditPropertyPage({ params }) {
           hoa_contact: data.hoa_contact || '',
         })
         setLoading(false)
-        // suggest cash invested = your cash at purchase (price − original loan); free & clear = full price
-        if (data?.purchase_price) {
-          supabase.from('mortgages').select('original_amount').eq('property_id', params.id).then(({ data: ms }) => {
-            const loans = (ms || []).reduce((s: number, m: any) => s + (m.original_amount || 0), 0)
-            setSuggestedCash(Math.max(0, (data.purchase_price || 0) - loans))
-          })
-        }
+        // total borrowed against the property — used to suggest cash invested (cost − loans)
+        supabase.from('mortgages').select('original_amount').eq('property_id', params.id).then(({ data: ms }) => {
+          setLoanTotal((ms || []).reduce((s: number, m: any) => s + (m.original_amount || 0), 0))
+        })
       })
   }, [params.id])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  // Project cost breakdown → total basis, suggested cash invested, and created equity.
+  const nf = (v: string) => parseFloat(v) || 0
+  const isBuild = form.deal_type === 'build'
+  const acquisition = isBuild ? nf(form.land_cost) : nf(form.purchase_price)
+  const totalProjectCost = acquisition + nf(form.construction_cost) + nf(form.soft_costs) + nf(form.rehab_cost) + nf(form.closing_costs) + nf(form.financing_costs)
+  const suggestedCash = totalProjectCost > 0 ? Math.max(0, totalProjectCost - loanTotal) : null
+  const createdEquity = nf(form.market_value) > 0 && totalProjectCost > 0 ? nf(form.market_value) - totalProjectCost : null
 
   async function save() {
     setError('')
@@ -119,6 +132,13 @@ export default function EditPropertyPage({ params }) {
       purchase_date: form.purchase_date || null,
       market_value: form.market_value ? parseFloat(form.market_value) : null,
       cash_invested: form.cash_invested ? parseFloat(form.cash_invested) : null,
+      deal_type: form.deal_type || 'buy',
+      land_cost: form.land_cost ? parseFloat(form.land_cost) : null,
+      construction_cost: form.construction_cost ? parseFloat(form.construction_cost) : null,
+      soft_costs: form.soft_costs ? parseFloat(form.soft_costs) : null,
+      rehab_cost: form.rehab_cost ? parseFloat(form.rehab_cost) : null,
+      closing_costs: form.closing_costs ? parseFloat(form.closing_costs) : null,
+      financing_costs: form.financing_costs ? parseFloat(form.financing_costs) : null,
       ownership_percentage: form.ownership_percentage !== '' ? parseFloat(form.ownership_percentage) : 100,
       num_units: parseInt(form.num_units) || 1,
       occupancy_status: form.occupancy_status,
@@ -259,14 +279,61 @@ export default function EditPropertyPage({ params }) {
                 <div><label style={lbl}>Purchase Price</label><input className='input' type='number' value={form.purchase_price} onChange={e => set('purchase_price', e.target.value)} /></div>
                 <div><label style={lbl}>Market Value</label><input className='input' type='number' value={form.market_value} onChange={e => set('market_value', e.target.value)} /></div>
                 <div><label style={lbl}>Your Ownership %</label><input className='input' type='number' min='0' max='100' step='0.01' placeholder='100' value={form.ownership_percentage} onChange={e => set('ownership_percentage', e.target.value)} /></div>
-                <div><label style={lbl}>Cash Invested</label><input className='input' type='number' placeholder='down + closing + rehab' value={form.cash_invested} onChange={e => set('cash_invested', e.target.value)} />
+                <div><label style={lbl}>Cash Invested</label><input className='input' type='number' placeholder='your out-of-pocket' value={form.cash_invested} onChange={e => set('cash_invested', e.target.value)} />
                   <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '3px', lineHeight: 1.5 }}>
-                    Your out-of-pocket: <strong>down payment + closing + rehab</strong> (not the full price unless you paid cash). Type rehab/closing here, then
+                    Your out-of-pocket equity (not borrowed). Fill the cost breakdown below and it&apos;ll suggest this for you.
                     {suggestedCash != null && (
-                      <> <button type='button' onClick={() => set('cash_invested', String(Math.round((parseFloat(form.cash_invested) || 0) + suggestedCash)))} style={{ background: 'transparent', border: 'none', color: 'var(--green)', cursor: 'pointer', fontWeight: 700, padding: 0, fontSize: '10px' }}>➕ add down payment (${Math.round(suggestedCash).toLocaleString()})</button>.</>
+                      <> <button type='button' onClick={() => set('cash_invested', String(Math.round(suggestedCash)))} style={{ background: 'transparent', border: 'none', color: 'var(--green)', cursor: 'pointer', fontWeight: 700, padding: 0, fontSize: '10px' }}>↳ use ${Math.round(suggestedCash).toLocaleString()} (cost − loans)</button></>
                     )}
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Project / Acquisition Cost breakdown — works for both bought-existing and built ground-up */}
+            <div style={card}>
+              <div style={secTtl}>Project / Acquisition Costs</div>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                {[['buy', '🏠 Bought existing'], ['build', '🏗 Built ground-up']].map(([v, l]) => (
+                  <button key={v} type='button' onClick={() => set('deal_type', v)} style={{ padding: '7px 14px', fontSize: '12px', borderRadius: '8px', border: '0.5px solid ' + (form.deal_type === v ? 'var(--green)' : 'var(--border2)'), background: form.deal_type === v ? 'var(--green-bg)' : 'transparent', color: form.deal_type === v ? 'var(--green)' : 'var(--text2)', cursor: 'pointer', fontWeight: form.deal_type === v ? 700 : 400 }}>{l}</button>
+                ))}
+              </div>
+              <div style={g3}>
+                {isBuild ? (
+                  <>
+                    <div><label style={lbl}>Land / Lot Cost</label><input className='input' type='number' placeholder='99000' value={form.land_cost} onChange={e => set('land_cost', e.target.value)} /></div>
+                    <div><label style={lbl}>Construction (hard costs)</label><input className='input' type='number' placeholder='build cost' value={form.construction_cost} onChange={e => set('construction_cost', e.target.value)} /></div>
+                    <div><label style={lbl}>Soft Costs</label><input className='input' type='number' placeholder='permits, architect, fees' value={form.soft_costs} onChange={e => set('soft_costs', e.target.value)} /></div>
+                  </>
+                ) : (
+                  <>
+                    <div><label style={lbl}>Rehab / Improvements</label><input className='input' type='number' placeholder='renovation cost' value={form.rehab_cost} onChange={e => set('rehab_cost', e.target.value)} /></div>
+                  </>
+                )}
+                <div><label style={lbl}>Closing Costs</label><input className='input' type='number' placeholder='title, fees' value={form.closing_costs} onChange={e => set('closing_costs', e.target.value)} /></div>
+                <div><label style={lbl}>Financing (points + constr. interest)</label><input className='input' type='number' placeholder='points + interest' value={form.financing_costs} onChange={e => set('financing_costs', e.target.value)} /></div>
+              </div>
+              <div style={{ marginTop: '14px', padding: '12px 14px', background: 'var(--bg3)', borderRadius: '10px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px,1fr))', gap: '10px' }}>
+                <div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Total Project Cost</div>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--text)', marginTop: '2px' }}>{fm(totalProjectCost)}</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)' }}>your true cost basis</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Cash Invested (suggested)</div>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--blue)', marginTop: '2px' }}>{suggestedCash != null ? fm(suggestedCash) : '—'}</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)' }}>cost − {fm(loanTotal)} borrowed</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Created Equity</div>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: createdEquity == null ? 'var(--text3)' : createdEquity >= 0 ? 'var(--green)' : 'var(--red)', marginTop: '2px' }}>{createdEquity != null ? fm(createdEquity) : '—'}</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)' }}>market value − cost</div>
+                </div>
+              </div>
+              <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '8px', lineHeight: 1.5 }}>
+                {isBuild
+                  ? 'For a build: Land + Construction + Soft + Closing + Financing = your basis. What the loan covers is debt; the rest is your cash. Set Market Value above to the as-built value to see the equity you created.'
+                  : 'For a purchase: Purchase Price (above) + Rehab + Closing + Financing = your basis.'}
               </div>
             </div>
             <div style={card}>
