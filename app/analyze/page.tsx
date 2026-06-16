@@ -7,6 +7,17 @@ import StrategyFlow from '@/components/StrategyFlow'
 // Deal Analyzer — confirms profitability beyond surface cash flow:
 // 1) reserves-adjusted "true" cash flow, 2) total return + multi-year projection,
 // 3) quick-screen rules, 4) stress test. Reads the property; you tune assumptions.
+const GLOSSARY = [
+  { k: 'True cash flow', what: 'Rent − taxes, insurance & operating costs − reserves for vacancy, repairs, big-ticket replacements & management.', good: 'Positive after reserves. Gross-only “cash flow” lies; this is the honest one.', use: 'If this is negative, the deal leans entirely on appreciation & loan paydown to win.' },
+  { k: 'Reserves (vac/maint/capex/mgmt)', what: 'Money you set aside every month for the costs that don’t hit monthly but always come.', good: '~25–35% of rent combined is realistic for a single-family rental.', use: 'Skipping reserves is how investors “make money” on paper and lose it the year the roof goes.' },
+  { k: 'True cash-on-cash (CoC)', what: 'True annual cash flow ÷ the actual cash you put in (down payment + closing + rehab).', good: '≥8% solid, ≥10% strong. Below ~4% your cash is barely working.', use: 'The return on the dollars you actually sank in — the apples-to-apples vs. other investments.' },
+  { k: 'Total return', what: 'Cash flow + loan paydown + appreciation + tax savings over your hold period.', good: 'Beats ~7–10% (stock market)? Your money is working harder here.', use: 'The real wealth number — cash flow alone undersells a leveraged rental.' },
+  { k: '1% rule', what: 'Monthly rent ÷ purchase price.', good: '≥1% strong cash-flow signal; 0.7–1% workable; below 0.7% is an appreciation bet.', use: 'A 10-second screen — not a verdict. Pairs with the full cash-flow math.' },
+  { k: 'Gross Rent Multiplier (GRM)', what: 'Price ÷ annual gross rent.', good: 'Lower is cheaper per rent dollar; ≤10 is strong in most markets.', use: 'Quick way to compare how richly two properties are priced relative to rent.' },
+  { k: 'Expense ratio', what: 'Operating costs + reserves ÷ gross rent.', good: '35–50% is healthy; over ~60% something is heavy (taxes, insurance, mgmt).', use: 'High ratio = thin margins; find what’s bloated before you buy.' },
+  { k: 'Break-even occupancy', what: 'The occupancy you need just to cover costs + the mortgage.', good: 'Lower = more cushion; under ~85% means you can absorb some vacancy.', use: 'Above ~95% and one empty month puts you underwater — risky.' },
+  { k: 'Stress test', what: 'Cash flow if rent drops and your rate rises at the same time.', good: 'Still positive = durable. Goes negative = you’d feed it cash in a downturn.', use: 'Pressure-test before you buy or refinance — not after.' },
+]
 function amortizeForward(balance: number, annualRate: number, pmt: number, months: number) {
   const r = annualRate / 100 / 12
   let b = balance, paid = 0
@@ -34,6 +45,7 @@ export default function AnalyzePage() {
   const [appr, setAppr] = useState('3'), [rentG, setRentG] = useState('2'), [expG, setExpG] = useState('2'), [hold, setHold] = useState('5')
   const [taxRate, setTaxRate] = useState('24'), [landPct, setLandPct] = useState('20')
   const [rentDrop, setRentDrop] = useState('10'), [rateUp, setRateUp] = useState('1.5')
+  const [showGuide, setShowGuide] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -295,7 +307,25 @@ export default function AnalyzePage() {
               )}
             </div>
 
-            <div style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: 1.6, maxWidth: '760px', marginTop: '6px' }}>
+            {/* New-investor guide — same look as Reports & Modeler */}
+            <div style={{ marginTop: '18px' }}>
+              <button onClick={() => setShowGuide(g => !g)} className='btn btn-ghost no-print' style={{ fontSize: '12px' }}>
+                📘 New to these numbers? {showGuide ? 'Hide guide' : 'What each one means →'}
+              </button>
+              {showGuide && (
+                <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px,1fr))', gap: '12px' }}>
+                  {GLOSSARY.map(g => (
+                    <div key={g.k} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>{g.k}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text2)', lineHeight: 1.5, marginBottom: '6px' }}><strong style={{ color: 'var(--text3)' }}>What it is:</strong> {g.what}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text2)', lineHeight: 1.5, marginBottom: '6px' }}><strong style={{ color: 'var(--text3)' }}>Good sign:</strong> {g.good}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text2)', lineHeight: 1.5 }}><strong style={{ color: 'var(--text3)' }}>How to use it:</strong> {g.use}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: 1.6, maxWidth: '760px', marginTop: '14px' }}>
               All figures use the property's current rent, value, loan & cash invested, plus your assumptions above. Planning estimates — depreciation/tax savings are simplified and don't replace your CPA. The decision rule: a confirmed deal has <strong>positive true cash flow</strong>, a <strong>total return that beats your alternatives</strong>, and <strong>survives the stress test</strong>.
             </div>
           </>
