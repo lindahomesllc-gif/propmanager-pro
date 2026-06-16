@@ -108,7 +108,8 @@ export default function PropertyDetailPage({ params }) {
   const secTtl = { fontSize: '13px', fontWeight: 700, color: 'var(--text)', marginBottom: '14px' }
   const lbl = { fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }
   const val = { fontSize: '13px', fontWeight: 500, color: 'var(--text)', marginTop: '2px' }
-  const tabs = ['overview', 'units', 'appliances', 'paint', 'financials', 'insurance', 'utilities', 'documents']
+  // Cohesive flow: identity → money → income/tenancy → the physical asset → reference
+  const tabs = ['overview', 'financials', 'insurance', 'units', 'appliances', 'paint', 'utilities', 'documents']
   const tabLabels = { overview: 'Overview', units: 'Units & Rooms', appliances: 'Appliances & Systems', paint: 'Paint & Materials', financials: 'Financials', insurance: 'Insurance & Tax', utilities: 'Utilities & Schools', documents: 'Documents' }
 
   return (
@@ -150,9 +151,12 @@ export default function PropertyDetailPage({ params }) {
       </div>
 
       <div style={{ display: 'flex', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', overflowX: 'auto', flexShrink: 0 }}>
-        {tabs.map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{ padding: '10px 16px', fontSize: '13px', whiteSpace: 'nowrap', cursor: 'pointer', border: 'none', borderBottom: tab === t ? '2px solid var(--green)' : '2px solid transparent', background: 'transparent', color: tab === t ? 'var(--green)' : 'var(--text2)', fontWeight: tab === t ? 600 : 400 }}>{tabLabels[t]}</button>
-        ))}
+        {tabs.map(t => {
+          const groupStart = t === 'units' || t === 'utilities'   // start of the "asset" and "reference" groups
+          return (
+            <button key={t} onClick={() => setTab(t)} style={{ padding: '10px 16px', fontSize: '13px', whiteSpace: 'nowrap', cursor: 'pointer', border: 'none', borderBottom: tab === t ? '2px solid var(--green)' : '2px solid transparent', background: 'transparent', color: tab === t ? 'var(--green)' : 'var(--text2)', fontWeight: tab === t ? 600 : 400, marginLeft: groupStart ? '14px' : 0, borderLeft: groupStart ? '0.5px solid var(--border)' : 'none', paddingLeft: groupStart ? '20px' : '16px' }}>{tabLabels[t]}</button>
+          )
+        })}
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
