@@ -52,6 +52,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { href: '/capex',    label: 'Replacement Planner', icon: '🔮' },
       { href: '/modeler',  label: 'Scenario Modeler', icon: '🧮' },
       { href: '/analyze',  label: 'Deal Analyzer', icon: '🔍' },
+      { href: '/deploy',   label: 'Next Move', icon: '🌱' },
       { href: '/market',   label: 'Market Data',icon: '↗' },
     ],
   },
