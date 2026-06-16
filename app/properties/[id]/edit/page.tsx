@@ -260,10 +260,10 @@ export default function EditPropertyPage({ params }) {
                 <div><label style={lbl}>Market Value</label><input className='input' type='number' value={form.market_value} onChange={e => set('market_value', e.target.value)} /></div>
                 <div><label style={lbl}>Your Ownership %</label><input className='input' type='number' min='0' max='100' step='0.01' placeholder='100' value={form.ownership_percentage} onChange={e => set('ownership_percentage', e.target.value)} /></div>
                 <div><label style={lbl}>Cash Invested</label><input className='input' type='number' placeholder='down + closing + rehab' value={form.cash_invested} onChange={e => set('cash_invested', e.target.value)} />
-                  <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '3px' }}>
-                    Your actual cash in (down payment + closing + rehab) — powers Cash-on-Cash ROI.
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '3px', lineHeight: 1.5 }}>
+                    Your out-of-pocket: <strong>down payment + closing + rehab</strong> (not the full price unless you paid cash). Type rehab/closing here, then
                     {suggestedCash != null && (
-                      <> <button type='button' onClick={() => set('cash_invested', String(Math.round(suggestedCash)))} style={{ background: 'transparent', border: 'none', color: 'var(--green)', cursor: 'pointer', fontWeight: 700, padding: 0, fontSize: '10px' }}>Use ${Math.round(suggestedCash).toLocaleString()} (purchase − loan)</button> then add closing/rehab.</>
+                      <> <button type='button' onClick={() => set('cash_invested', String(Math.round((parseFloat(form.cash_invested) || 0) + suggestedCash)))} style={{ background: 'transparent', border: 'none', color: 'var(--green)', cursor: 'pointer', fontWeight: 700, padding: 0, fontSize: '10px' }}>➕ add down payment (${Math.round(suggestedCash).toLocaleString()})</button>.</>
                     )}
                   </div>
                 </div>

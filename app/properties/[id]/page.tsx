@@ -302,6 +302,7 @@ export default function PropertyDetailPage({ params }) {
                   ['Purchase Date', p.purchase_date ? formatDate(p.purchase_date) : '—'],
                   ['Market Value', fm(p.market_value)],
                   ['Equity', fm(equity)],
+                  ['Cash Invested', p.cash_invested ? fm(p.cash_invested) : '—'],
                   ['Appreciation', p.purchase_price ? ((equity / p.purchase_price) * 100).toFixed(1) + '%' : '—'],
                   ['Ownership', (p.owner_entity || 'Self') + (p.ownership_percentage != null && p.ownership_percentage < 100 ? ' · ' + p.ownership_percentage + '%' : '')],
                   ...(p.ownership_percentage != null && p.ownership_percentage < 100 ? [

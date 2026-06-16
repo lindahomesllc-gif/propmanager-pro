@@ -23,6 +23,7 @@ export default function AnalyzePage() {
   const [properties, setProperties] = useState<any[]>([])
   const [mortgages, setMortgages] = useState<any[]>([])
   const [leases, setLeases] = useState<any[]>([])
+  const [units, setUnits] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selId, setSelId] = useState('')
 
@@ -38,9 +39,10 @@ export default function AnalyzePage() {
       supabase.from('properties').select('id, address, market_value, purchase_price, annual_tax, insurance_premium, cash_invested'),
       supabase.from('mortgages').select('*').eq('is_paid_off', false),
       supabase.from('leases').select('property_id, rent_amount, status').eq('status', 'executed'),
-    ]).then(([p, m, l]) => {
+      supabase.from('units').select('property_id, market_rent'),
+    ]).then(([p, m, l, u]) => {
       const props = p.data || []
-      setProperties(props); setMortgages(m.data || []); setLeases(l.data || [])
+      setProperties(props); setMortgages(m.data || []); setLeases(l.data || []); setUnits(u.data || [])
       if (props.length) setSelId(props[0].id)
       setLoading(false)
     })
@@ -115,6 +117,21 @@ export default function AnalyzePage() {
   const sRes = sRent * reservePct
   const sDebt = monthlyPI({ original_amount: balance, interest_rate: rate + N(rateUp), term_years: mtg?.term_years || 30 }) * 12
   const sTrueCF = sRent - fixedOpex - sRes - (balance > 0 ? sDebt : 0)
+
+  // 5) opportunities & strategy — tailored recommendations from the property's own numbers
+  const equity = value - balance
+  const roeTrue = equity > 0 ? trueCF / equity * 100 : null
+  const unitMarket = units.filter(u => u.property_id === selId).reduce((s, u) => s + (u.market_rent || 0), 0)
+  const rentGapMo = unitMarket > 0 ? unitMarket - monthlyRent : 0
+  const recs: any[] = []
+  if (rentGapMo > 25) recs.push({ icon: '💸', title: 'Raise rent toward market', why: `Unit targets total ${fm(unitMarket)}/mo but you're collecting ${fm(monthlyRent)}/mo — about ${fm(rentGapMo)}/mo (${fm(rentGapMo * 12)}/yr) left on the table.`, action: 'Bump rent at renewal; even a partial increase closes the gap and lifts value.', href: `/properties/${selId}?tab=units` })
+  if (balance === 0 && equity > 50000) recs.push({ icon: '🏦', title: 'Tap idle equity to buy the next one', why: `Owned free & clear with ${fm(equity)} of equity just sitting there.`, action: `A cash-out refi (~70–75% LTV ≈ ${fm(value * 0.72)}) could fund another purchase while this keeps cash-flowing — the classic recycle-your-capital move.`, href: '/modeler' })
+  else if (roeTrue != null && roeTrue < 5 && equity > 50000) recs.push({ icon: '🐌', title: 'Your equity may be "lazy"', why: `Return on equity is only ${roeTrue.toFixed(1)}% — that ${fm(equity)} could work harder elsewhere.`, action: 'Consider a cash-out refi to redeploy, or a 1031 sale into a higher-yield property.', href: '/modeler' })
+  if (trueCF < 0) recs.push({ icon: '⚠️', title: 'Thin / negative true cash flow', why: `After honest reserves it runs ${fm(trueCF / 12)}/mo — leaning on appreciation & paydown to win.`, action: 'Raise rent, trim expenses, or (if buying) negotiate a lower price.', href: `/properties/${selId}?tab=units` })
+  if (trueCoC != null && trueCoC >= 10) recs.push({ icon: '⭐', title: 'Strong performer — hold & harvest', why: `True cash-on-cash of ${trueCoC.toFixed(1)}% is excellent.`, action: 'A keeper — let it season, then pull equity later to scale without selling.' })
+  if (onePct != null && onePct < 0.7) recs.push({ icon: '📈', title: 'Appreciation play, not cash flow', why: `Rent is just ${onePct.toFixed(2)}% of value (1% rule) — current yield is thin.`, action: "Make sure your market's rent growth + appreciation justify the low yield. Great for wealth-building, weak for monthly income." })
+  if (sTrueCF < 0) recs.push({ icon: '🧪', title: 'Vulnerable under stress', why: `A ${N(rentDrop)}% rent drop / +${N(rateUp)}% rate flips it cash-flow negative.`, action: "Keep a fatter reserve and don't over-leverage this one." })
+  if (avgAnnual != null && avgAnnual >= 12) recs.push({ icon: '🚀', title: 'Excellent total return', why: `~${avgAnnual.toFixed(0)}%/yr on your cash once paydown + appreciation + tax savings count — well above stocks.`, action: 'Strong hold; reinvest the cash flow to compound faster.' })
 
   const inp = { width: '100%', padding: '7px 9px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' as const }
   const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '3px' }
@@ -223,6 +240,28 @@ export default function AnalyzePage() {
                   {sTrueCF >= 0 ? '✅ Survives — still cash-flow positive under stress.' : '⚠ Goes negative under stress — you’d feed it cash. Build in a bigger reserve or negotiate a lower price.'}
                 </div>
               </div>
+            </div>
+
+            {/* 5. OPPORTUNITIES & STRATEGY */}
+            <div style={{ ...card, borderColor: 'var(--green)' }}>
+              <div style={sec}>💡 Opportunities &amp; Strategy <span style={{ fontWeight: 400, color: 'var(--text3)', fontSize: '11px' }}>· what this property could do next</span></div>
+              {recs.length === 0 ? (
+                <div style={{ fontSize: '13px', color: 'var(--text3)' }}>Nothing jumping out — a solid, balanced hold. (Set Cash Invested + rents to surface more.)</div>
+              ) : (
+                <div style={{ display: 'grid', gap: '10px' }}>
+                  {recs.map((r, i) => (
+                    <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '12px 14px', background: 'var(--bg3)', borderRadius: '10px' }}>
+                      <span style={{ fontSize: '20px', flexShrink: 0 }}>{r.icon}</span>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{r.title}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text2)', marginTop: '3px', lineHeight: 1.5 }}>{r.why}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text)', marginTop: '5px', lineHeight: 1.5 }}><strong style={{ color: 'var(--green)' }}>→ </strong>{r.action}</div>
+                        {r.href && <a href={r.href} style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none', fontWeight: 600, display: 'inline-block', marginTop: '5px' }}>Take a look →</a>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: 1.6, maxWidth: '760px', marginTop: '6px' }}>
