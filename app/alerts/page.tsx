@@ -78,6 +78,15 @@ export default function AlertsPage() {
   const emergencyMaint = maintenance.filter(m => m.priority === 'emergency' || m.priority === 'high')
   const openMaint = maintenance.filter(m => m.priority !== 'emergency' && m.priority !== 'high')
 
+  // Balloon / maturity dates — the full balance comes due. Warn far ahead (a refi or
+  // sale takes months), so color red within 90 days, amber within 180.
+  const balloonColor = (days) => days < 0 ? '#F87171' : days <= 90 ? '#F87171' : days <= 180 ? '#FBB040' : '#60A5FA'
+  const balloonLabel = (days) => days < 0 ? '🔴 Balance now due' : '🎈 Balloon in ' + days + 'd' + (days <= 180 ? ' — plan refi/sale' : '')
+  const balloonAlerts = mortgages
+    .filter(m => m.balloon_date)
+    .map(m => ({ ...m, days: daysUntil(m.balloon_date) }))
+    .sort((a, b) => a.days - b.days)
+
   // Unified, cross-type, date-sorted list for the timeline + summary
   const allAlerts = [
     ...latePayments.map(p => ({ id: 'pl' + p.id, title: (p.tenants?.full_name || 'Tenant') + ' — Rent Overdue', subtitle: 'Was due ' + formatDate(p.due_date) + ' · ' + fm(p.amount_due), days: daysUntil(p.due_date), color: '#F87171', link: '/payments', amount: p.amount_due })),
@@ -87,6 +96,7 @@ export default function AlertsPage() {
     ...taxAlerts.map(p => ({ id: 'tx' + p.id, title: 'Property Tax — ' + p.address, subtitle: 'Due ' + formatDate(p.tax_due_date) + (p.annual_tax ? ' · ' + fm(p.annual_tax) : ''), days: p.days, color: urgencyColor(p.days), link: '/properties/' + p.id + '/edit#tax', amount: p.annual_tax || 0 })),
     ...emergencyMaint.map(m => ({ id: 'mt' + m.id, title: m.title, subtitle: (m.properties?.address || '') + ' · ' + m.priority + ' priority', days: m.scheduled_date ? daysUntil(m.scheduled_date) : 0, color: m.priority === 'emergency' ? '#F87171' : '#FBB040', link: '/maintenance/' + m.id, amount: 0 })),
     ...mortgages.map(m => ({ id: 'mo' + m.id, title: (m.properties?.address || 'Property') + ' — Mortgage', subtitle: (m.lender_name || 'No lender') + ' · Due day ' + m.due_day, days: nextDueDays(m.due_day), color: '#60A5FA', link: '/mortgage', amount: m.monthly_payment || 0 })),
+    ...balloonAlerts.map(m => ({ id: 'bl' + m.id, title: (m.properties?.address || 'Property') + ' — 🎈 Balloon Payment', subtitle: 'Full balance ' + fm(m.current_balance) + ' due ' + formatDate(m.balloon_date) + (m.lender_name ? ' · ' + m.lender_name : ''), days: m.days, color: balloonColor(m.days), link: '/mortgage', amount: m.current_balance || 0 })),
   ].sort((a, b) => a.days - b.days)
 
   const overdueCount = allAlerts.filter(a => a.days < 0).length
@@ -216,6 +226,14 @@ export default function AlertsPage() {
               </Section>
             )}
 
+            {(filter === 'all' || filter === 'mortgage') && balloonAlerts.length > 0 && (
+              <Section title='🎈 Balloon / Maturity Payments' count={balloonAlerts.length} color='var(--red)'>
+                {balloonAlerts.map(m => (
+                  <AlertCard key={m.id + 'bln'} title={(m.properties?.address || 'Property') + ' — Balloon Payment Due'} subtitle={'Full balance ' + fm(m.current_balance) + ' due ' + formatDate(m.balloon_date) + (m.lender_name ? ' · ' + m.lender_name : '')} days={m.days} color={balloonColor(m.days)} label={balloonLabel(m.days)} link='/mortgage' />
+                ))}
+              </Section>
+            )}
+
             {(filter === 'all' || filter === 'mortgage') && mortgages.length > 0 && (
               <Section title='Monthly Mortgages' count={mortgages.length} color='var(--blue)'>
                 {mortgages.map(m => (
@@ -224,7 +242,7 @@ export default function AlertsPage() {
               </Section>
             )}
 
-            {latePayments.length === 0 && duePayments.length === 0 && expiringLeases.length === 0 && insuranceAlerts.length === 0 && taxAlerts.length === 0 && emergencyMaint.length === 0 && openMaint.length === 0 && (
+            {latePayments.length === 0 && duePayments.length === 0 && expiringLeases.length === 0 && insuranceAlerts.length === 0 && taxAlerts.length === 0 && emergencyMaint.length === 0 && openMaint.length === 0 && balloonAlerts.length === 0 && mortgages.length === 0 && (
               <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>
                 <div style={{ fontSize: '40px', marginBottom: '12px' }}>✅</div>
                 <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--green)', marginBottom: '6px' }}>All clear!</div>

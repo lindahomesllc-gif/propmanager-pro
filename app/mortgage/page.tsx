@@ -79,6 +79,11 @@ export default function MortgagePage() {
                 <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{m.properties?.address}</div>
                 <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>{m.lender_name || 'No lender'} {m.loan_number ? '· #' + m.loan_number : ''}</div>
                 <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{loanTypeLabel(m.loan_type)} · {m.term_years}yr · {m.interest_rate}%</div>
+                {m.balloon_date && !m.is_paid_off && (() => {
+                  const d = Math.ceil((new Date(m.balloon_date).getTime() - Date.now()) / 86400000)
+                  const c = d < 0 ? 'var(--red)' : d <= 180 ? 'var(--amber)' : 'var(--blue)'
+                  return <div style={{ fontSize: '11px', color: c, marginTop: '4px', fontWeight: 600 }}>🎈 Balloon due {formatDate(m.balloon_date)}{d >= 0 ? ' · in ' + d + 'd' : ' · OVERDUE'}</div>
+                })()}
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: m.is_paid_off ? 'var(--green)' : 'var(--red)' }}>{fm(m.current_balance)}</div>
