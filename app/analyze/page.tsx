@@ -49,6 +49,22 @@ export default function AnalyzePage() {
     })
   }, [])
 
+  // Persist the tunable assumptions per browser (like the Buy Box) so they don't reset
+  // every visit. Property-specific tax/insurance are NOT stored here — they reload per property.
+  useEffect(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem('analyzeAssumptions') || 'null')
+      if (s) {
+        const A: Record<string, (v: string) => void> = { vac: setVac, maint: setMaint, capex: setCapex, mgmt: setMgmt, otherA: setOtherA, appr: setAppr, rentG: setRentG, expG: setExpG, hold: setHold, taxRate: setTaxRate, landPct: setLandPct, rentDrop: setRentDrop, rateUp: setRateUp }
+        Object.entries(A).forEach(([k, setter]) => { if (s[k] != null) setter(String(s[k])) })
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => {
+    try { localStorage.setItem('analyzeAssumptions', JSON.stringify({ vac, maint, capex, mgmt, otherA, appr, rentG, expG, hold, taxRate, landPct, rentDrop, rateUp })) } catch {}
+  }, [vac, maint, capex, mgmt, otherA, appr, rentG, expG, hold, taxRate, landPct, rentDrop, rateUp])
+
   const sel = properties.find(p => p.id === selId)
   const mtg = mortgages.find(m => m.property_id === selId)
 
@@ -124,15 +140,24 @@ export default function AnalyzePage() {
   const roeTrue = equity > 0 ? trueCF / equity * 100 : null
   const unitMarket = units.filter(u => u.property_id === selId).reduce((s, u) => s + (u.market_rent || 0), 0)
   const rentGapMo = unitMarket > 0 ? unitMarket - monthlyRent : 0
+  // Data-completeness guard: don't hand out confident verdicts off half-filled inputs.
+  // Missing taxes/insurance overstate cash flow, CoC and return — flag the gap instead.
+  const opexComplete = N(taxA) > 0 && N(insA) > 0
+  const dataGaps: string[] = []
+  if (!value) dataGaps.push('property value')
+  if (grossRent <= 0) dataGaps.push('rent / active lease')
+  if (N(taxA) <= 0) dataGaps.push('property taxes')
+  if (N(insA) <= 0) dataGaps.push('insurance')
   const recs: any[] = []
+  if (dataGaps.length) recs.push({ icon: '⚠️', title: 'Fill in this property’s data for an accurate read', why: `Missing ${dataGaps.join(', ')} — until added, the cash-flow, ROI and return figures here are estimates and likely overstated.`, action: 'Add the missing numbers on the property page so every metric is trustworthy.', href: `/properties/${selId}/edit` })
   if (rentGapMo > 25) recs.push({ icon: '💸', title: 'Raise rent toward market', why: `Unit targets total ${fm(unitMarket)}/mo but you're collecting ${fm(monthlyRent)}/mo — about ${fm(rentGapMo)}/mo (${fm(rentGapMo * 12)}/yr) left on the table.`, action: 'Bump rent at renewal; even a partial increase closes the gap and lifts value.', href: `/properties/${selId}?tab=units` })
   if (balance === 0 && equity > 50000) recs.push({ icon: '🏦', title: 'Tap idle equity to buy the next one', why: `Owned free & clear with ${fm(equity)} of equity just sitting there.`, action: `A cash-out refi (~70–75% LTV ≈ ${fm(value * 0.72)}) could fund another purchase while this keeps cash-flowing — the classic recycle-your-capital move.`, href: '/modeler' })
   else if (roeTrue != null && roeTrue < 5 && equity > 50000) recs.push({ icon: '🐌', title: 'Your equity may be "lazy"', why: `Return on equity is only ${roeTrue.toFixed(1)}% — that ${fm(equity)} could work harder elsewhere.`, action: 'Consider a cash-out refi to redeploy, or a 1031 sale into a higher-yield property.', href: '/modeler' })
   if (trueCF < 0) recs.push({ icon: '⚠️', title: 'Thin / negative true cash flow', why: `After honest reserves it runs ${fm(trueCF / 12)}/mo — leaning on appreciation & paydown to win.`, action: 'Raise rent, trim expenses, or (if buying) negotiate a lower price.', href: `/properties/${selId}?tab=units` })
-  if (trueCoC != null && trueCoC >= 10) recs.push({ icon: '⭐', title: 'Strong performer — hold & harvest', why: `True cash-on-cash of ${trueCoC.toFixed(1)}% is excellent.`, action: 'A keeper — let it season, then pull equity later to scale without selling.' })
+  if (opexComplete && trueCoC != null && trueCoC >= 10) recs.push({ icon: '⭐', title: 'Strong performer — hold & harvest', why: `True cash-on-cash of ${trueCoC.toFixed(1)}% is excellent.`, action: 'A keeper — let it season, then pull equity later to scale without selling.' })
   if (onePct != null && onePct < 0.7) recs.push({ icon: '📈', title: 'Appreciation play, not cash flow', why: `Rent is just ${onePct.toFixed(2)}% of value (1% rule) — current yield is thin.`, action: "Make sure your market's rent growth + appreciation justify the low yield. Great for wealth-building, weak for monthly income." })
   if (sTrueCF < 0) recs.push({ icon: '🧪', title: 'Vulnerable under stress', why: `A ${N(rentDrop)}% rent drop / +${N(rateUp)}% rate flips it cash-flow negative.`, action: "Keep a fatter reserve and don't over-leverage this one." })
-  if (avgAnnual != null && avgAnnual >= 12) recs.push({ icon: '🚀', title: 'Excellent total return', why: `~${avgAnnual.toFixed(0)}%/yr on your cash once paydown + appreciation + tax savings count — well above stocks.`, action: 'Strong hold; reinvest the cash flow to compound faster.' })
+  if (opexComplete && avgAnnual != null && avgAnnual >= 12) recs.push({ icon: '🚀', title: 'Excellent total return', why: `~${avgAnnual.toFixed(0)}%/yr on your cash once paydown + appreciation + tax savings count — well above stocks.`, action: 'Strong hold; reinvest the cash flow to compound faster.' })
 
   const inp = { width: '100%', padding: '7px 9px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' as const }
   const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '3px' }
