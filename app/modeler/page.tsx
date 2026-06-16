@@ -3,6 +3,18 @@ import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, fm, monthlyPI } from '@/lib/supabase'
 
+// plain-English guide (same "know these numbers" concept as Reports)
+const GLOSSARY = [
+  { k: 'Total Payment (PITI)', what: 'Your full monthly payment — principal, interest, taxes & insurance.', good: "The number lenders qualify against — not just P&I.", use: 'The real monthly cost of the loan; compare it to rent for true coverage.' },
+  { k: 'DSCR (lender)', what: 'Monthly rent ÷ the full payment (PITI).', good: '≥1.20–1.25x is what DSCR lenders want; below 1.0 the rent doesn’t cover the payment.', use: 'How a DSCR loan gets approved. Higher = easier approval and better terms.' },
+  { k: 'Net cash to you', what: 'Cash-out − closing costs — what you actually pocket from a refi.', good: 'Positive; the new loan pays off any old loan first.', use: 'Tax-free cash to redeploy (it’s a loan, not income).' },
+  { k: 'Loan-to-Value (LTV)', what: 'New loan ÷ property value.', good: 'Cash-out refis on rentals usually cap around 70–75%.', use: 'Over ~75% and most lenders won’t do the cash-out — keep it under.' },
+  { k: 'Post-refi ROI (cash-on-cash)', what: 'New cash flow ÷ the cash still left in the deal after the cash-out.', good: '“♾ all capital back” means you pulled out everything and still cash-flow.', use: 'The whole point of a cash-out / BRRRR — recycle your capital so the return on remaining cash soars.' },
+  { k: 'Break-even on costs', what: 'Months for the monthly savings to repay your closing costs.', good: 'Shorter is better — you keep the savings after that.', use: 'Hold the property longer than the break-even or the refi won’t pay off.' },
+  { k: 'After-tax cash from sale', what: 'Sale price − selling costs − loan payoff − estimated tax (depreciation recapture + capital gains).', good: 'Compare it to what holding would earn.', use: 'The honest “cash in hand if I sell today” number.' },
+  { k: 'Hold benefit', what: 'Cumulative cash flow + appreciation over your chosen years (loan paydown not shown).', good: 'Beats the after-tax sale figure? Holding likely wins.', use: 'Sell-now cash vs earn-over-time — the core of the sell-vs-hold call.' },
+]
+
 // Scenario Modeler — refinance and sell-vs-hold analysis for a single property,
 // prefilled from its value, loan, rent and expenses. Planning estimates, not advice.
 export default function ModelerPage() {
@@ -12,6 +24,7 @@ export default function ModelerPage() {
   const [expenses, setExpenses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selId, setSelId] = useState('')
+  const [showGuide, setShowGuide] = useState(false)
 
   // refinance inputs
   const [newRate, setNewRate] = useState('')
@@ -203,12 +216,6 @@ export default function ModelerPage() {
                   {cashInvested > 0 && row('Cash left in deal', fm(Math.max(0, cashLeftInDeal)), 'var(--text2)')}
                   {cashInvested > 0 && row('Post-refi ROI (cash-on-cash)', allRecovered ? '♾ all capital back' : (postRoi != null ? postRoi.toFixed(0) + '%' : '—'), allRecovered ? 'var(--green)' : 'var(--text)', true)}
                   {row('Break-even on costs', breakeven != null ? Math.ceil(breakeven) + ' months' : '—', 'var(--text2)')}
-                  <div style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: 1.55, marginTop: '10px', background: 'var(--bg3)', borderRadius: '8px', padding: '10px 12px' }}>
-                    <strong>What&apos;s DSCR?</strong> Monthly rent ÷ the full payment (PITI). <strong>{lenderDSCR != null ? lenderDSCR.toFixed(2) + 'x' : '—'}</strong> means rent covers the payment{lenderDSCR != null ? ' ' + lenderDSCR.toFixed(2) + '×' : ''} over. <strong>DSCR lenders typically want ≥ 1.20–1.25x</strong>; below 1.0 means rent doesn&apos;t cover the payment. Higher = easier approval &amp; better terms.
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: 1.55, marginTop: '8px', background: 'var(--bg3)', borderRadius: '8px', padding: '10px 12px' }}>
-                    💵 <strong>Net cash to you</strong> = cash-out − closing costs. The new loan pays off any existing loan first; on a free-and-clear property (like Ridgewood) the whole new loan is yours, minus closing. Cash-out refis on rentals usually max out around <strong>70–75% loan-to-value</strong> — watch the LTV line above. <strong>Post-refi ROI</strong> = new cash flow ÷ the cash still in the deal; pull out all your original cash and it reads <strong>♾ all capital back</strong> (set &ldquo;Cash Invested&rdquo; on the property to see it).
-                  </div>
                 </div>
               </div>
 
@@ -246,8 +253,26 @@ export default function ModelerPage() {
               </div>
             </div>
 
-            <div style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: 1.6, maxWidth: '700px', marginTop: '20px' }}>
-              <strong>Notes:</strong> NOI uses in-place rent (active leases ×12) minus this year&apos;s logged expenses; P&amp;I is principal &amp; interest only (escrow excluded). Tax is a rough estimate — depreciation recapture at 25% plus your cap-gains rate on the remaining gain. Enter your accumulated depreciation and improvements for accuracy. <strong>Planning estimates only — confirm with your CPA and lender.</strong>
+            {/* New-investor guide — same look as Reports */}
+            <div style={{ marginTop: '18px' }}>
+              <button onClick={() => setShowGuide(g => !g)} className='btn btn-ghost no-print' style={{ fontSize: '12px' }}>
+                📘 New to these numbers? {showGuide ? 'Hide guide' : 'What each one means →'}
+              </button>
+              {showGuide && (
+                <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px,1fr))', gap: '12px' }}>
+                  {GLOSSARY.map(g => (
+                    <div key={g.k} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>{g.k}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text2)', lineHeight: 1.5, marginBottom: '6px' }}><strong style={{ color: 'var(--text3)' }}>What it is:</strong> {g.what}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text2)', lineHeight: 1.5, marginBottom: '6px' }}><strong style={{ color: 'var(--text3)' }}>Good sign:</strong> {g.good}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text2)', lineHeight: 1.5 }}><strong style={{ color: 'var(--text3)' }}>How to use it:</strong> {g.use}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: 1.6, maxWidth: '700px', marginTop: '14px' }}>
+              <strong>How these are figured:</strong> NOI = in-place rent (active leases ×12) − this year&apos;s logged expenses; P&amp;I is principal &amp; interest only (escrow excluded). Sale tax is a rough estimate — depreciation recapture at 25% + your cap-gains rate on the remaining gain. <strong>Planning estimates only — confirm with your CPA &amp; lender.</strong>
             </div>
           </>
         )}
