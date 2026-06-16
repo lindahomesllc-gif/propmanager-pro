@@ -33,7 +33,7 @@ export default function ModelerPage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('properties').select('id, address, market_value, purchase_price, annual_tax, insurance_premium'),
+      supabase.from('properties').select('id, address, market_value, purchase_price, annual_tax, insurance_premium, cash_invested'),
       supabase.from('mortgages').select('*').eq('is_paid_off', false),
       supabase.from('leases').select('property_id, rent_amount, status').eq('status', 'executed'),
       supabase.from('expenses').select('property_id, amount, expense_date'),
@@ -90,6 +90,11 @@ export default function ModelerPage() {
   // cash-out: new loan pays off any existing balance; net cash = cash-out − closing costs
   const netCashOut = (parseFloat(cashOut) || 0) - closingCost
   const newLTV = value > 0 ? (nLoan / value) * 100 : null
+  // post-refi cash-on-cash ROI: a cash-out returns your capital → ROI on what's left in
+  const cashInvested = sel?.cash_invested || 0
+  const cashLeftInDeal = cashInvested - netCashOut
+  const allRecovered = cashInvested > 0 && cashLeftInDeal <= 0
+  const postRoi = cashInvested > 0 && cashLeftInDeal > 0 ? (nCashFlow / cashLeftInDeal) * 100 : null
 
   // sell
   const gross = parseFloat(salePrice) || 0
@@ -192,12 +197,14 @@ export default function ModelerPage() {
                   {row('DSCR — lender (rent ÷ PITI)', lenderDSCR != null ? lenderDSCR.toFixed(2) + 'x' : '—', lenderDSCR != null ? (lenderDSCR >= 1.25 ? 'var(--green)' : lenderDSCR >= 1.0 ? 'var(--amber)' : 'var(--red)') : 'var(--text)', true)}
                   {row('Closing costs', fm(closingCost), 'var(--amber)')}
                   {row('💵 Net cash to you', fm(netCashOut), netCashOut >= 0 ? 'var(--green)' : 'var(--red)', true)}
+                  {cashInvested > 0 && row('Cash left in deal', fm(Math.max(0, cashLeftInDeal)), 'var(--text2)')}
+                  {cashInvested > 0 && row('Post-refi ROI (cash-on-cash)', allRecovered ? '♾ all capital back' : (postRoi != null ? postRoi.toFixed(0) + '%' : '—'), allRecovered ? 'var(--green)' : 'var(--text)', true)}
                   {row('Break-even on costs', breakeven != null ? Math.ceil(breakeven) + ' months' : '—', 'var(--text2)')}
                   <div style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: 1.55, marginTop: '10px', background: 'var(--bg3)', borderRadius: '8px', padding: '10px 12px' }}>
                     <strong>What&apos;s DSCR?</strong> Monthly rent ÷ the full payment (PITI). <strong>{lenderDSCR != null ? lenderDSCR.toFixed(2) + 'x' : '—'}</strong> means rent covers the payment{lenderDSCR != null ? ' ' + lenderDSCR.toFixed(2) + '×' : ''} over. <strong>DSCR lenders typically want ≥ 1.20–1.25x</strong>; below 1.0 means rent doesn&apos;t cover the payment. Higher = easier approval &amp; better terms.
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: 1.55, marginTop: '8px', background: 'var(--bg3)', borderRadius: '8px', padding: '10px 12px' }}>
-                    💵 <strong>Net cash to you</strong> = cash-out − closing costs. The new loan pays off any existing loan first; on a free-and-clear property (like Ridgewood) the whole new loan is yours, minus closing. Cash-out refis on rentals usually max out around <strong>70–75% loan-to-value</strong> — watch the LTV line above.
+                    💵 <strong>Net cash to you</strong> = cash-out − closing costs. The new loan pays off any existing loan first; on a free-and-clear property (like Ridgewood) the whole new loan is yours, minus closing. Cash-out refis on rentals usually max out around <strong>70–75% loan-to-value</strong> — watch the LTV line above. <strong>Post-refi ROI</strong> = new cash flow ÷ the cash still in the deal; pull out all your original cash and it reads <strong>♾ all capital back</strong> (set &ldquo;Cash Invested&rdquo; on the property to see it).
                   </div>
                 </div>
               </div>
