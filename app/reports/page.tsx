@@ -48,7 +48,7 @@ export default function ReportsPage() {
       supabase.from('payments').select('property_id, amount_paid, paid_date, status'),
       supabase.from('expenses').select('property_id, amount, expense_date'),
       supabase.from('properties').select('id, address, market_value, purchase_price, entity_id, cash_invested'),
-      supabase.from('mortgages').select('property_id, current_balance, original_amount, interest_rate, term_years, is_paid_off'),
+      supabase.from('mortgages').select('property_id, current_balance, original_amount, interest_rate, term_years, interest_only, is_paid_off'),
       supabase.from('entities').select('id, name'),
     ]).then(([l, p, e, pr, m, en]) => {
       setLeases(l.data || []); setPayments(p.data || []); setExpenses(e.data || []); setProperties(pr.data || []); setMortgages(m.data || []); setEntities(en.data || [])

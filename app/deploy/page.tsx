@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, monthlyPI } from '@/lib/supabase'
+import { supabase, fm, monthlyPI, loanBalance } from '@/lib/supabase'
 import StrategyFlow from '@/components/StrategyFlow'
 import InfoTip from '@/components/InfoTip'
 
@@ -57,10 +57,10 @@ export default function DeployPage() {
     // suggest deployable capital = idle equity on free-&-clear + low-debt props (rough)
     Promise.all([
       supabase.from('properties').select('id, market_value, purchase_price'),
-      supabase.from('mortgages').select('property_id, current_balance, is_paid_off'),
+      supabase.from('mortgages').select('property_id, current_balance, original_amount, interest_only, is_paid_off'),
     ]).then(([p, m]) => {
       const bal: Record<string, number> = {}
-      ;(m.data || []).forEach((x: any) => { if (!x.is_paid_off) bal[x.property_id] = (bal[x.property_id] || 0) + (x.current_balance || 0) })
+      ;(m.data || []).forEach((x: any) => { if (!x.is_paid_off) bal[x.property_id] = (bal[x.property_id] || 0) + loanBalance(x) })
       // ~75% LTV cash-out headroom across the portfolio (very rough planning figure)
       const headroom = (p.data || []).reduce((s: number, pr: any) => {
         const v = pr.market_value || pr.purchase_price || 0

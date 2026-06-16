@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, monthlyPI } from '@/lib/supabase'
+import { supabase, fm, monthlyPI, loanBalance } from '@/lib/supabase'
 import StrategyFlow from '@/components/StrategyFlow'
 
 // plain-English guide (same "know these numbers" concept as Reports)
@@ -88,8 +88,8 @@ export default function ModelerPage() {
   const noi = annualRent - annualExp
   const value = sel?.market_value || 0
   const basis = sel?.purchase_price || 0
-  const balance = mtg?.current_balance || 0
-  const curPI = mtg ? monthlyPI({ original_amount: mtg.original_amount, interest_rate: mtg.interest_rate, term_years: mtg.term_years }) : 0
+  const balance = mtg ? loanBalance(mtg) : 0
+  const curPI = mtg ? monthlyPI(mtg) : 0
   const curAnnualDebt = curPI * 12
   const curCashFlow = noi - curAnnualDebt
   const curDSCR = curAnnualDebt > 0 ? noi / curAnnualDebt : null

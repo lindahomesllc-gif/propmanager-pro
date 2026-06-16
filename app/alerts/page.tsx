@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, formatDate } from '@/lib/supabase'
+import { supabase, fm, formatDate, loanBalance } from '@/lib/supabase'
 
 export default function AlertsPage() {
   const [payments, setPayments] = useState([])
@@ -96,7 +96,7 @@ export default function AlertsPage() {
     ...taxAlerts.map(p => ({ id: 'tx' + p.id, title: 'Property Tax — ' + p.address, subtitle: 'Due ' + formatDate(p.tax_due_date) + (p.annual_tax ? ' · ' + fm(p.annual_tax) : ''), days: p.days, color: urgencyColor(p.days), link: '/properties/' + p.id + '/edit#tax', amount: p.annual_tax || 0 })),
     ...emergencyMaint.map(m => ({ id: 'mt' + m.id, title: m.title, subtitle: (m.properties?.address || '') + ' · ' + m.priority + ' priority', days: m.scheduled_date ? daysUntil(m.scheduled_date) : 0, color: m.priority === 'emergency' ? '#F87171' : '#FBB040', link: '/maintenance/' + m.id, amount: 0 })),
     ...mortgages.map(m => ({ id: 'mo' + m.id, title: (m.properties?.address || 'Property') + ' — Mortgage', subtitle: (m.lender_name || 'No lender') + ' · Due day ' + m.due_day, days: nextDueDays(m.due_day), color: '#60A5FA', link: '/mortgage', amount: m.monthly_payment || 0 })),
-    ...balloonAlerts.map(m => ({ id: 'bl' + m.id, title: (m.properties?.address || 'Property') + ' — 🎈 Balloon Payment', subtitle: 'Full balance ' + fm(m.current_balance) + ' due ' + formatDate(m.balloon_date) + (m.lender_name ? ' · ' + m.lender_name : ''), days: m.days, color: balloonColor(m.days), link: '/mortgage', amount: m.current_balance || 0 })),
+    ...balloonAlerts.map(m => ({ id: 'bl' + m.id, title: (m.properties?.address || 'Property') + ' — 🎈 Balloon Payment', subtitle: 'Full balance ' + fm(loanBalance(m)) + ' due ' + formatDate(m.balloon_date) + (m.lender_name ? ' · ' + m.lender_name : ''), days: m.days, color: balloonColor(m.days), link: '/mortgage', amount: loanBalance(m) })),
   ].sort((a, b) => a.days - b.days)
 
   const overdueCount = allAlerts.filter(a => a.days < 0).length
@@ -229,7 +229,7 @@ export default function AlertsPage() {
             {(filter === 'all' || filter === 'mortgage') && balloonAlerts.length > 0 && (
               <Section title='🎈 Balloon / Maturity Payments' count={balloonAlerts.length} color='var(--red)'>
                 {balloonAlerts.map(m => (
-                  <AlertCard key={m.id + 'bln'} title={(m.properties?.address || 'Property') + ' — Balloon Payment Due'} subtitle={'Full balance ' + fm(m.current_balance) + ' due ' + formatDate(m.balloon_date) + (m.lender_name ? ' · ' + m.lender_name : '')} days={m.days} color={balloonColor(m.days)} label={balloonLabel(m.days)} link='/mortgage' />
+                  <AlertCard key={m.id + 'bln'} title={(m.properties?.address || 'Property') + ' — Balloon Payment Due'} subtitle={'Full balance ' + fm(loanBalance(m)) + ' due ' + formatDate(m.balloon_date) + (m.lender_name ? ' · ' + m.lender_name : '')} days={m.days} color={balloonColor(m.days)} label={balloonLabel(m.days)} link='/mortgage' />
                 ))}
               </Section>
             )}
@@ -237,7 +237,7 @@ export default function AlertsPage() {
             {(filter === 'all' || filter === 'mortgage') && mortgages.length > 0 && (
               <Section title='Monthly Mortgages' count={mortgages.length} color='var(--blue)'>
                 {mortgages.map(m => (
-                  <AlertCard key={m.id} title={(m.properties?.address || 'Property') + ' — Mortgage'} subtitle={(m.lender_name || 'No lender') + ' · Due day ' + m.due_day + ' · Balance: ' + fm(m.current_balance)} days={nextDueDays(m.due_day)} color='#60A5FA' link='/mortgage' />
+                  <AlertCard key={m.id} title={(m.properties?.address || 'Property') + ' — Mortgage'} subtitle={(m.lender_name || 'No lender') + ' · Due day ' + m.due_day + ' · Balance: ' + fm(loanBalance(m))} days={nextDueDays(m.due_day)} color='#60A5FA' link='/mortgage' />
                 ))}
               </Section>
             )}

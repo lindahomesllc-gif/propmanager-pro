@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, monthlyPI } from '@/lib/supabase'
+import { supabase, fm, monthlyPI, loanBalance } from '@/lib/supabase'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts'
 
 // Consolidated net worth across all entities + a forward cash-flow forecast.
@@ -31,7 +31,7 @@ export default function NetWorthPage() {
 
   const pct = (p: any) => (p.ownership_percentage == null ? 100 : p.ownership_percentage) / 100
   const pctOf: Record<string, number> = {}; properties.forEach(p => { pctOf[p.id] = pct(p) })
-  const debtForProp = (pid: string) => mortgages.filter(m => m.property_id === pid).reduce((s, m) => s + (m.current_balance || 0), 0)
+  const debtForProp = (pid: string) => mortgages.filter(m => m.property_id === pid).reduce((s, m) => s + loanBalance(m), 0)
   const piForProp = (pid: string) => mortgages.filter(m => m.property_id === pid).reduce((s, m) => s + monthlyPI(m), 0)
 
   const assets = properties.reduce((s, p) => s + (p.market_value || 0) * pctOf[p.id], 0)

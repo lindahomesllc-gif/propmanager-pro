@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, share, formatDate, computeReturns, nextAnnualReportDue, monthlyPI, propertyMoves } from '@/lib/supabase'
+import { supabase, fm, share, formatDate, computeReturns, nextAnnualReportDue, monthlyPI, propertyMoves, loanBalance } from '@/lib/supabase'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import GettingStarted from '@/components/GettingStarted'
 import GoalsCard from '@/components/GoalsCard'
@@ -138,7 +138,7 @@ export default function DashboardPage() {
   const piByProp: Record<string, number> = {}
   mortgages.forEach((m: any) => { if (m.property_id && !m.is_paid_off) piByProp[m.property_id] = (piByProp[m.property_id] || 0) + monthlyPI(m) * 12 })
   const balByProp2: Record<string, number> = {}
-  mortgages.forEach((m: any) => { if (m.property_id && !m.is_paid_off) balByProp2[m.property_id] = (balByProp2[m.property_id] || 0) + (m.current_balance || 0) })
+  mortgages.forEach((m: any) => { if (m.property_id && !m.is_paid_off) balByProp2[m.property_id] = (balByProp2[m.property_id] || 0) + loanBalance(m) })
   const moveGroups = properties.map((p: any) => ({
     id: p.id, address: p.address,
     list: propertyMoves({

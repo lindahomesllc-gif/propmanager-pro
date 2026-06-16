@@ -97,7 +97,7 @@ export default function MortgagePage() {
               {[
                 ['Original', fm(m.original_amount)],
                 ['Monthly', fm(m.monthly_payment)],
-                ['Paid Down', fm((m.original_amount || 0) - (m.current_balance || 0))],
+                ['Paid Down', fm((m.original_amount || 0) - effBal(m))],
                 ['Started', formatDate(m.start_date)],
               ].map(([k, v]) => (
                 <div key={k} style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '8px 10px' }}>

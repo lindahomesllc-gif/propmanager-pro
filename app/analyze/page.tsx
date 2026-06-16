@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, monthlyPI } from '@/lib/supabase'
+import { supabase, fm, monthlyPI, loanBalance } from '@/lib/supabase'
 import StrategyFlow from '@/components/StrategyFlow'
 
 // Deal Analyzer — confirms profitability beyond surface cash flow:
@@ -101,9 +101,9 @@ export default function AnalyzePage() {
   const monthlyRent = grossRent / 12
   const value = sel?.market_value || sel?.purchase_price || 0
   const price = sel?.purchase_price || value
-  const balance = mtg?.current_balance || 0
+  const balance = mtg ? loanBalance(mtg) : 0
   const rate = mtg?.interest_rate || 0
-  const curPI = mtg ? monthlyPI({ original_amount: mtg.original_amount, interest_rate: mtg.interest_rate, term_years: mtg.term_years }) : 0
+  const curPI = mtg ? monthlyPI(mtg) : 0
   const debtAnnual = curPI * 12
   const cashInvested = sel?.cash_invested || 0
   const N = (v: string) => parseFloat(v) || 0

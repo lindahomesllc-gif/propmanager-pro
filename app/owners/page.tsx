@@ -24,7 +24,7 @@ export default function OwnersPage() {
       supabase.from('properties').select('id, address, entity_id, owner_entity, ownership_percentage'),
       supabase.from('payments').select('property_id, amount_paid, paid_date, status'),
       supabase.from('expenses').select('property_id, amount, expense_date'),
-      supabase.from('mortgages').select('property_id, original_amount, interest_rate, term_years, is_paid_off'),
+      supabase.from('mortgages').select('property_id, original_amount, current_balance, interest_rate, term_years, interest_only, is_paid_off'),
     ]).then(([e, p, pay, ex, m]) => {
       const ents = e.data || []
       setEntities(ents)

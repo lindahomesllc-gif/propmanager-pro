@@ -107,6 +107,12 @@ export const monthlyPI = (m: { original_amount?: any; interest_rate?: any; term_
   if (P <= 0 || n <= 0) return 0
   return r > 0 ? (P * r) / (1 - Math.pow(1 + r, -n)) : P / n
 }
+// Amount currently owed on a loan. Interest-only loans don't amortize, so they owe
+// their full original_amount until the balloon (unless a real paid-down balance is set).
+// Use this everywhere a loan balance feeds equity, payoff, or cash-out math.
+export const loanBalance = (m: { interest_only?: any; original_amount?: any; current_balance?: any }) =>
+  m.interest_only ? (Number(m.original_amount) || Number(m.current_balance) || 0) : (Number(m.current_balance) || 0)
+
 // Single source of truth for investor returns — used by Reports AND the Dashboard.
 // NOI = annualized in-place rent (active leases ×12) − that year's expenses.
 // Debt service = P&I only (escrow excluded). Returns per-property metrics,
@@ -123,10 +129,7 @@ export function computeReturns(opts: { properties: any[]; leases: any[]; expense
   mortgages.filter((m: any) => !m.is_paid_off).forEach((m: any) => {
     if (!m.property_id) return
     piByProp[m.property_id] = (piByProp[m.property_id] || 0) + monthlyPI(m) * 12
-    // interest-only loans owe their full amount until the balloon (no amortization),
-    // so use original_amount unless a real paid-down balance is recorded.
-    const bal = m.interest_only ? (m.original_amount || m.current_balance || 0) : (m.current_balance || 0)
-    balByProp[m.property_id] = (balByProp[m.property_id] || 0) + bal
+    balByProp[m.property_id] = (balByProp[m.property_id] || 0) + loanBalance(m)
   })
   const metrics = properties.map((p: any) => {
     const value = p.market_value || p.purchase_price || 0
