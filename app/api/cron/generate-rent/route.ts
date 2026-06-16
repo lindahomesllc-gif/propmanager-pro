@@ -60,18 +60,29 @@ export async function GET(request: Request) {
   // --- Recurring fixed carrying costs: HOA + 1/12 of property tax & insurance.
   // One expense per property per category per month (idempotent). Taxes & insurance
   // are stored annually, so we book 1/12 each month so NOI reflects them evenly. ---
-  const [{ data: recProps }, { data: recExisting }] = await Promise.all([
-    svc.from('properties').select('id, user_id, hoa_fee, hoa_name, annual_tax, insurance_premium, insurance_company'),
-    svc.from('expenses').select('property_id, category').in('category', ['hoa', 'property_tax', 'insurance']).gte('expense_date', monthPrefix + '-01').lt('expense_date', nextMonthFirst),
+  const yearStart = `${y}-01-01`, yearEnd = `${y + 1}-01-01`
+  const [{ data: recProps }, { data: yearRec }] = await Promise.all([
+    svc.from('properties').select('id, user_id, hoa, hoa_fee, hoa_name, annual_tax, insurance_premium, insurance_company'),
+    svc.from('expenses').select('property_id, category, description, expense_date').in('category', ['hoa', 'property_tax', 'insurance']).gte('expense_date', yearStart).lt('expense_date', yearEnd),
   ])
-  const haveRec = new Set((recExisting || []).map((e: any) => e.property_id + ':' + e.category))
+  // Guardrails against double-counting: skip a category if a MANUAL (non-auto) expense
+  // of it already exists this YEAR (you're handling it yourself), and never duplicate
+  // this month's auto entry.
+  const manualOverride = new Set<string>()   // property:category handled manually this year
+  const haveThisMonth = new Set<string>()     // property:category already present this month
+  ;(yearRec || []).forEach((e: any) => {
+    const k = e.property_id + ':' + e.category
+    if (!(e.description || '').includes('(auto)')) manualOverride.add(k)
+    if (e.expense_date >= monthPrefix + '-01' && e.expense_date < nextMonthFirst) haveThisMonth.add(k)
+  })
+  const canGen = (pid: string, cat: string) => !haveThisMonth.has(pid + ':' + cat) && !manualOverride.has(pid + ':' + cat)
   const round2 = (n: number) => Math.round(n * 100) / 100
   const hoaInsert: any[] = []
   for (const p of recProps || []) {
     const base = { user_id: p.user_id, property_id: p.id, expense_date: monthPrefix + '-01', is_deductible: true }
-    if ((p.hoa_fee || 0) > 0 && !haveRec.has(p.id + ':hoa')) hoaInsert.push({ ...base, category: 'hoa', amount: p.hoa_fee, vendor_name: p.hoa_name || null, description: 'HOA dues (auto)' })
-    if ((p.annual_tax || 0) > 0 && !haveRec.has(p.id + ':property_tax')) hoaInsert.push({ ...base, category: 'property_tax', amount: round2(p.annual_tax / 12), description: 'Property tax 1/12 (auto)' })
-    if ((p.insurance_premium || 0) > 0 && !haveRec.has(p.id + ':insurance')) hoaInsert.push({ ...base, category: 'insurance', amount: round2(p.insurance_premium / 12), vendor_name: p.insurance_company || null, description: 'Insurance 1/12 (auto)' })
+    if (p.hoa && (p.hoa_fee || 0) > 0 && canGen(p.id, 'hoa')) hoaInsert.push({ ...base, category: 'hoa', amount: p.hoa_fee, vendor_name: p.hoa_name || null, description: 'HOA dues (auto)' })
+    if ((p.annual_tax || 0) > 0 && canGen(p.id, 'property_tax')) hoaInsert.push({ ...base, category: 'property_tax', amount: round2(p.annual_tax / 12), description: 'Property tax 1/12 (auto)' })
+    if ((p.insurance_premium || 0) > 0 && canGen(p.id, 'insurance')) hoaInsert.push({ ...base, category: 'insurance', amount: round2(p.insurance_premium / 12), vendor_name: p.insurance_company || null, description: 'Insurance 1/12 (auto)' })
   }
 
   // Overdue unpaid charges past their grace period become 'late' (so the badge,
