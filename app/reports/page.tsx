@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, fm, formatDate, computeReturns } from '@/lib/supabase'
+import InfoTip from '@/components/InfoTip'
 
 // one-line hover definitions for the Returns table headers
 const HDR_TIPS: Record<string, string> = {
@@ -244,18 +245,18 @@ export default function ReportsPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead><tr style={{ borderBottom: '0.5px solid var(--border)' }}>
                   <th style={th}>Property</th>
-                  {['Value', 'NOI', 'Cap', 'Debt Svc', 'DSCR', 'Cash Flow', 'RoE', 'ROI'].map(h => <th key={h} title={HDR_TIPS[h]} style={{ ...th, textAlign: 'right', cursor: 'help' }}>{h}{HDR_TIPS[h] ? <span style={{ color: 'var(--text3)', fontWeight: 400 }}> ⓘ</span> : null}</th>)}
+                  {['Value', 'NOI', 'Cap', 'Debt Svc', 'DSCR', 'Cash Flow', 'RoE', 'ROI'].map(h => <th key={h} style={{ ...th, textAlign: 'right', whiteSpace: 'nowrap' }}>{h}{HDR_TIPS[h] ? <InfoTip text={HDR_TIPS[h]} /> : null}</th>)}
                 </tr></thead>
                 <tbody>
                   {metrics.length === 0 ? (
                     <tr><td style={{ ...td, color: 'var(--text3)' }} colSpan={9}>Add property values, rents, and loans to see returns.</td></tr>
                   ) : metrics.map(m => (
                     <tr key={m.id} style={{ borderBottom: '0.5px solid var(--border)' }}>
-                      <td style={td}>{m.address}</td>
+                      <td style={td}><a href={'/properties/' + m.id} style={{ color: 'var(--green)', textDecoration: 'none', fontWeight: 600 }}>{m.address}</a></td>
                       <td style={{ ...td, textAlign: 'right' }}>{fm(m.value)}</td>
                       <td style={{ ...td, textAlign: 'right', color: 'var(--green)' }}>{fm(m.noi)}</td>
                       <td style={{ ...td, textAlign: 'right', color: band(m.cap, 4, 5.5), fontWeight: 600 }}>{m.cap != null ? m.cap.toFixed(2) + '%' : '—'}</td>
-                      <td style={{ ...td, textAlign: 'right', color: 'var(--red)' }}>{fm(m.debt)}</td>
+                      <td style={{ ...td, textAlign: 'right' }}>{m.debt > 0 ? <a href={'/properties/' + m.id + '?tab=financials'} title="View this property's loan" style={{ color: 'var(--red)', textDecoration: 'none', borderBottom: '1px dotted var(--red)' }}>{fm(m.debt)}</a> : <span style={{ color: 'var(--red)' }}>{fm(m.debt)}</span>}</td>
                       <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: band(m.dscr, 1.0, 1.25) }}>{m.dscr != null ? m.dscr.toFixed(2) + 'x' : '—'}</td>
                       <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: m.cashFlow >= 0 ? 'var(--green)' : 'var(--red)' }}>{fm(m.cashFlow)}</td>
                       <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: band(m.roe, 5, 8) }}>{m.roe != null ? m.roe.toFixed(1) + '%' : '—'}</td>
