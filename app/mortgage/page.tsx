@@ -35,7 +35,9 @@ export default function MortgagePage() {
     setMortgages(prev => prev.filter(x => x.id !== m.id))
   }
 
-  const totalBalance = mortgages.filter(m => !m.is_paid_off).reduce((s, m) => s + (m.current_balance || 0), 0)
+  // interest-only loans owe their full amount until the balloon (use original_amount)
+  const effBal = (m: any) => m.interest_only ? (Number(m.original_amount) || Number(m.current_balance) || 0) : (Number(m.current_balance) || 0)
+  const totalBalance = mortgages.filter(m => !m.is_paid_off).reduce((s, m) => s + effBal(m), 0)
   const totalPayment = mortgages.filter(m => !m.is_paid_off).reduce((s, m) => s + (m.monthly_payment || 0), 0)
   const totalOriginal = mortgages.reduce((s, m) => s + (m.original_amount || 0), 0)
   const totalPaidDown = totalOriginal - totalBalance
@@ -86,8 +88,8 @@ export default function MortgagePage() {
                 })()}
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: m.is_paid_off ? 'var(--green)' : 'var(--red)' }}>{fm(m.current_balance)}</div>
-                <div style={{ fontSize: '11px', color: 'var(--text3)' }}>current balance</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color: m.is_paid_off ? 'var(--green)' : 'var(--red)' }}>{fm(effBal(m))}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{m.interest_only ? 'owed (interest-only)' : 'current balance'}</div>
                 {m.is_paid_off && <span style={{ fontSize: '11px', color: 'var(--green)', fontWeight: 600 }}>✓ PAID OFF</span>}
               </div>
             </div>
