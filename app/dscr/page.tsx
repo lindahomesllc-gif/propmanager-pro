@@ -23,6 +23,7 @@ export default function DscrPackagePage() {
   const [io, setIo] = useState(false)
   const [rentBasis, setRentBasis] = useState('inplace') // inplace | market
   const [rentOverride, setRentOverride] = useState('')   // manual market/appraised rent for un-leased deals
+  const [includeTerms, setIncludeTerms] = useState(true) // true = full DSCR w/ my terms; false = facts-only for the lender to quote
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -116,7 +117,14 @@ export default function DscrPackagePage() {
           <>
             {/* loan scenario controls (not printed) */}
             <div className='no-print' style={{ ...card, borderColor: 'var(--green)' }}>
-              <div style={sec}>Loan Scenario <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: 'var(--text3)' }}>· tune, then Save as PDF</span></div>
+              <div style={sec}>Package Type <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: 'var(--text3)' }}>· tune, then Save as PDF</span></div>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                {[[true, '📄 Include my terms & DSCR', 'for your analysis / documenting agreed terms'], [false, '🏦 Property & rent only', 'let the lender quote terms — recommended to send']].map(([v, l, h]) => (
+                  <button key={String(v)} type='button' onClick={() => setIncludeTerms(v as boolean)} style={{ flex: '1 1 220px', textAlign: 'left', padding: '10px 14px', fontSize: '12px', borderRadius: '9px', border: '0.5px solid ' + (includeTerms === v ? 'var(--green)' : 'var(--border2)'), background: includeTerms === v ? 'var(--green-bg)' : 'transparent', color: includeTerms === v ? 'var(--green)' : 'var(--text2)', cursor: 'pointer', fontWeight: includeTerms === v ? 700 : 400 }}>
+                    {l as string}<div style={{ fontSize: '10px', fontWeight: 400, color: 'var(--text3)', marginTop: '2px' }}>{h as string}</div>
+                  </button>
+                ))}
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px,1fr))', gap: '10px' }}>
                 <div><label style={lbl}>Purpose</label>
                   <select value={purpose} onChange={e => setPurpose(e.target.value)} style={inp}>
@@ -126,8 +134,8 @@ export default function DscrPackagePage() {
                   </select>
                 </div>
                 <div><label style={lbl}>Requested loan</label><input style={inp} value={loanAmt} onChange={e => setLoanAmt(e.target.value)} /></div>
-                <div><label style={lbl}>Rate %</label><input style={inp} value={rate} onChange={e => setRate(e.target.value)} /></div>
-                <div><label style={lbl}>Term (yrs)</label><input style={inp} value={term} onChange={e => setTerm(e.target.value)} /></div>
+                {includeTerms && <div><label style={lbl}>Rate %</label><input style={inp} value={rate} onChange={e => setRate(e.target.value)} /></div>}
+                {includeTerms && <div><label style={lbl}>Term (yrs)</label><input style={inp} value={term} onChange={e => setTerm(e.target.value)} /></div>}
                 <div><label style={lbl}>Rent basis</label>
                   <select value={rentBasis} onChange={e => setRentBasis(e.target.value)} style={inp} disabled={N(rentOverride) > 0}>
                     <option value='inplace'>In-place lease</option>
@@ -135,11 +143,13 @@ export default function DscrPackagePage() {
                   </select>
                 </div>
                 <div><label style={lbl}>Rent override /mo</label><input style={inp} placeholder='if not leased' value={rentOverride} onChange={e => setRentOverride(e.target.value)} /></div>
-                <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '7px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer', fontSize: '12px', color: 'var(--text)' }}>
-                    <input type='checkbox' checked={io} onChange={e => setIo(e.target.checked)} style={{ width: '15px', height: '15px', accentColor: 'var(--green)' }} /> Interest-only
-                  </label>
-                </div>
+                {includeTerms && (
+                  <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '7px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer', fontSize: '12px', color: 'var(--text)' }}>
+                      <input type='checkbox' checked={io} onChange={e => setIo(e.target.checked)} style={{ width: '15px', height: '15px', accentColor: 'var(--green)' }} /> Interest-only
+                    </label>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -149,7 +159,7 @@ export default function DscrPackagePage() {
               <div className='dscr-card' style={card}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
                   <div>
-                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 800, color: 'var(--text)' }}>DSCR Loan Qualification Summary</div>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 800, color: 'var(--text)' }}>{includeTerms ? 'DSCR Loan Qualification Summary' : 'Property & Rent Summary'}</div>
                     <div style={{ fontSize: '14px', color: 'var(--text)', marginTop: '6px', fontWeight: 600 }}>{sel.address}{sel.city ? ', ' + sel.city : ''} {sel.state} {sel.zip}</div>
                     {entityName && <div className='lbl-muted' style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>Borrowing entity: {entityName}</div>}
                   </div>
@@ -157,26 +167,38 @@ export default function DscrPackagePage() {
                 </div>
               </div>
 
-              {/* DSCR headline */}
-              <div className='dscr-card' style={card}>
-                <div style={sec}>Debt Service Coverage Ratio</div>
-                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'stretch' }}>
-                  <div style={{ flex: '1 1 200px', minWidth: '180px' }}>
-                    {row('Gross monthly rent', fm(rentMo) + (N(rentOverride) > 0 ? ' (estimated)' : rentBasis === 'market' ? ' (market)' : ''))}
-                    <div style={{ height: '6px' }} />
-                    {row('Principal & interest', fm(pi) + (io ? ' (IO)' : ''))}
-                    {row('Property taxes ÷ 12', fm(taxMo))}
-                    {row('Insurance ÷ 12', fm(insMo))}
-                    {row('HOA dues', fm(hoaMo))}
-                    {row('Total PITIA', fm(pitia), true)}
-                  </div>
-                  <div className='dscr-box' style={{ flex: '1 1 200px', minWidth: '180px', background: 'var(--bg3)', borderRadius: '12px', border: '0.5px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '18px' }}>
-                    <div className='lbl-muted' style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>DSCR (rent ÷ PITIA)</div>
-                    <div className='keep-color' style={{ fontFamily: 'Syne, sans-serif', fontSize: '46px', fontWeight: 800, color: dscrColor, lineHeight: 1.1, marginTop: '4px' }}>{dscr != null ? dscr.toFixed(2) + '×' : '—'}</div>
-                    <div className='lbl-muted' style={{ fontSize: '11.5px', color: 'var(--text2)', textAlign: 'center', marginTop: '8px', lineHeight: 1.45 }}>{dscrVerdict}</div>
+              {/* Headline: full DSCR, or rent + carrying costs only (lender computes DSCR) */}
+              {includeTerms ? (
+                <div className='dscr-card' style={card}>
+                  <div style={sec}>Debt Service Coverage Ratio</div>
+                  <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'stretch' }}>
+                    <div style={{ flex: '1 1 200px', minWidth: '180px' }}>
+                      {row('Gross monthly rent', fm(rentMo) + (N(rentOverride) > 0 ? ' (estimated)' : rentBasis === 'market' ? ' (market)' : ''))}
+                      <div style={{ height: '6px' }} />
+                      {row('Principal & interest', fm(pi) + (io ? ' (IO)' : ''))}
+                      {row('Property taxes ÷ 12', fm(taxMo))}
+                      {row('Insurance ÷ 12', fm(insMo))}
+                      {row('HOA dues', fm(hoaMo))}
+                      {row('Total PITIA', fm(pitia), true)}
+                    </div>
+                    <div className='dscr-box' style={{ flex: '1 1 200px', minWidth: '180px', background: 'var(--bg3)', borderRadius: '12px', border: '0.5px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '18px' }}>
+                      <div className='lbl-muted' style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>DSCR (rent ÷ PITIA)</div>
+                      <div className='keep-color' style={{ fontFamily: 'Syne, sans-serif', fontSize: '46px', fontWeight: 800, color: dscrColor, lineHeight: 1.1, marginTop: '4px' }}>{dscr != null ? dscr.toFixed(2) + '×' : '—'}</div>
+                      <div className='lbl-muted' style={{ fontSize: '11.5px', color: 'var(--text2)', textAlign: 'center', marginTop: '8px', lineHeight: 1.45 }}>{dscrVerdict}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className='dscr-card' style={card}>
+                  <div style={sec}>Rent &amp; Fixed Operating Costs</div>
+                  {row('Gross monthly rent', fm(rentMo) + (N(rentOverride) > 0 ? ' (estimated)' : rentBasis === 'market' ? ' (market)' : ''), true)}
+                  {row('Property taxes ÷ 12', fm(taxMo))}
+                  {row('Insurance ÷ 12', fm(insMo))}
+                  {row('HOA dues', fm(hoaMo))}
+                  {row('Taxes + Insurance + HOA', fm(taxMo + insMo + hoaMo), true)}
+                  <div className='lbl-muted' style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '10px', lineHeight: 1.5 }}>DSCR = gross rent ÷ (your P&amp;I + taxes + insurance + HOA). Apply your proposed rate &amp; term to compute P&amp;I and the resulting DSCR.</div>
+                </div>
+              )}
 
               {/* loan request */}
               <div className='dscr-card' style={card}>
@@ -186,8 +208,8 @@ export default function DscrPackagePage() {
                   {fact('Estimated value', fm(value))}
                   {fact('Requested loan', fm(loan))}
                   {fact('LTV', ltv != null ? ltv.toFixed(0) + '%' : '—')}
-                  {fact('Rate', (N(rate)).toFixed(3).replace(/0+$/, '').replace(/\.$/, '') + '%')}
-                  {fact('Amortization', io ? 'Interest-only' : N(term) + ' yr')}
+                  {includeTerms ? fact('Rate', (N(rate)).toFixed(3).replace(/0+$/, '').replace(/\.$/, '') + '%') : <></>}
+                  {includeTerms ? fact('Amortization', io ? 'Interest-only' : N(term) + ' yr') : <></>}
                 </div>
               </div>
 
