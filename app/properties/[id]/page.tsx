@@ -304,9 +304,20 @@ export default function PropertyDetailPage({ params }) {
         {tab === 'financials' && (
           <>
             <div style={card}>
-              <div style={secTtl}>📈 Purchase & Value</div>
+              <div style={secTtl}>{isBuild ? '📈 Value & Equity' : '📈 Purchase & Value'}</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
-                {[
+                {(isBuild ? [
+                  ['As-Built Value', fm(p.market_value)],
+                  ['Total Project Cost', fm(totalProjectCost)],
+                  ['Created Equity', p.market_value ? fm(createdEquity) : '—'],
+                  ['Cash Invested', p.cash_invested ? fm(p.cash_invested) : '—'],
+                  ['Completed', p.purchase_date ? formatDate(p.purchase_date) : '—'],
+                  ['Ownership', (p.owner_entity || 'Self') + (p.ownership_percentage != null && p.ownership_percentage < 100 ? ' · ' + p.ownership_percentage + '%' : '')],
+                  ...(p.ownership_percentage != null && p.ownership_percentage < 100 ? [
+                    ['Your Share (Value)', fm(share(p.market_value, p))],
+                    ['Your Share (Equity)', fm(share(createdEquity, p))],
+                  ] : []),
+                ] : [
                   ['Purchase Price', fm(p.purchase_price)],
                   ['Purchase Date', p.purchase_date ? formatDate(p.purchase_date) : '—'],
                   ['Market Value', fm(p.market_value)],
@@ -318,7 +329,7 @@ export default function PropertyDetailPage({ params }) {
                     ['Your Share (Value)', fm(share(p.market_value, p))],
                     ['Your Share (Equity)', fm(share(equity, p))],
                   ] : []),
-                ].map(([k, v]) => (
+                ]).map(([k, v]) => (
                   <div key={k} style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '10px 12px' }}>
                     <div style={lbl}>{k}</div>
                     <div style={val}>{v}</div>
@@ -340,22 +351,10 @@ export default function PropertyDetailPage({ params }) {
                       <div style={val}>{fm(v)}</div>
                     </div>
                   ))}
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px,1fr))', gap: '10px', marginTop: '10px', paddingTop: '12px', borderTop: '0.5px solid var(--border)' }}>
-                  <div style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '10px 12px' }}>
+                  <div style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '10px 12px', border: '0.5px solid var(--border)' }}>
                     <div style={lbl}>Total Project Cost</div>
                     <div style={{ ...val, color: 'var(--text)' }}>{fm(totalProjectCost)}</div>
                     <div style={{ fontSize: '10px', color: 'var(--text3)' }}>your cost basis</div>
-                  </div>
-                  <div style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '10px 12px' }}>
-                    <div style={lbl}>Created Equity</div>
-                    <div style={{ ...val, color: p.market_value ? (createdEquity >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)' }}>{p.market_value ? fm(createdEquity) : '—'}</div>
-                    <div style={{ fontSize: '10px', color: 'var(--text3)' }}>market value − cost</div>
-                  </div>
-                  <div style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '10px 12px' }}>
-                    <div style={lbl}>Cash Invested</div>
-                    <div style={{ ...val, color: 'var(--blue)' }}>{p.cash_invested ? fm(p.cash_invested) : '—'}</div>
-                    <div style={{ fontSize: '10px', color: 'var(--text3)' }}>your out-of-pocket</div>
                   </div>
                 </div>
               </div>
