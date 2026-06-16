@@ -91,9 +91,15 @@ export function nextAnnualReportDue(e: { formation_state?: any; annual_report_du
 
 // Monthly principal & interest for a loan (escrow-free) from amount / rate / term.
 // Used by the amortization schedule and the investor-returns metrics.
-export const monthlyPI = (m: { original_amount?: any; interest_rate?: any; term_years?: any }) => {
-  const P = Number(m.original_amount) || 0
+export const monthlyPI = (m: { original_amount?: any; interest_rate?: any; term_years?: any; interest_only?: any; current_balance?: any }) => {
   const r = (Number(m.interest_rate) || 0) / 100 / 12
+  // Interest-only loans never amortize — the payment is just interest on the
+  // outstanding balance; principal stays put until the balloon/maturity.
+  if (m.interest_only) {
+    const bal = Number(m.current_balance) || Number(m.original_amount) || 0
+    return bal > 0 ? bal * r : 0
+  }
+  const P = Number(m.original_amount) || 0
   const n = Math.round((Number(m.term_years) || 0) * 12)
   if (P <= 0 || n <= 0) return 0
   return r > 0 ? (P * r) / (1 - Math.pow(1 + r, -n)) : P / n

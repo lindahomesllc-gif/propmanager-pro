@@ -4,12 +4,30 @@ import { fm } from '@/lib/supabase'
 
 type Row = { n: number; date: Date | null; payment: number; principal: number; interest: number; balance: number }
 
-function buildSchedule(m: any): { rows: Row[]; valid: boolean; reason?: string; totalInterest: number; totalPaid: number; piPayment: number } {
+function buildSchedule(m: any): { rows: Row[]; valid: boolean; reason?: string; totalInterest: number; totalPaid: number; piPayment: number; interestOnly: boolean } {
   const P = Number(m.original_amount) || 0
   const r = (Number(m.interest_rate) || 0) / 100 / 12
   const n = Math.round((Number(m.term_years) || 0) * 12)
   const start = m.start_date ? new Date(m.start_date + 'T00:00:00') : null
-  if (P <= 0 || n <= 0) return { rows: [], valid: false, reason: 'This loan is missing its amount, rate, or term — fill those in to see the schedule.', totalInterest: 0, totalPaid: 0, piPayment: 0 }
+  if (P <= 0 || n <= 0) return { rows: [], valid: false, reason: 'This loan is missing its amount, rate, or term — fill those in to see the schedule.', totalInterest: 0, totalPaid: 0, piPayment: 0, interestOnly: !!m.interest_only }
+
+  // Interest-only: every payment is just interest, the balance stays flat, and the
+  // full principal comes due as a balloon on the final payment. No amortization.
+  if (m.interest_only) {
+    const intPay = P * r
+    const rows: Row[] = []
+    let totalInterest = 0, totalPaid = 0
+    for (let i = 1; i <= n; i++) {
+      const isLast = i === n
+      const principal = isLast ? P : 0          // balloon principal on the final payment
+      const payment = intPay + principal
+      totalInterest += intPay; totalPaid += payment
+      let date: Date | null = null
+      if (start) { date = new Date(start); date.setMonth(date.getMonth() + (i - 1)) }
+      rows.push({ n: i, date, payment, principal, interest: intPay, balance: isLast ? 0 : P })
+    }
+    return { rows, valid: true, totalInterest, totalPaid, piPayment: intPay, interestOnly: true }
+  }
 
   // Compute the true principal & interest payment from the loan terms. We do NOT
   // use the stored "monthly payment" because that often includes escrow
@@ -32,14 +50,14 @@ function buildSchedule(m: any): { rows: Row[]; valid: boolean; reason?: string; 
     if (start) { date = new Date(start); date.setMonth(date.getMonth() + (i - 1)) }
     rows.push({ n: i, date, payment: thisPay, principal, interest, balance: bal })
   }
-  return { rows, valid: true, totalInterest, totalPaid, piPayment: pay }
+  return { rows, valid: true, totalInterest, totalPaid, piPayment: pay, interestOnly: false }
 }
 
 const fmtDate = (d: Date | null) => d ? d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'
 
 export default function AmortizationModal({ mortgage, onClose }: { mortgage: any; onClose: () => void }) {
   const [view, setView] = useState<'monthly' | 'yearly'>('monthly')
-  const { rows, valid, reason, totalInterest, totalPaid, piPayment } = useMemo(() => buildSchedule(mortgage), [mortgage])
+  const { rows, valid, reason, totalInterest, totalPaid, piPayment, interestOnly } = useMemo(() => buildSchedule(mortgage), [mortgage])
   const escrow = (Number(mortgage.monthly_payment) || 0) - piPayment
 
   // yearly rollup (12-payment blocks)
@@ -90,8 +108,8 @@ export default function AmortizationModal({ mortgage, onClose }: { mortgage: any
               {[
                 ['Loan Amount', fm(mortgage.original_amount)],
                 ['Rate', (mortgage.interest_rate || 0) + '%'],
-                ['P&I Payment', fm(piPayment)],
-                ['Payoff', fmtDate(payoff)],
+                [interestOnly ? 'Interest Payment' : 'P&I Payment', fm(piPayment)],
+                [interestOnly ? 'Balloon Due' : 'Payoff', fmtDate(payoff)],
                 ['Total Interest', fm(totalInterest)],
               ].map(([k, v], i) => (
                 <div key={k as string} style={{ padding: '12px 16px', borderRight: i < 4 ? '0.5px solid var(--border)' : 'none' }}>
@@ -100,7 +118,12 @@ export default function AmortizationModal({ mortgage, onClose }: { mortgage: any
                 </div>
               ))}
             </div>
-            {escrow > 1 && (
+            {interestOnly && (
+              <div style={{ padding: '9px 16px', fontSize: '11.5px', color: 'var(--amber)', borderBottom: '0.5px solid var(--border)', background: 'var(--amber-bg)' }}>
+                🎈 <strong>Interest-only</strong> — the balance never pays down. You pay {fm(piPayment)}/mo in interest, then the full <strong>{fm(mortgage.original_amount)}</strong> is due as a balloon on {fmtDate(payoff)}. Plan to refinance or sell before then.
+              </div>
+            )}
+            {escrow > 1 && !interestOnly && (
               <div style={{ padding: '9px 16px', fontSize: '11.5px', color: 'var(--text3)', borderBottom: '0.5px solid var(--border)', background: 'var(--bg3)' }}>
                 Your recorded payment of <strong style={{ color: 'var(--text2)' }}>{fm(mortgage.monthly_payment)}/mo</strong> includes about <strong style={{ color: 'var(--text2)' }}>{fm(escrow)}/mo</strong> in escrow (taxes &amp; insurance). The schedule below is <strong style={{ color: 'var(--text2)' }}>principal &amp; interest only</strong> — that's what pays the loan down.
               </div>

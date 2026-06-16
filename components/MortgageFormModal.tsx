@@ -24,11 +24,11 @@ export default function MortgageFormModal({
     interest_rate: String(mortgage.interest_rate ?? ''), term_years: String(mortgage.term_years ?? '30'),
     monthly_payment: String(mortgage.monthly_payment ?? ''), start_date: mortgage.start_date || '',
     due_day: String(mortgage.due_day ?? '1'), loan_type: mortgage.loan_type || 'conventional', is_paid_off: !!mortgage.is_paid_off,
-    balloon_date: mortgage.balloon_date || '',
+    balloon_date: mortgage.balloon_date || '', interest_only: !!mortgage.interest_only,
   } : {
     property_id: properties[0]?.id || '', lender_name: '', loan_number: '', original_amount: '', current_balance: '',
     interest_rate: '', term_years: '30', monthly_payment: '', start_date: '', due_day: '1', loan_type: 'conventional', is_paid_off: false,
-    balloon_date: '',
+    balloon_date: '', interest_only: false,
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -57,6 +57,7 @@ export default function MortgageFormModal({
       loan_type: form.loan_type,
       is_paid_off: form.is_paid_off,
       balloon_date: form.balloon_date || null,
+      interest_only: form.interest_only,
     }
     const { data, error: err } = editId
       ? await supabase.from('mortgages').update(payload).eq('id', editId).select('*, properties(address, city, state)').single()
@@ -118,6 +119,13 @@ export default function MortgageFormModal({
         <div style={g2}>
           <div><label style={lbl}>Balloon / Maturity Date</label><input className='input' type='date' value={form.balloon_date} onChange={e => set('balloon_date', e.target.value)} /></div>
           <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '8px' }}><div style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: 1.4 }}>Optional — when the full balance comes due. You&apos;ll get a Due Dates warning months ahead so there&apos;s time to refinance or sell.</div></div>
+        </div>
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <input type='checkbox' checked={form.interest_only} onChange={e => set('interest_only', e.target.checked)} style={{ width: '16px', height: '16px', accentColor: 'var(--green)' }} />
+            <span style={{ fontSize: '13px', color: 'var(--text)' }}>Interest-only loan</span>
+          </label>
+          {form.interest_only && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '5px', lineHeight: 1.4 }}>Principal never pays down — the payment is just interest, and the full balance is due at the balloon/maturity date above. Common for construction &amp; bridge loans.</div>}
         </div>
         <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '14px' }}>Tip: enter the payment you actually pay (PITI is fine). The amortization figures P&amp;I from the loan amount, rate &amp; term.</div>
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
