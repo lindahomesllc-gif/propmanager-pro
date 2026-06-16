@@ -43,7 +43,7 @@ export default function DeployPage() {
     const res = await fetch('/api/market/lookup?zip=' + zip.trim(), { headers: { Authorization: 'Bearer ' + (data.session?.access_token || '') } })
     const j = await res.json().catch(() => ({}))
     setLooking(false)
-    if (!res.ok) { setLookupMsg(j.error === 'not_configured' ? '⚙ Not set up yet — add RENTCAST_API_KEY in Vercel.' : '⚠ ' + (j.error || 'Lookup failed.')); return }
+    if (!res.ok) { setLookupMsg(j.error === 'not_configured' ? '⚙ Not set up yet — add RENTCAST_API_KEY in Vercel.' : '⚠ ' + (j.error || 'Lookup failed.') + (j.detail ? ' — ' + j.detail : '')); return }
     setBox((b: any) => ({ ...b, ...(j.price ? { maxPrice: String(Math.round(j.price)) } : {}), ...(j.rent ? { rentMode: 'amount', rentAmt: String(Math.round(j.rent)) } : {}) }))
     setLookupMsg([j.city, j.state].filter(Boolean).join(', ') + ' ' + zip.trim() + ' · ' + (j.price ? '~' + fm(j.price) + ' avg price' : 'no price') + (j.rent ? ' · ~' + fm(j.rent) + ' avg rent' : '') + ' (RentCast)')
   }
