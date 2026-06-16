@@ -87,6 +87,15 @@ export default function PropertyDetailPage({ params }) {
   const totalExp = expenses.reduce((s, x) => s + (x.amount || 0), 0)
   const equity = (p.market_value || 0) - (p.purchase_price || 0)
   const monthlyRent = leases.reduce((s, l) => s + (l.rent_amount || 0), 0)
+  // project cost breakdown (build or buy)
+  const pc = (k: string) => Number((p as any)[k]) || 0
+  const isBuild = p.deal_type === 'build'
+  const costRows: [string, number][] = isBuild
+    ? [['Land / Lot', pc('land_cost')], ['Construction', pc('construction_cost')], ['Soft costs', pc('soft_costs')], ['Closing', pc('closing_costs')], ['Financing', pc('financing_costs')]]
+    : [['Purchase Price', pc('purchase_price')], ['Rehab', pc('rehab_cost')], ['Closing', pc('closing_costs')], ['Financing', pc('financing_costs')]]
+  const totalProjectCost = costRows.reduce((s, [, v]) => s + v, 0)
+  const createdEquity = (p.market_value || 0) - totalProjectCost
+  const hasCostBreakdown = isBuild || costRows.some(([k, v]) => k !== 'Purchase Price' && v > 0)
   const extra = p.notes ? JSON.parse(p.notes.startsWith('{') ? p.notes : '{}') : {}
   const isDuplex = p.type === 'duplex' || p.type === 'multi_family'
 
@@ -317,6 +326,40 @@ export default function PropertyDetailPage({ params }) {
                 ))}
               </div>
             </div>
+
+            {hasCostBreakdown && (
+              <div style={card}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div style={secTtl}>{isBuild ? '🏗 Build / Project Costs' : '🧱 Project Costs'}</div>
+                  {isBuild && <a href={'/analyze?property=' + p.id} className='btn btn-ghost' style={{ fontSize: '11px' }}>🏗 Rent vs Sell →</a>}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
+                  {costRows.filter(([, v]) => v > 0).map(([k, v]) => (
+                    <div key={k} style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '10px 12px' }}>
+                      <div style={lbl}>{k}</div>
+                      <div style={val}>{fm(v)}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px,1fr))', gap: '10px', marginTop: '10px', paddingTop: '12px', borderTop: '0.5px solid var(--border)' }}>
+                  <div style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '10px 12px' }}>
+                    <div style={lbl}>Total Project Cost</div>
+                    <div style={{ ...val, color: 'var(--text)' }}>{fm(totalProjectCost)}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--text3)' }}>your cost basis</div>
+                  </div>
+                  <div style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '10px 12px' }}>
+                    <div style={lbl}>Created Equity</div>
+                    <div style={{ ...val, color: p.market_value ? (createdEquity >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)' }}>{p.market_value ? fm(createdEquity) : '—'}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--text3)' }}>market value − cost</div>
+                  </div>
+                  <div style={{ background: 'var(--bg3)', borderRadius: '6px', padding: '10px 12px' }}>
+                    <div style={lbl}>Cash Invested</div>
+                    <div style={{ ...val, color: 'var(--blue)' }}>{p.cash_invested ? fm(p.cash_invested) : '—'}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--text3)' }}>your out-of-pocket</div>
+                  </div>
+                </div>
+              </div>
+            )}
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={secTtl}>🏦 Mortgage{mortgages.length > 1 ? 's' : ''}</div>
