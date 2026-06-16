@@ -82,6 +82,7 @@ export default function NewExpensePage() {
                 <option value='property_tax'>Property Tax</option>
                 <option value='insurance'>Insurance</option>
                 <option value='utilities'>Utilities</option>
+                <option value='hoa'>HOA Dues</option>
                 <option value='management_fees'>Management Fees</option>
                 <option value='advertising'>Advertising</option>
                 <option value='legal_professional'>Legal & Professional</option>
