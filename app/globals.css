@@ -189,6 +189,15 @@ body {
   .nw-balance > div { min-width: 380px; }
 }
 
+/* ---- DSCR loan package: render light & document-like when printed ---- */
+@media print {
+  .dscr-doc { background: #fff !important; padding: 0 !important; }
+  .dscr-doc .dscr-card { background: #fff !important; border: 0.5px solid #cfcfcf !important; box-shadow: none !important; break-inside: avoid; }
+  .dscr-doc .dscr-box { background: #f6f6f6 !important; border-color: #e0e0e0 !important; }
+  .dscr-doc *:not(.keep-color) { color: #1a1a1a !important; }
+  .dscr-doc .lbl-muted { color: #666 !important; }
+}
+
 /* ---- Print / Save-as-PDF: hide app chrome, let content flow ---- */
 @media print {
   .app-sidebar, .mobile-bar, .sidebar-overlay, .trial-banner, .no-print { display: none !important; }

@@ -41,6 +41,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { href: '/owners',    label: 'Owner Statements', icon: '🧾' },
       { href: '/tax',       label: 'Tax Reports',icon: '▦' },
       { href: '/reports',   label: 'Reports',    icon: '▤' },
+      { href: '/dscr',      label: 'DSCR Package', icon: '📄' },
       { href: '/quickbooks',label: 'QuickBooks', icon: '↓' },
     ],
   },

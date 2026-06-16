@@ -364,7 +364,10 @@ export default function PropertyDetailPage({ params }) {
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={secTtl}>🏦 Mortgage{mortgages.length > 1 ? 's' : ''}</div>
-                <a href={'/mortgage'} className='btn btn-ghost'>Manage</a>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <a href={'/dscr?property=' + p.id} className='btn btn-ghost' style={{ fontSize: '12px' }}>📄 DSCR Package</a>
+                  <a href={'/mortgage'} className='btn btn-ghost'>Manage</a>
+                </div>
               </div>
               {mortgages.length === 0 ? (
                 <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No mortgage on this property. <span onClick={() => { setEditingMortgage(null); setShowMortgageForm(true) }} style={{ color: 'var(--green)', cursor: 'pointer', fontWeight: 600 }}>+ Add one</span></div>
