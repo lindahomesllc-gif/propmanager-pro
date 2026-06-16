@@ -178,6 +178,15 @@ body {
 /* let wide tables scroll instead of overflowing on small screens */
 @media (max-width: 768px) {
   table { display: block; overflow-x: auto; white-space: nowrap; }
+  /* The analysis tools (Analyzer/Modeler) use inline fixed grids that can't be
+     reached by a normal selector; match the serialized inline value to collapse the
+     densest 4-across input rows to 2 columns so each field stays tappable. The
+     repeat(auto-fit,minmax()) grids already reflow on their own. Desktop unaffected. */
+  [style*="1fr 1fr 1fr 1fr"] { grid-template-columns: 1fr 1fr !important; }
+  /* Dense 5-column data panels (e.g. Net Worth by Entity) scroll horizontally
+     instead of crushing their numbers — columns stay aligned with the header. */
+  .nw-balance { overflow-x: auto; }
+  .nw-balance > div { min-width: 380px; }
 }
 
 /* ---- Print / Save-as-PDF: hide app chrome, let content flow ---- */

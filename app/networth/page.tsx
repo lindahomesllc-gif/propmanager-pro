@@ -103,7 +103,7 @@ export default function NetWorthPage() {
 
             {/* Balance sheet by entity */}
             <div style={secLabel}>Net Worth by Entity</div>
-            <div style={{ ...panel, marginBottom: '24px' }}>
+            <div className='nw-balance' style={{ ...panel, marginBottom: '24px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 70px 1fr 1fr 1fr', gap: '10px', padding: '10px 16px', borderBottom: '0.5px solid var(--border)', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)' }}>
                 <div>Entity</div><div>Props</div><div style={{ textAlign: 'right' }}>Value</div><div style={{ textAlign: 'right' }}>Debt</div><div style={{ textAlign: 'right' }}>Equity</div>
               </div>
