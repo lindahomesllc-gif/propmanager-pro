@@ -32,6 +32,21 @@ export default function DeployPage() {
   const [savedAt, setSavedAt] = useState(0)
   const [pullSuggest, setPullSuggest] = useState<number | null>(null)
   const [showGuide, setShowGuide] = useState(false)
+  const [zip, setZip] = useState('')
+  const [looking, setLooking] = useState(false)
+  const [lookupMsg, setLookupMsg] = useState('')
+
+  async function doLookup() {
+    if (!/^\d{5}$/.test(zip.trim())) { setLookupMsg('Enter a 5-digit zip code.'); return }
+    setLooking(true); setLookupMsg('')
+    const { data } = await supabase.auth.getSession()
+    const res = await fetch('/api/market/lookup?zip=' + zip.trim(), { headers: { Authorization: 'Bearer ' + (data.session?.access_token || '') } })
+    const j = await res.json().catch(() => ({}))
+    setLooking(false)
+    if (!res.ok) { setLookupMsg(j.error === 'not_configured' ? '⚙ Not set up yet — add RENTCAST_API_KEY in Vercel.' : '⚠ ' + (j.error || 'Lookup failed.')); return }
+    setBox((b: any) => ({ ...b, ...(j.price ? { maxPrice: String(Math.round(j.price)) } : {}), ...(j.rent ? { rentMode: 'amount', rentAmt: String(Math.round(j.rent)) } : {}) }))
+    setLookupMsg([j.city, j.state].filter(Boolean).join(', ') + ' ' + zip.trim() + ' · ' + (j.price ? '~' + fm(j.price) + ' avg price' : 'no price') + (j.rent ? ' · ~' + fm(j.rent) + ' avg rent' : '') + ' (RentCast)')
+  }
 
   useEffect(() => {
     let saved: any = null
@@ -162,6 +177,14 @@ export default function DeployPage() {
               <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '3px' }}>Don&apos;t deploy 100% — hold ~6 months PITIA per door. Deployable now: <strong>{fm(deployable)}</strong>.</div>
             </div>
             <div style={{ marginBottom: '10px' }}><label style={lbl}>Target market / area</label><input style={inp} placeholder='e.g. Winter Garden, FL' value={box.market} onChange={e => set('market', e.target.value)} /></div>
+            <div style={{ marginBottom: '10px' }}>
+              <label style={lbl}>Auto-fill area averages (zip) <InfoTip text='Pulls the average sale price + rent for a zip from RentCast and fills Target Price + Rent. A coarse starting estimate — neighborhoods vary; validate with real comps.' /></label>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <input style={{ ...inp, width: '110px' }} placeholder='34787' value={zip} onChange={e => setZip(e.target.value)} />
+                <button onClick={doLookup} disabled={looking} className='btn btn-ghost no-print' style={{ fontSize: '12px' }}>{looking ? 'Looking…' : '📍 Get averages'}</button>
+              </div>
+              {lookupMsg && <div style={{ fontSize: '10px', color: lookupMsg.startsWith('⚠') || lookupMsg.startsWith('⚙') ? 'var(--amber)' : 'var(--text3)', marginTop: '3px' }}>{lookupMsg}</div>}
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
               <div><label style={lbl}>Target Price <InfoTip text={FIELD_TIPS.price} /></label><input style={inp} type='number' value={box.maxPrice} onChange={e => set('maxPrice', e.target.value)} /></div>
               <div><label style={lbl}>Down % <InfoTip text={FIELD_TIPS.down} /></label><input style={inp} type='number' value={box.downPct} onChange={e => set('downPct', e.target.value)} /></div>
