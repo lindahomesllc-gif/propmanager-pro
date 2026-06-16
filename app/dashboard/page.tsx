@@ -7,7 +7,8 @@ import GettingStarted from '@/components/GettingStarted'
 import GoalsCard from '@/components/GoalsCard'
 
 // Customizable dashboard: each section is a keyed widget the user can reorder or hide.
-const DEFAULT_ORDER = ['portfolio', 'goals', 'operations', 'attention', 'moves', 'rentGaps', 'thisMonth', 'rentCollection', 'rentStatus', 'quickActions', 'propertiesTenants']
+// investor-first: financial position → opportunities → goals → problems → income → ops
+const DEFAULT_ORDER = ['portfolio', 'moves', 'goals', 'attention', 'rentGaps', 'operations', 'rentCollection', 'thisMonth', 'rentStatus', 'quickActions', 'propertiesTenants']
 const WIDGET_LABELS: Record<string, string> = {
   portfolio: '📈 Portfolio', goals: '🎯 Goals', operations: '🏠 Operations',
   attention: '⚠️ Needs Attention', moves: '💡 Moves to Consider', rentGaps: '💸 Rent vs Market', thisMonth: '📅 This Month', rentCollection: '💰 Rent Collection',
@@ -130,11 +131,14 @@ export default function DashboardPage() {
   mortgages.forEach((m: any) => { if (m.property_id && !m.is_paid_off) piByProp[m.property_id] = (piByProp[m.property_id] || 0) + monthlyPI(m) * 12 })
   const balByProp2: Record<string, number> = {}
   mortgages.forEach((m: any) => { if (m.property_id && !m.is_paid_off) balByProp2[m.property_id] = (balByProp2[m.property_id] || 0) + (m.current_balance || 0) })
-  const moves = properties.flatMap((p: any) => propertyMoves({
-    id: p.id, address: p.address, value: p.market_value || p.purchase_price || 0, balance: balByProp2[p.id] || 0,
-    monthlyRent: rentByProperty[p.id] || 0, unitMarketRent: unitMarketByProp[p.id] || 0,
-    annualTax: p.annual_tax || 0, insurance: p.insurance_premium || 0, annualPI: piByProp[p.id] || 0,
-  })).slice(0, 8)
+  const moveGroups = properties.map((p: any) => ({
+    id: p.id, address: p.address,
+    list: propertyMoves({
+      id: p.id, address: p.address, value: p.market_value || p.purchase_price || 0, balance: balByProp2[p.id] || 0,
+      monthlyRent: rentByProperty[p.id] || 0, unitMarketRent: unitMarketByProp[p.id] || 0,
+      annualTax: p.annual_tax || 0, insurance: p.insurance_premium || 0, annualPI: piByProp[p.id] || 0,
+    }),
+  })).filter((g: any) => g.list.length > 0).slice(0, 6)
   // group properties by owning entity (for the vision-board roster) — only group when 2+ entities are in use
   const propGroups: [string, any[]][] = (() => {
     const g: Record<string, any[]> = {}
@@ -307,20 +311,25 @@ export default function DashboardPage() {
           <div style={secLabel}>💡 Moves to Consider</div>
           <a href='/analyze' style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none' }}>Deal Analyzer →</a>
         </div>
-        {moves.length === 0 ? (
+        {moveGroups.length === 0 ? (
           <div style={{ ...panel, padding: '16px', textAlign: 'center', color: 'var(--text3)', fontSize: '13px', marginBottom: '20px' }}>No standout moves right now — your portfolio looks balanced. 👍</div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px,1fr))', gap: '8px', marginBottom: '20px' }}>
-            {moves.map((m: any, i: number) => (
-              <a key={i} href={m.href} style={{ textDecoration: 'none' }}>
-                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid var(--green)', borderRadius: '8px', padding: '10px 14px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '16px', flexShrink: 0 }}>{m.icon}</span>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)' }}>{m.title}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{m.why}</div>
-                  </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px,1fr))', gap: '10px', marginBottom: '20px' }}>
+            {moveGroups.map((g: any) => (
+              <div key={g.id} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderLeft: '3px solid var(--green)', borderRadius: '8px', padding: '11px 14px' }}>
+                <a href={'/properties/' + g.id} style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)', textDecoration: 'none' }}>🏠 {g.address}</a>
+                <div style={{ display: 'grid', gap: '7px', marginTop: '8px' }}>
+                  {g.list.map((m: any, i: number) => (
+                    <a key={i} href={m.href} style={{ textDecoration: 'none', display: 'flex', gap: '9px', alignItems: 'flex-start' }}>
+                      <span style={{ fontSize: '15px', flexShrink: 0 }}>{m.icon}</span>
+                      <div style={{ minWidth: 0 }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>{m.label}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--text3)' }}> — {m.why}</span>
+                      </div>
+                    </a>
+                  ))}
                 </div>
-              </a>
+              </div>
             ))}
           </div>
         )}

@@ -157,11 +157,11 @@ export function propertyMoves(a: { id: string; address: string; value: number; b
   const equity = a.value - a.balance
   const roe = equity > 0 ? trueCF / equity * 100 : null
   const rentGapMo = a.unitMarketRent > 0 ? a.unitMarketRent - a.monthlyRent : 0
-  const moves: { icon: string; title: string; why: string; href: string }[] = []
-  if (rentGapMo > 25) moves.push({ icon: '💸', title: 'Raise rent · ' + a.address, why: '~' + fm(rentGapMo) + '/mo under market (' + fm(rentGapMo * 12) + '/yr)', href: '/properties/' + a.id + '?tab=units' })
-  if (a.balance === 0 && equity > 50000) moves.push({ icon: '🏦', title: 'Tap equity · ' + a.address, why: fm(equity) + ' idle — a cash-out could fund the next buy', href: '/modeler' })
-  else if (roe != null && roe < 5 && equity > 50000) moves.push({ icon: '🐌', title: 'Lazy equity · ' + a.address, why: 'equity returning only ' + roe.toFixed(0) + '% — refi or 1031 to redeploy', href: '/modeler' })
-  if (trueCF < 0) moves.push({ icon: '⚠️', title: 'Thin cash flow · ' + a.address, why: fm(trueCF / 12) + '/mo after honest reserves', href: '/analyze' })
+  const moves: { icon: string; label: string; why: string; href: string }[] = []
+  if (rentGapMo > 25) moves.push({ icon: '💸', label: 'Raise rent', why: '~' + fm(rentGapMo) + '/mo under market (' + fm(rentGapMo * 12) + '/yr)', href: '/properties/' + a.id + '?tab=units' })
+  if (a.balance === 0 && equity > 50000) moves.push({ icon: '🏦', label: 'Tap equity', why: fm(equity) + ' idle — a cash-out could fund the next buy', href: '/modeler' })
+  else if (roe != null && roe < 5 && equity > 50000) moves.push({ icon: '🐌', label: 'Lazy equity', why: 'returning only ' + roe.toFixed(0) + '% — refi or 1031 to redeploy', href: '/modeler' })
+  if (trueCF < 0) moves.push({ icon: '⚠️', label: 'Thin cash flow', why: fm(trueCF / 12) + '/mo after honest reserves', href: '/analyze' })
   return moves
 }
 
