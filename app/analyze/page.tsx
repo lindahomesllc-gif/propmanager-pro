@@ -17,6 +17,11 @@ const GLOSSARY = [
   { k: 'Expense ratio', what: 'Operating costs + reserves ÷ gross rent.', good: '35–50% is healthy; over ~60% something is heavy (taxes, insurance, mgmt).', use: 'High ratio = thin margins; find what’s bloated before you buy.' },
   { k: 'Break-even occupancy', what: 'The occupancy you need just to cover costs + the mortgage.', good: 'Lower = more cushion; under ~85% means you can absorb some vacancy.', use: 'Above ~95% and one empty month puts you underwater — risky.' },
   { k: 'Stress test', what: 'Cash flow if rent drops and your rate rises at the same time.', good: 'Still positive = durable. Goes negative = you’d feed it cash in a downturn.', use: 'Pressure-test before you buy or refinance — not after.' },
+  { k: 'Total project cost (build)', what: 'Land + construction + soft costs + closing + financing — your true all-in basis on a ground-up build.', good: 'Well below the as-built value — that gap is the equity you created.', use: 'The denominator for yield-on-cost and build margin. Get it complete or both lie.' },
+  { k: 'Created equity (build)', what: 'As-built market value − total project cost.', good: 'Positive and large — you manufactured value by building.', use: 'The reward for taking on a build vs. buying finished. Renting keeps it; selling cashes it out.' },
+  { k: 'Yield-on-cost (build)', what: 'Stabilized NOI ÷ total project cost — the “cap rate” you built.', good: '≥1–1.5% above market cap rate (~6–7%) means you built cheap equity.', use: 'If it clears market cap by a wide margin, the rent path is strong; thin spread favors selling.' },
+  { k: 'Build margin', what: 'Profit ÷ total cost if you sell at completion (after selling costs & loan payoff).', good: '≥15% is a healthy spec-build margin; under ~8% is thin for the risk.', use: 'The reward for the sell path. Compare it against the rent path’s cash flow + tax-free cash-out.' },
+  { k: 'Cash-out refi (build-to-rent)', what: 'A new permanent loan (~75% of value) pays off the construction loan; the rest is tax-free cash to you.', good: '“All capital back ♾” = you pulled out everything you put in and still cash-flow — infinite return.', use: 'The BRRRR move — recycle your cash into the next build while keeping this one.' },
 ]
 function amortizeForward(balance: number, annualRate: number, pmt: number, months: number) {
   const r = annualRate / 100 / 12
@@ -46,10 +51,12 @@ export default function AnalyzePage() {
   const [taxRate, setTaxRate] = useState('24'), [landPct, setLandPct] = useState('20')
   const [rentDrop, setRentDrop] = useState('10'), [rateUp, setRateUp] = useState('1.5')
   const [showGuide, setShowGuide] = useState(false)
+  // build-completion (rent vs sell) assumptions
+  const [projRent, setProjRent] = useState(''), [sellPct, setSellPct] = useState('7'), [refiLTV, setRefiLTV] = useState('75'), [refiRate, setRefiRate] = useState('7.5'), [refiTerm, setRefiTerm] = useState('30')
 
   useEffect(() => {
     Promise.all([
-      supabase.from('properties').select('id, address, market_value, purchase_price, annual_tax, insurance_premium, cash_invested'),
+      supabase.from('properties').select('id, address, market_value, purchase_price, annual_tax, insurance_premium, cash_invested, deal_type, land_cost, construction_cost, soft_costs, rehab_cost, closing_costs, financing_costs'),
       supabase.from('mortgages').select('*').eq('is_paid_off', false),
       supabase.from('leases').select('property_id, rent_amount, status').eq('status', 'executed'),
       supabase.from('units').select('property_id, market_rent'),
@@ -67,15 +74,15 @@ export default function AnalyzePage() {
     try {
       const s = JSON.parse(localStorage.getItem('analyzeAssumptions') || 'null')
       if (s) {
-        const A: Record<string, (v: string) => void> = { vac: setVac, maint: setMaint, capex: setCapex, mgmt: setMgmt, otherA: setOtherA, appr: setAppr, rentG: setRentG, expG: setExpG, hold: setHold, taxRate: setTaxRate, landPct: setLandPct, rentDrop: setRentDrop, rateUp: setRateUp }
+        const A: Record<string, (v: string) => void> = { vac: setVac, maint: setMaint, capex: setCapex, mgmt: setMgmt, otherA: setOtherA, appr: setAppr, rentG: setRentG, expG: setExpG, hold: setHold, taxRate: setTaxRate, landPct: setLandPct, rentDrop: setRentDrop, rateUp: setRateUp, sellPct: setSellPct, refiLTV: setRefiLTV, refiRate: setRefiRate, refiTerm: setRefiTerm }
         Object.entries(A).forEach(([k, setter]) => { if (s[k] != null) setter(String(s[k])) })
       }
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   useEffect(() => {
-    try { localStorage.setItem('analyzeAssumptions', JSON.stringify({ vac, maint, capex, mgmt, otherA, appr, rentG, expG, hold, taxRate, landPct, rentDrop, rateUp })) } catch {}
-  }, [vac, maint, capex, mgmt, otherA, appr, rentG, expG, hold, taxRate, landPct, rentDrop, rateUp])
+    try { localStorage.setItem('analyzeAssumptions', JSON.stringify({ vac, maint, capex, mgmt, otherA, appr, rentG, expG, hold, taxRate, landPct, rentDrop, rateUp, sellPct, refiLTV, refiRate, refiTerm })) } catch {}
+  }, [vac, maint, capex, mgmt, otherA, appr, rentG, expG, hold, taxRate, landPct, rentDrop, rateUp, sellPct, refiLTV, refiRate, refiTerm])
 
   const sel = properties.find(p => p.id === selId)
   const mtg = mortgages.find(m => m.property_id === selId)
@@ -84,6 +91,8 @@ export default function AnalyzePage() {
     if (!sel) return
     setTaxA(sel.annual_tax ? String(sel.annual_tax) : '')
     setInsA(sel.insurance_premium ? String(sel.insurance_premium) : '')
+    const leaseRent = leases.filter(l => l.property_id === sel.id).reduce((s, l) => s + (l.rent_amount || 0), 0)
+    setProjRent(leaseRent > 0 ? String(leaseRent) : '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selId, properties.length])
 
@@ -109,6 +118,38 @@ export default function AnalyzePage() {
   const trueCF = trueNOI - debtAnnual
   const trueCoC = cashInvested > 0 ? trueCF / cashInvested * 100 : null
   const grossCoC = cashInvested > 0 ? grossCF / cashInvested * 100 : null
+
+  // 🏗 Build completion — rent-vs-sell at completion (shown for build deals)
+  const isBuild = sel?.deal_type === 'build'
+  const pc = (k: string) => Number((sel as any)?.[k]) || 0
+  const acquisitionCost = isBuild ? pc('land_cost') : price
+  const totalProjectCost = acquisitionCost + pc('construction_cost') + pc('soft_costs') + pc('rehab_cost') + pc('closing_costs') + pc('financing_costs')
+  const asBuilt = value
+  const payoff = balance
+  // SELL exit
+  const sellCosts = asBuilt * (N(sellPct) / 100)
+  const netAtSale = asBuilt - sellCosts - payoff                  // cash in hand after costs + loan payoff
+  const buildProfit = asBuilt - sellCosts - totalProjectCost      // profit over your basis
+  const sellMargin = totalProjectCost > 0 ? buildProfit / totalProjectCost * 100 : null
+  // RENT exit — refinance the construction loan into a permanent loan, keep & cash-flow
+  const projAnnualRent = N(projRent) * 12
+  const rentNOI = projAnnualRent - fixedOpex - projAnnualRent * reservePct
+  const yieldOnCost = totalProjectCost > 0 ? rentNOI / totalProjectCost * 100 : null
+  const newLoan = asBuilt * (N(refiLTV) / 100)
+  const refiClosingAmt = newLoan * 0.02                           // ~2% refi closing
+  const cashOut = newLoan - payoff - refiClosingAmt               // tax-free cash pulled at refi
+  const cashLeftIn = totalProjectCost - newLoan                   // your money still in the deal
+  const allCapitalBack = cashLeftIn <= 0
+  const newDebt = monthlyPI({ original_amount: newLoan, interest_rate: N(refiRate), term_years: N(refiTerm) }) * 12
+  const rentCashFlow = rentNOI - newDebt
+  const rentDSCR = newDebt > 0 ? rentNOI / newDebt : null
+  const rentCoC = cashLeftIn > 0 ? rentCashFlow / cashLeftIn * 100 : null
+  const keptEquity = asBuilt - newLoan
+  const rentWorks = rentCashFlow >= 0 && (rentDSCR == null || rentDSCR >= 1.15)
+  let buildVerdict = 'Close call — weigh tax-free cash + ongoing cash flow (rent) against one-time profit (sell).'
+  let buildVColor = 'var(--amber)'
+  if (rentWorks && (allCapitalBack || (rentCoC ?? 0) >= 8)) { buildVerdict = 'Lean RENT & refinance — you recover most/all your cash tax-free and keep a cash-flowing asset plus the equity you created.'; buildVColor = 'var(--green)' }
+  else if ((sellMargin ?? 0) >= 12 && !rentWorks) { buildVerdict = 'Lean SELL — the rental wouldn’t cash-flow after refinancing, and the build margin is solid. Take the profit and redeploy.'; buildVColor = 'var(--blue)' }
 
   // 2) total return + projection
   const years = Math.min(30, Math.max(1, Math.round(N(hold))))
@@ -212,6 +253,59 @@ export default function AnalyzePage() {
               ))}
             </div>
             {cashInvested === 0 && <div style={{ fontSize: '12px', color: 'var(--amber)', marginBottom: '14px' }}>⚠ Set <strong>Cash Invested</strong> on this property (Edit) to get true cash-on-cash and total return.</div>}
+
+            {/* 🏗 BUILD COMPLETION — rent vs sell (only for build deals) */}
+            {isBuild && (
+              <div style={{ ...card, borderColor: 'var(--green)', marginBottom: '18px' }}>
+                <div style={sec}>🏗 Build Completion <span style={{ fontWeight: 400, color: 'var(--text3)', fontSize: '11px' }}>· rent it or sell it?</span></div>
+                {totalProjectCost === 0 && <div style={{ fontSize: '12px', color: 'var(--amber)', marginBottom: '10px' }}>⚠ Fill in the <strong>Project / Acquisition Costs</strong> (Edit → Basic) so total cost & created equity are real.</div>}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+                  <div><label style={lbl}>Proj. rent /mo</label><input style={inp} value={projRent} onChange={e => setProjRent(e.target.value)} /></div>
+                  <div><label style={lbl}>Sell cost %</label><input style={inp} value={sellPct} onChange={e => setSellPct(e.target.value)} /></div>
+                  <div><label style={lbl}>Refi LTV %</label><input style={inp} value={refiLTV} onChange={e => setRefiLTV(e.target.value)} /></div>
+                  <div><label style={lbl}>Refi rate %</label><input style={inp} value={refiRate} onChange={e => setRefiRate(e.target.value)} /></div>
+                  <div><label style={lbl}>Refi term</label><input style={inp} value={refiTerm} onChange={e => setRefiTerm(e.target.value)} /></div>
+                </div>
+                {/* cost/value header */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px,1fr))', gap: '8px', marginBottom: '14px' }}>
+                  {[['Total project cost', fm(totalProjectCost), 'var(--text)'], ['As-built value', fm(asBuilt), 'var(--text)'], ['Created equity', fm(asBuilt - totalProjectCost), asBuilt - totalProjectCost >= 0 ? 'var(--green)' : 'var(--red)'], ['Loan payoff', fm(payoff), 'var(--red)']].map(([l, v, c]) => (
+                    <div key={l as string} style={{ background: 'var(--bg3)', borderRadius: '8px', padding: '9px 12px' }}>
+                      <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>{l}</div>
+                      <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: c as string, marginTop: '2px' }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* the two exits side by side */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px,1fr))', gap: '12px' }}>
+                  <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--blue)', marginBottom: '8px' }}>🔴 Sell it</div>
+                    {row('Sale price (as-built)', fm(asBuilt))}
+                    {row('− selling costs', '−' + fm(sellCosts), 'var(--red)')}
+                    {row('− loan payoff', '−' + fm(payoff), 'var(--red)')}
+                    {row('Net cash at sale', fm(netAtSale), netAtSale >= 0 ? 'var(--green)' : 'var(--red)', true)}
+                    {row('Profit over cost', fm(buildProfit), buildProfit >= 0 ? 'var(--green)' : 'var(--red)', true)}
+                    {row('Build margin', sellMargin != null ? sellMargin.toFixed(1) + '%' : '—', sellMargin != null ? (sellMargin >= 15 ? 'var(--green)' : sellMargin >= 8 ? 'var(--amber)' : 'var(--red)') : 'var(--text3)', true)}
+                    <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '8px', lineHeight: 1.5 }}>One-time. A build-and-flip is often taxed as ordinary income — confirm with your CPA.</div>
+                  </div>
+                  <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--green)', marginBottom: '8px' }}>🟢 Rent it (refi & hold)</div>
+                    {row('Stabilized NOI /yr', fm(rentNOI), rentNOI >= 0 ? 'var(--text)' : 'var(--red)')}
+                    {row('Yield-on-cost', yieldOnCost != null ? yieldOnCost.toFixed(1) + '%' : '—', yieldOnCost != null ? (yieldOnCost >= 7 ? 'var(--green)' : yieldOnCost >= 5.5 ? 'var(--amber)' : 'var(--red)') : 'var(--text3)', true)}
+                    {row('New loan (' + (N(refiLTV) || 0) + '% LTV)', fm(newLoan))}
+                    {row('Cash out (tax-free)', fm(cashOut), cashOut >= 0 ? 'var(--green)' : 'var(--red)', true)}
+                    {row('Cash left in deal', allCapitalBack ? '$0 — all capital back ♾' : fm(cashLeftIn), allCapitalBack ? 'var(--green)' : 'var(--text)')}
+                    {row('Cash flow /yr', fm(rentCashFlow) + ' (' + fm(rentCashFlow / 12) + '/mo)', rentCashFlow >= 0 ? 'var(--green)' : 'var(--red)', true)}
+                    {row('DSCR', rentDSCR != null ? rentDSCR.toFixed(2) + 'x' : '—', rentDSCR != null ? (rentDSCR >= 1.25 ? 'var(--green)' : rentDSCR >= 1 ? 'var(--amber)' : 'var(--red)') : 'var(--text3)', true)}
+                    {row('Cash-on-cash', allCapitalBack ? '♾ (all cash out)' : rentCoC != null ? rentCoC.toFixed(1) + '%' : '—', allCapitalBack ? 'var(--green)' : rentCoC != null ? (rentCoC >= 8 ? 'var(--green)' : 'var(--amber)') : 'var(--text3)', true)}
+                    {row('Equity kept', fm(keptEquity), 'var(--green)')}
+                  </div>
+                </div>
+                <div style={{ marginTop: '12px', padding: '12px 14px', borderRadius: '10px', background: buildVColor === 'var(--green)' ? 'var(--green-bg)' : buildVColor === 'var(--blue)' ? 'var(--bg3)' : 'var(--amber-bg)', color: buildVColor, fontSize: '13px', fontWeight: 600, lineHeight: 1.5 }}>
+                  📋 {buildVerdict}
+                  {yieldOnCost != null && <span style={{ display: 'block', fontWeight: 400, color: 'var(--text3)', fontSize: '11px', marginTop: '4px' }}>Rule of thumb: if yield-on-cost ({yieldOnCost.toFixed(1)}%) clears the market cap rate (~6–7%) by a wide margin, you built cheap equity — renting captures it; selling cashes it out now.</span>}
+                </div>
+              </div>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px,1fr))', gap: '16px' }}>
               {/* 1. TRUE CASH FLOW */}
