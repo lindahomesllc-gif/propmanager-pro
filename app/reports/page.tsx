@@ -3,7 +3,29 @@ import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, fm, formatDate, computeReturns } from '@/lib/supabase'
 
+// one-line hover definitions for the Returns table headers
+const HDR_TIPS: Record<string, string> = {
+  Value: 'Current market value of the property.',
+  NOI: 'Net Operating Income — a year of rent minus operating expenses, before the mortgage.',
+  Cap: 'Cap Rate = NOI ÷ value. The all-cash yield. Higher = more income per dollar of value.',
+  'Debt Svc': 'Annual mortgage principal & interest.',
+  DSCR: 'Income ÷ debt payment. 1.0 covers itself; lenders like ≥1.25.',
+  'Cash Flow': "What's left after the mortgage — your spendable return (before reserves).",
+  RoE: 'Return on Equity = cash flow ÷ your equity. What your tied-up equity is earning.',
+}
+
+// plain-English learner's guide
+const GLOSSARY = [
+  { k: 'Cap Rate', what: "The property's yield if you paid all cash — NOI ÷ value.", good: 'Often ~5–8% for rentals (varies by market).', use: 'Compare deals & markets. Higher = more income per dollar of value; very high can also signal more risk or a rougher area.' },
+  { k: 'NOI', what: 'Net Operating Income — a year of rent minus operating expenses, before the mortgage.', good: 'Higher is better — it drives both value and cap rate.', use: 'The engine of the property. Raise rent or trim expenses and NOI (and the value) go up.' },
+  { k: 'Cash Flow', what: "What's left each year after the mortgage (NOI − debt payment).", good: 'Positive — money in your pocket.', use: 'Your real spendable return. Negative means the property costs you each month. (Shown before setting aside vacancy/repair reserves.)' },
+  { k: 'DSCR', what: 'Does income cover the loan? NOI ÷ debt payment (lenders often use rent ÷ full PITI).', good: '≥1.0 covers itself; lenders want ≥1.20–1.25.', use: 'How lenders qualify you (especially DSCR loans). Higher = safer and better terms.' },
+  { k: 'RoE — Return on Equity', what: 'Cash flow ÷ your equity (value − loan balance).', good: 'No fixed target — compare to what that money could earn elsewhere.', use: 'Is your trapped equity working hard? A low RoE is a nudge to refinance and pull cash out, or sell and redeploy.' },
+  { k: 'ROI — Cash-on-Cash', what: 'Annual cash flow ÷ the cash you actually put in (down payment + closing + rehab).', good: 'Many investors aim for ~8%+.', use: 'What your invested cash is earning. (Not tracked yet — say the word and I’ll add a "cash invested" field so this shows up.)' },
+]
+
 export default function ReportsPage() {
+  const [showGuide, setShowGuide] = useState(false)
   const [leases, setLeases] = useState<any[]>([])
   const [payments, setPayments] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
@@ -217,7 +239,7 @@ export default function ReportsPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead><tr style={{ borderBottom: '0.5px solid var(--border)' }}>
                   <th style={th}>Property</th>
-                  {['Value', 'NOI', 'Cap', 'Debt Svc', 'DSCR', 'Cash Flow', 'RoE'].map(h => <th key={h} style={{ ...th, textAlign: 'right' }}>{h}</th>)}
+                  {['Value', 'NOI', 'Cap', 'Debt Svc', 'DSCR', 'Cash Flow', 'RoE'].map(h => <th key={h} title={HDR_TIPS[h]} style={{ ...th, textAlign: 'right', cursor: 'help' }}>{h}{HDR_TIPS[h] ? <span style={{ color: 'var(--text3)', fontWeight: 400 }}> ⓘ</span> : null}</th>)}
                 </tr></thead>
                 <tbody>
                   {metrics.length === 0 ? (
@@ -248,6 +270,24 @@ export default function ReportsPage() {
                   </tr></tfoot>
                 )}
               </table>
+            </div>
+            {/* New-investor guide */}
+            <div style={{ marginTop: '14px' }}>
+              <button onClick={() => setShowGuide(g => !g)} className='btn btn-ghost' style={{ fontSize: '12px' }}>
+                📘 New to these numbers? {showGuide ? 'Hide guide' : 'What each one means →'}
+              </button>
+              {showGuide && (
+                <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px,1fr))', gap: '12px' }}>
+                  {GLOSSARY.map(g => (
+                    <div key={g.k} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>{g.k}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text2)', lineHeight: 1.5, marginBottom: '6px' }}><strong style={{ color: 'var(--text3)' }}>What it is:</strong> {g.what}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text2)', lineHeight: 1.5, marginBottom: '6px' }}><strong style={{ color: 'var(--text3)' }}>Good sign:</strong> {g.good}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text2)', lineHeight: 1.5 }}><strong style={{ color: 'var(--text3)' }}>How to use it:</strong> {g.use}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '12px', lineHeight: 1.6 }}>
               <strong>How these are figured:</strong> NOI = annualized in-place rent (active leases × 12) − {year} operating expenses. Cap Rate = NOI ÷ value. Debt Service &amp; DSCR use <strong>principal &amp; interest only</strong> (computed per loan, escrow excluded). Cash Flow = NOI − debt service. RoE = cash flow ÷ equity (value − loan balance). Accuracy depends on keeping rents, values &amp; expenses current. Cash flow is pre-reserves (no vacancy/capex set-aside).

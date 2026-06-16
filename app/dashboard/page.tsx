@@ -159,10 +159,10 @@ export default function DashboardPage() {
 
   const secLabel: any = { fontSize: '12px', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '10px' }
   const panel: any = { background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }
-  const Tile = ({ label, value, sub, color, href }: any) => {
+  const Tile = ({ label, value, sub, color, href, tip }: any) => {
     const inner = (
-      <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: '100%', position: 'relative' }} className={href ? 'tile-link' : ''}>
-        <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{label}{href && <span style={{ float: 'right', color: 'var(--text3)', fontWeight: 400 }}>›</span>}</div>
+      <div title={tip || undefined} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: '100%', position: 'relative', cursor: tip && !href ? 'help' : undefined }} className={href ? 'tile-link' : ''}>
+        <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{label}{tip && <span style={{ color: 'var(--text3)', fontWeight: 400 }}> ⓘ</span>}{href && <span style={{ float: 'right', color: 'var(--text3)', fontWeight: 400 }}>›</span>}</div>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 700, color, marginTop: '5px' }}>{value}</div>
         <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>{sub}</div>
       </div>
@@ -218,12 +218,12 @@ export default function DashboardPage() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
           {[
-            { label: 'Portfolio Value', value: fm(portfolioValue), sub: 'Equity: ' + fm(totalEquity), color: 'var(--text)', href: '/properties' },
-            { label: 'Mortgage Debt', value: fm(returns.totals.balance), sub: fm(returns.totals.debt) + '/yr P&I', color: 'var(--red)', href: '/mortgage' },
-            { label: 'Annual NOI', value: fm(returns.totals.noi), sub: 'rent − expenses', color: 'var(--green)', href: '/reports?tab=returns' },
-            { label: 'Cap Rate', value: returns.totals.cap.toFixed(2) + '%', sub: 'NOI ÷ value', color: 'var(--text)', href: '/reports?tab=returns' },
-            { label: 'Cash Flow', value: fm(returns.totals.cashFlow), sub: 'NOI − debt service', color: returns.totals.cashFlow >= 0 ? 'var(--green)' : 'var(--red)', href: '/reports?tab=returns' },
-            { label: 'DSCR', value: returns.totals.dscr != null ? returns.totals.dscr.toFixed(2) + 'x' : '—', sub: 'NOI ÷ debt', color: 'var(--text)', href: '/reports?tab=returns' },
+            { label: 'Portfolio Value', value: fm(portfolioValue), sub: 'Equity: ' + fm(totalEquity), color: 'var(--text)', href: '/properties', tip: 'Total market value of all your properties (your ownership share). Equity = value − loans.' },
+            { label: 'Mortgage Debt', value: fm(returns.totals.balance), sub: fm(returns.totals.debt) + '/yr P&I', color: 'var(--red)', href: '/mortgage', tip: 'Total you still owe across all loans. The /yr figure is annual principal & interest.' },
+            { label: 'Annual NOI', value: fm(returns.totals.noi), sub: 'rent − expenses', color: 'var(--green)', href: '/reports?tab=returns', tip: 'Net Operating Income — a year of rent minus operating expenses, before the mortgage. The engine of value.' },
+            { label: 'Cap Rate', value: returns.totals.cap.toFixed(2) + '%', sub: 'NOI ÷ value', color: 'var(--text)', href: '/reports?tab=returns', tip: 'NOI ÷ value — the all-cash yield. Compare deals; higher = more income per dollar of value.' },
+            { label: 'Cash Flow', value: fm(returns.totals.cashFlow), sub: 'NOI − debt service', color: returns.totals.cashFlow >= 0 ? 'var(--green)' : 'var(--red)', href: '/reports?tab=returns', tip: "What's left after the mortgage — your spendable return (before vacancy/repair reserves)." },
+            { label: 'DSCR', value: returns.totals.dscr != null ? returns.totals.dscr.toFixed(2) + 'x' : '—', sub: 'NOI ÷ debt', color: 'var(--text)', href: '/reports?tab=returns', tip: 'Income ÷ debt payment. 1.0 covers itself; lenders like ≥1.25. Higher = safer.' },
           ].map(mc => <Tile key={mc.label} {...mc} />)}
         </div>
       </>
