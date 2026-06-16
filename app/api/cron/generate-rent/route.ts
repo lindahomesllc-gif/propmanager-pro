@@ -57,22 +57,22 @@ export async function GET(request: Request) {
     })
   }
 
-  // --- Recurring HOA dues: one expense per property per month (idempotent) ---
-  const [{ data: hoaProps }, { data: hoaExisting }] = await Promise.all([
-    svc.from('properties').select('id, user_id, hoa_fee, hoa_name').gt('hoa_fee', 0),
-    svc.from('expenses').select('property_id').eq('category', 'hoa').gte('expense_date', monthPrefix + '-01').lt('expense_date', nextMonthFirst),
+  // --- Recurring fixed carrying costs: HOA + 1/12 of property tax & insurance.
+  // One expense per property per category per month (idempotent). Taxes & insurance
+  // are stored annually, so we book 1/12 each month so NOI reflects them evenly. ---
+  const [{ data: recProps }, { data: recExisting }] = await Promise.all([
+    svc.from('properties').select('id, user_id, hoa_fee, hoa_name, annual_tax, insurance_premium, insurance_company'),
+    svc.from('expenses').select('property_id, category').in('category', ['hoa', 'property_tax', 'insurance']).gte('expense_date', monthPrefix + '-01').lt('expense_date', nextMonthFirst),
   ])
-  const haveHoa = new Set((hoaExisting || []).map((e: any) => e.property_id))
-  const hoaInsert = (hoaProps || []).filter((p: any) => !haveHoa.has(p.id)).map((p: any) => ({
-    user_id: p.user_id,
-    property_id: p.id,
-    category: 'hoa',
-    amount: p.hoa_fee,
-    expense_date: monthPrefix + '-01',
-    vendor_name: p.hoa_name || null,
-    description: 'HOA dues (auto)',
-    is_deductible: true,
-  }))
+  const haveRec = new Set((recExisting || []).map((e: any) => e.property_id + ':' + e.category))
+  const round2 = (n: number) => Math.round(n * 100) / 100
+  const hoaInsert: any[] = []
+  for (const p of recProps || []) {
+    const base = { user_id: p.user_id, property_id: p.id, expense_date: monthPrefix + '-01', is_deductible: true }
+    if ((p.hoa_fee || 0) > 0 && !haveRec.has(p.id + ':hoa')) hoaInsert.push({ ...base, category: 'hoa', amount: p.hoa_fee, vendor_name: p.hoa_name || null, description: 'HOA dues (auto)' })
+    if ((p.annual_tax || 0) > 0 && !haveRec.has(p.id + ':property_tax')) hoaInsert.push({ ...base, category: 'property_tax', amount: round2(p.annual_tax / 12), description: 'Property tax 1/12 (auto)' })
+    if ((p.insurance_premium || 0) > 0 && !haveRec.has(p.id + ':insurance')) hoaInsert.push({ ...base, category: 'insurance', amount: round2(p.insurance_premium / 12), vendor_name: p.insurance_company || null, description: 'Insurance 1/12 (auto)' })
+  }
 
   // Overdue unpaid charges past their grace period become 'late' (so the badge,
   // dashboard stat, and alerts reflect reality), and a late fee is applied once
@@ -98,7 +98,7 @@ export async function GET(request: Request) {
   }
 
   if (dryRun) {
-    return NextResponse.json({ status: 'dry_run', month: monthPrefix, activeLeases: (leases || []).length, wouldCreate: toInsert.length, wouldCreateHoa: hoaInsert.length, wouldMarkLate: lateNow.length, wouldApplyFees: lateNow.filter(p => feeFor(p) > 0).length, preview: toInsert })
+    return NextResponse.json({ status: 'dry_run', month: monthPrefix, activeLeases: (leases || []).length, wouldCreate: toInsert.length, wouldCreateRecurring: hoaInsert.length, wouldMarkLate: lateNow.length, wouldApplyFees: lateNow.filter(p => feeFor(p) > 0).length, preview: toInsert })
   }
 
   let created = 0
@@ -108,10 +108,10 @@ export async function GET(request: Request) {
     created = data?.length || 0
   }
 
-  let hoaCreated = 0
+  let recurringCreated = 0
   if (hoaInsert.length) {
     const { data, error } = await svc.from('expenses').insert(hoaInsert).select('id')
-    if (!error) hoaCreated = data?.length || 0
+    if (!error) recurringCreated = data?.length || 0
   }
 
   let markedLate = 0, feesApplied = 0
@@ -126,5 +126,5 @@ export async function GET(request: Request) {
     if (!uErr) { markedLate++; if (fee > 0) feesApplied++ }
   }
 
-  return NextResponse.json({ status: 'done', month: monthPrefix, activeLeases: (leases || []).length, created, hoaCreated, markedLate, feesApplied })
+  return NextResponse.json({ status: 'done', month: monthPrefix, activeLeases: (leases || []).length, created, recurringCreated, markedLate, feesApplied })
 }
