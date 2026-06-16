@@ -22,6 +22,7 @@ export default function DscrPackagePage() {
   const [term, setTerm] = useState('30')
   const [io, setIo] = useState(false)
   const [rentBasis, setRentBasis] = useState('inplace') // inplace | market
+  const [rentOverride, setRentOverride] = useState('')   // manual market/appraised rent for un-leased deals
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -57,7 +58,7 @@ export default function DscrPackagePage() {
   const value = sel?.market_value || sel?.purchase_price || 0
   const inPlaceRent = leases.filter(l => l.property_id === selId).reduce((s, l) => s + (l.rent_amount || 0), 0)
   const marketRent = units.filter(u => u.property_id === selId).reduce((s, u) => s + (u.market_rent || 0), 0)
-  const rentMo = rentBasis === 'market' ? (marketRent || inPlaceRent) : (inPlaceRent || marketRent)
+  const rentMo = N(rentOverride) > 0 ? N(rentOverride) : (rentBasis === 'market' ? (marketRent || inPlaceRent) : (inPlaceRent || marketRent))
   const loan = N(loanAmt)
   const pi = io ? loan * (N(rate) / 100 / 12) : monthlyPI({ original_amount: loan, interest_rate: N(rate), term_years: N(term) })
   const taxMo = (sel?.annual_tax || 0) / 12
@@ -128,11 +129,12 @@ export default function DscrPackagePage() {
                 <div><label style={lbl}>Rate %</label><input style={inp} value={rate} onChange={e => setRate(e.target.value)} /></div>
                 <div><label style={lbl}>Term (yrs)</label><input style={inp} value={term} onChange={e => setTerm(e.target.value)} /></div>
                 <div><label style={lbl}>Rent basis</label>
-                  <select value={rentBasis} onChange={e => setRentBasis(e.target.value)} style={inp}>
+                  <select value={rentBasis} onChange={e => setRentBasis(e.target.value)} style={inp} disabled={N(rentOverride) > 0}>
                     <option value='inplace'>In-place lease</option>
                     <option value='market'>Market rent</option>
                   </select>
                 </div>
+                <div><label style={lbl}>Rent override /mo</label><input style={inp} placeholder='if not leased' value={rentOverride} onChange={e => setRentOverride(e.target.value)} /></div>
                 <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '7px' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer', fontSize: '12px', color: 'var(--text)' }}>
                     <input type='checkbox' checked={io} onChange={e => setIo(e.target.checked)} style={{ width: '15px', height: '15px', accentColor: 'var(--green)' }} /> Interest-only
@@ -160,7 +162,7 @@ export default function DscrPackagePage() {
                 <div style={sec}>Debt Service Coverage Ratio</div>
                 <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'stretch' }}>
                   <div style={{ flex: '1 1 200px', minWidth: '180px' }}>
-                    {row('Gross monthly rent', fm(rentMo) + (rentBasis === 'market' ? ' (market)' : ''))}
+                    {row('Gross monthly rent', fm(rentMo) + (N(rentOverride) > 0 ? ' (estimated)' : rentBasis === 'market' ? ' (market)' : ''))}
                     <div style={{ height: '6px' }} />
                     {row('Principal & interest', fm(pi) + (io ? ' (IO)' : ''))}
                     {row('Property taxes ÷ 12', fm(taxMo))}
