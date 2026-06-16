@@ -24,6 +24,7 @@ export default function DscrPackagePage() {
   const [rentBasis, setRentBasis] = useState('inplace') // inplace | market
   const [rentOverride, setRentOverride] = useState('')   // manual market/appraised rent for un-leased deals
   const [includeTerms, setIncludeTerms] = useState(true) // true = full DSCR w/ my terms; false = facts-only for the lender to quote
+  const [includeEin, setIncludeEin] = useState(true)     // show borrowing entity's EIN/Tax ID on the sheet
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -31,9 +32,9 @@ export default function DscrPackagePage() {
     Promise.all([
       supabase.from('properties').select('id, address, city, state, zip, type, num_units, bedrooms, bathrooms, sqft, year_built, occupancy_status, market_value, purchase_price, annual_tax, insurance_premium, hoa, hoa_fee, hoa_name, owner_entity, entity_id'),
       supabase.from('mortgages').select('*').eq('is_paid_off', false),
-      supabase.from('leases').select('property_id, rent_amount, start_date, end_date, status, tenants(full_name)').eq('status', 'executed'),
+      supabase.from('leases').select('id, property_id, rent_amount, start_date, end_date, status, pdf_url, tenants(full_name)').eq('status', 'executed'),
       supabase.from('units').select('property_id, market_rent, label'),
-      supabase.from('entities').select('id, name'),
+      supabase.from('entities').select('id, name, ein, type, formation_state'),
     ]).then(([p, m, l, u, e]) => {
       const props = p.data || []
       setProperties(props); setMortgages(m.data || []); setLeases(l.data || []); setUnits(u.data || []); setEntities(e.data || [])
@@ -74,7 +75,10 @@ export default function DscrPackagePage() {
     : dscr >= 1 ? 'Qualifies — rent covers the payment (≥1.0×). Lenders price best at 1.25×+.'
     : 'Below 1.0× — rent does not fully cover the payment. Consider a lower loan amount or market rent if higher.'
   const propLeases = leases.filter(l => l.property_id === selId)
-  const entityName = sel?.owner_entity || entities.find(e => e.id === sel?.entity_id)?.name || ''
+  const entity = entities.find(e => e.id === sel?.entity_id)
+  const entityName = entity?.name || sel?.owner_entity || ''
+  const entityEin = entity?.ein || ''
+  const entityState = entity?.formation_state || ''
   const purposeLabel = purpose === 'cashout' ? 'Cash-out refinance' : purpose === 'refi' ? 'Rate/term refinance' : 'Purchase'
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 
@@ -143,6 +147,13 @@ export default function DscrPackagePage() {
                   </select>
                 </div>
                 <div><label style={lbl}>Rent override /mo</label><input style={inp} placeholder='if not leased' value={rentOverride} onChange={e => setRentOverride(e.target.value)} /></div>
+                {entityEin && (
+                  <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '7px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer', fontSize: '12px', color: 'var(--text)' }}>
+                      <input type='checkbox' checked={includeEin} onChange={e => setIncludeEin(e.target.checked)} style={{ width: '15px', height: '15px', accentColor: 'var(--green)' }} /> Show entity Tax ID
+                    </label>
+                  </div>
+                )}
                 {includeTerms && (
                   <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '7px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer', fontSize: '12px', color: 'var(--text)' }}>
@@ -153,6 +164,22 @@ export default function DscrPackagePage() {
               </div>
             </div>
 
+            {/* Rental agreements — download to attach to the lender's portal (not printed) */}
+            <div className='no-print' style={{ ...card }}>
+              <div style={sec}>📎 Rental Agreements <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: 'var(--text3)' }}>· download to attach to your lender</span></div>
+              {propLeases.length === 0 ? (
+                <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No executed leases on this property.</div>
+              ) : propLeases.map((l: any) => (
+                <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '9px 0', borderBottom: '0.5px solid var(--border)', flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: '13px', color: 'var(--text)' }}>{l.tenants?.full_name || 'Tenant'} · {fm(l.rent_amount)}/mo{l.end_date ? ' · thru ' + new Date(l.end_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : ''}</div>
+                  {l.pdf_url
+                    ? <a href={l.pdf_url} download className='btn btn-ghost' style={{ fontSize: '12px' }}>⬇ Download lease PDF</a>
+                    : <a href={'/leases/' + l.id} className='btn btn-ghost' style={{ fontSize: '12px', color: 'var(--amber)' }}>⚠ No PDF — upload on lease →</a>}
+                </div>
+              ))}
+              <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '10px', lineHeight: 1.5 }}>Tip: download each lease here, then attach the files in your lender&apos;s upload box. (Browsers don&apos;t allow dragging straight from one site into another.)</div>
+            </div>
+
             {/* ===== The printable package ===== */}
             <div className='dscr-doc'>
               {/* document header */}
@@ -161,7 +188,7 @@ export default function DscrPackagePage() {
                   <div>
                     <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 800, color: 'var(--text)' }}>{includeTerms ? 'DSCR Loan Qualification Summary' : 'Property & Rent Summary'}</div>
                     <div style={{ fontSize: '14px', color: 'var(--text)', marginTop: '6px', fontWeight: 600 }}>{sel.address}{sel.city ? ', ' + sel.city : ''} {sel.state} {sel.zip}</div>
-                    {entityName && <div className='lbl-muted' style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>Borrowing entity: {entityName}</div>}
+                    {entityName && <div className='lbl-muted' style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>Borrowing entity: {entityName}{entity?.type ? ' (' + entity.type.toUpperCase() + ')' : ''}{entityState ? ' · ' + entityState : ''}{includeEin && entityEin ? ' · Tax ID (EIN): ' + entityEin : ''}</div>}
                   </div>
                   <div className='lbl-muted' style={{ fontSize: '11px', color: 'var(--text3)', textAlign: 'right' }}>Prepared {today}<br />{purposeLabel}</div>
                 </div>
