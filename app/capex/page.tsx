@@ -74,7 +74,10 @@ export default function CapexPage() {
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>🔮 Replacement Planner</div>
-        <a href='/properties' className='btn btn-ghost'>Manage appliances →</a>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button onClick={() => window.print()} className='btn btn-ghost no-print'>🖨 PDF</button>
+          <a href='/properties' className='btn btn-ghost no-print'>Manage appliances →</a>
+        </div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>

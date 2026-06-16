@@ -148,11 +148,14 @@ export default function AnalyzePage() {
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>🔍 Deal Analyzer</div>
-        {properties.length > 0 && (
-          <select value={selId} onChange={e => setSelId(e.target.value)} style={{ ...inp, width: 'auto', minWidth: '220px' }}>
-            {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
-          </select>
-        )}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button onClick={() => window.print()} className='btn btn-ghost no-print'>🖨 PDF</button>
+          {properties.length > 0 && (
+            <select value={selId} onChange={e => setSelId(e.target.value)} style={{ ...inp, width: 'auto', minWidth: '220px' }}>
+              {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
+            </select>
+          )}
+        </div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>

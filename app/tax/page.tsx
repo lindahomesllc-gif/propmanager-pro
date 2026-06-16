@@ -101,7 +101,7 @@ export default function TaxPage() {
             <span style={{ fontSize: '11px', color: 'var(--text3)' }}>Land %</span>
             <input type='number' value={landPct} onChange={e => setLand(parseFloat(e.target.value) || 0)} style={{ ...sel, width: '58px' }} />
           </div>
-          <button onClick={() => window.print()} className='btn btn-ghost' style={{ fontSize: '12px' }}>🖨 Print</button>
+          <button onClick={() => window.print()} className='btn btn-ghost no-print' style={{ fontSize: '12px' }}>🖨 Print</button>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>

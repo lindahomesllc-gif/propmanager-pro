@@ -84,6 +84,7 @@ export default function NetWorthPage() {
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>🏦 Net Worth &amp; Forecast</div>
+        <button onClick={() => window.print()} className='btn btn-ghost no-print'>🖨 PDF</button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>

@@ -179,3 +179,15 @@ body {
 @media (max-width: 768px) {
   table { display: block; overflow-x: auto; white-space: nowrap; }
 }
+
+/* ---- Print / Save-as-PDF: hide app chrome, let content flow ---- */
+@media print {
+  .app-sidebar, .mobile-bar, .sidebar-overlay, .trial-banner, .no-print { display: none !important; }
+  html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
+  .app-root { height: auto !important; overflow: visible !important; display: block !important; }
+  .app-main { overflow: visible !important; display: block !important; padding-top: 0 !important; }
+  /* release the inner scroll containers so the full page prints, not one screen */
+  .app-main [style*="overflow"] { overflow: visible !important; height: auto !important; max-height: none !important; }
+  * { box-shadow: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  @page { margin: 14mm; }
+}

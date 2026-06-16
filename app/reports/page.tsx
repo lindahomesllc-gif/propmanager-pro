@@ -101,7 +101,7 @@ export default function ReportsPage() {
               {[2023, 2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           )}
-          <button className='btn btn-ghost' onClick={() => window.print()}>🖨 Print</button>
+          <button className='btn btn-ghost no-print' onClick={() => window.print()}>🖨 Print</button>
         </div>
       </div>
 
