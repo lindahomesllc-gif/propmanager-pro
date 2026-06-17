@@ -17,6 +17,7 @@ export default function ReoPage() {
   const [borrower, setBorrower] = useState('')
   const [excluded, setExcluded] = useState<Set<string>>(new Set())  // property ids left off the report
   const [detail, setDetail] = useState<'full' | 'basic'>('full')    // full = values; basic = address/entity/type only
+  const [groupBy, setGroupBy] = useState(true)                       // group rows under each entity
   const toggleProp = (id: string) => setExcluded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
 
   useEffect(() => {
@@ -42,7 +43,13 @@ export default function ReoPage() {
     return { p, value, debt, equity: value - debt, rent: rentBy(p.id), pay: payBy(p.id) }
   }).sort((a, b) => b.value - a.value)
   const rows = allRows.filter(r => !excluded.has(r.p.id))   // only the ones included on the report
-  const tot = rows.reduce((t, r) => ({ value: t.value + r.value, debt: t.debt + r.debt, equity: t.equity + r.equity, rent: t.rent + r.rent, pay: t.pay + r.pay }), { value: 0, debt: 0, equity: 0, rent: 0, pay: 0 })
+  const subtotal = (rs: typeof rows) => rs.reduce((t, r) => ({ value: t.value + r.value, debt: t.debt + r.debt, equity: t.equity + r.equity, rent: t.rent + r.rent, pay: t.pay + r.pay }), { value: 0, debt: 0, equity: 0, rent: 0, pay: 0 })
+  const tot = subtotal(rows)
+  const groupName = (p: any) => entities.find(e => e.id === p.entity_id)?.name || p.owner_entity || 'Unassigned / Self'
+  const groupMap = new Map<string, typeof rows>()
+  rows.forEach(r => { const k = groupName(r.p); if (!groupMap.has(k)) groupMap.set(k, []); (groupMap.get(k) as any).push(r) })
+  const groupNames = Array.from(groupMap.keys()).sort((a, b) => a === 'Unassigned / Self' ? 1 : b === 'Unassigned / Self' ? -1 : a.localeCompare(b))
+  const colCount = detail === 'full' ? 9 : 3
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 
   const inp: any = { padding: '7px 9px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none' }
@@ -50,6 +57,36 @@ export default function ReoPage() {
   const thL: any = { ...th, textAlign: 'left' }
   const td: any = { padding: '8px 10px', fontSize: '11.5px', color: 'var(--text)', textAlign: 'right', whiteSpace: 'nowrap' }
   const tdL: any = { ...td, textAlign: 'left' }
+  const propRow = (r: any) => (
+    <tr key={r.p.id} style={{ borderBottom: '0.5px solid var(--border)' }}>
+      <td style={tdL}><div style={{ fontWeight: 600 }}>{r.p.address}</div><div className='lbl-muted' style={{ fontSize: '10px', color: 'var(--text3)' }}>{r.p.city}{r.p.city ? ', ' : ''}{r.p.state} {r.p.zip}</div></td>
+      <td style={tdL}>{typeLabel(r.p.type)}</td>
+      <td style={tdL}>{ownerOf(r.p)}</td>
+      {detail === 'full' && <>
+        <td style={td}>{fm(r.value)}</td>
+        <td style={{ ...td, color: 'var(--red)' }}>{r.debt > 0 ? fm(r.debt) : '—'}</td>
+        <td style={{ ...td, color: r.equity >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 700 }}>{fm(r.equity)}</td>
+        <td style={{ ...td, color: r.rent > 0 ? 'var(--green)' : 'var(--text3)' }}>{r.rent > 0 ? fm(r.rent) : '—'}</td>
+        <td style={td}>{r.pay > 0 ? fm(r.pay) : '—'}</td>
+        <td style={tdL}>{r.p.type === 'primary_residence' ? 'Residence' : r.p.type === 'land' ? 'Land' : (r.p.occupancy_status === 'occupied' ? 'Rented' : 'Vacant')}</td>
+      </>}
+    </tr>
+  )
+  const totalsRow = (label: string, t: any, key: string, bold = 800) => (
+    <tr key={key} className='reo-box' style={{ background: 'var(--bg3)' }}>
+      <td style={{ ...tdL, fontWeight: bold }}>{label}</td>
+      <td style={tdL}></td>
+      <td style={tdL}></td>
+      {detail === 'full' && <>
+        <td style={{ ...td, fontWeight: bold }}>{fm(t.value)}</td>
+        <td style={{ ...td, fontWeight: bold, color: 'var(--red)' }}>{fm(t.debt)}</td>
+        <td style={{ ...td, fontWeight: bold, color: 'var(--green)' }}>{fm(t.equity)}</td>
+        <td style={{ ...td, fontWeight: bold, color: 'var(--green)' }}>{fm(t.rent)}</td>
+        <td style={{ ...td, fontWeight: bold }}>{fm(t.pay)}</td>
+        <td style={tdL}></td>
+      </>}
+    </tr>
+  )
 
   return (
     <AppShell>
@@ -68,10 +105,17 @@ export default function ReoPage() {
             <div className='no-print' style={{ background: 'var(--bg2)', border: '0.5px solid var(--green)', borderRadius: '12px', padding: '16px 18px', marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
                 <div style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)' }}>Report Options</div>
-                <div style={{ display: 'flex', background: 'var(--bg3)', borderRadius: '8px', padding: '3px', border: '0.5px solid var(--border)' }}>
-                  {([['full', 'Full (with values)'], ['basic', 'Address, entity & type only']] as const).map(([v, l]) => (
-                    <button key={v} onClick={() => setDetail(v)} style={{ padding: '5px 12px', borderRadius: '6px', border: 'none', background: detail === v ? 'var(--bg2)' : 'transparent', color: detail === v ? 'var(--text)' : 'var(--text3)', fontSize: '12px', cursor: 'pointer', fontWeight: detail === v ? 600 : 400 }}>{l}</button>
-                  ))}
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', background: 'var(--bg3)', borderRadius: '8px', padding: '3px', border: '0.5px solid var(--border)' }}>
+                    {([['full', 'Full (with values)'], ['basic', 'Address, entity & type only']] as const).map(([v, l]) => (
+                      <button key={v} onClick={() => setDetail(v)} style={{ padding: '5px 12px', borderRadius: '6px', border: 'none', background: detail === v ? 'var(--bg2)' : 'transparent', color: detail === v ? 'var(--text)' : 'var(--text3)', fontSize: '12px', cursor: 'pointer', fontWeight: detail === v ? 600 : 400 }}>{l}</button>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', background: 'var(--bg3)', borderRadius: '8px', padding: '3px', border: '0.5px solid var(--border)' }}>
+                    {([[true, '🏛 By entity'], [false, 'By value']] as const).map(([v, l]) => (
+                      <button key={String(v)} onClick={() => setGroupBy(v)} style={{ padding: '5px 12px', borderRadius: '6px', border: 'none', background: groupBy === v ? 'var(--bg2)' : 'transparent', color: groupBy === v ? 'var(--text)' : 'var(--text3)', fontSize: '12px', cursor: 'pointer', fontWeight: groupBy === v ? 600 : 400 }}>{l}</button>
+                    ))}
+                  </div>
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -113,34 +157,21 @@ export default function ReoPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map(({ p, value, debt, equity, rent, pay }) => (
-                    <tr key={p.id} style={{ borderBottom: '0.5px solid var(--border)' }}>
-                      <td style={tdL}><div style={{ fontWeight: 600 }}>{p.address}</div><div className='lbl-muted' style={{ fontSize: '10px', color: 'var(--text3)' }}>{p.city}{p.city ? ', ' : ''}{p.state} {p.zip}</div></td>
-                      <td style={tdL}>{typeLabel(p.type)}</td>
-                      <td style={tdL}>{ownerOf(p)}</td>
-                      {detail === 'full' && <>
-                        <td style={td}>{fm(value)}</td>
-                        <td style={{ ...td, color: 'var(--red)' }}>{debt > 0 ? fm(debt) : '—'}</td>
-                        <td style={{ ...td, color: equity >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 700 }}>{fm(equity)}</td>
-                        <td style={{ ...td, color: rent > 0 ? 'var(--green)' : 'var(--text3)' }}>{rent > 0 ? fm(rent) : '—'}</td>
-                        <td style={td}>{pay > 0 ? fm(pay) : '—'}</td>
-                        <td style={tdL}>{p.type === 'primary_residence' ? 'Residence' : p.type === 'land' ? 'Land' : (p.occupancy_status === 'occupied' ? 'Rented' : 'Vacant')}</td>
-                      </>}
-                    </tr>
-                  ))}
-                  {detail === 'full' && (
-                    <tr style={{ background: 'var(--bg3)' }} className='reo-box'>
-                      <td style={{ ...tdL, fontWeight: 800 }}>TOTAL</td>
-                      <td style={tdL}></td>
-                      <td style={tdL}></td>
-                      <td style={{ ...td, fontWeight: 800 }}>{fm(tot.value)}</td>
-                      <td style={{ ...td, fontWeight: 800, color: 'var(--red)' }}>{fm(tot.debt)}</td>
-                      <td style={{ ...td, fontWeight: 800, color: 'var(--green)' }}>{fm(tot.equity)}</td>
-                      <td style={{ ...td, fontWeight: 800, color: 'var(--green)' }}>{fm(tot.rent)}</td>
-                      <td style={{ ...td, fontWeight: 800 }}>{fm(tot.pay)}</td>
-                      <td style={tdL}></td>
-                    </tr>
+                  {groupBy ? (
+                    groupNames.map(name => {
+                      const grp = groupMap.get(name) as typeof rows
+                      return [
+                        <tr key={'h-' + name} style={{ background: 'var(--bg3)' }} className='reo-box'>
+                          <td colSpan={colCount} style={{ ...tdL, fontWeight: 700, fontSize: '12px', borderTop: '0.5px solid var(--border)' }}>🏛 {name} <span className='lbl-muted' style={{ fontWeight: 400, color: 'var(--text3)' }}>· {grp.length} propert{grp.length === 1 ? 'y' : 'ies'}</span></td>
+                        </tr>,
+                        ...grp.map(propRow),
+                        ...(detail === 'full' ? [totalsRow('Subtotal — ' + name, subtotal(grp), 's-' + name, 600)] : []),
+                      ]
+                    })
+                  ) : (
+                    rows.map(propRow)
                   )}
+                  {detail === 'full' && totalsRow('TOTAL — ALL PROPERTIES', tot, 'grand')}
                 </tbody>
               </table>
             </div>
