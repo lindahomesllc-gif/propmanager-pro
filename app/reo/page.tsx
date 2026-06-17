@@ -49,7 +49,7 @@ export default function ReoPage() {
   const groupMap = new Map<string, typeof rows>()
   rows.forEach(r => { const k = groupName(r.p); if (!groupMap.has(k)) groupMap.set(k, []); (groupMap.get(k) as any).push(r) })
   const groupNames = Array.from(groupMap.keys()).sort((a, b) => a === 'Unassigned / Self' ? 1 : b === 'Unassigned / Self' ? -1 : a.localeCompare(b))
-  const colCount = detail === 'full' ? 9 : 3
+  const colCount = (detail === 'full' ? 8 : 2) + (groupBy ? 0 : 1)   // Owner column only when not grouped
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 
   const inp: any = { padding: '7px 9px', fontSize: '13px', border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none' }
@@ -59,9 +59,9 @@ export default function ReoPage() {
   const tdL: any = { ...td, textAlign: 'left' }
   const propRow = (r: any) => (
     <tr key={r.p.id} style={{ borderBottom: '0.5px solid var(--border)' }}>
-      <td style={tdL}><div style={{ fontWeight: 600 }}>{r.p.address}</div><div className='lbl-muted' style={{ fontSize: '10px', color: 'var(--text3)' }}>{r.p.city}{r.p.city ? ', ' : ''}{r.p.state} {r.p.zip}</div></td>
+      <td style={tdL}><div style={{ fontWeight: 600 }}>{r.p.address}</div><div className='lbl-muted' style={{ fontSize: '10px', color: 'var(--text3)' }}>{r.p.city}{r.p.city ? ', ' : ''}{r.p.state} {r.p.zip}{r.p.ownership_percentage != null && r.p.ownership_percentage < 100 ? ' · ' + r.p.ownership_percentage + '% owned' : ''}</div></td>
       <td style={tdL}>{typeLabel(r.p.type)}</td>
-      <td style={tdL}>{ownerOf(r.p)}</td>
+      {!groupBy && <td style={tdL}>{ownerOf(r.p)}</td>}
       {detail === 'full' && <>
         <td style={td}>{fm(r.value)}</td>
         <td style={{ ...td, color: 'var(--red)' }}>{r.debt > 0 ? fm(r.debt) : '—'}</td>
@@ -76,7 +76,7 @@ export default function ReoPage() {
     <tr key={key} className='reo-box' style={{ background: 'var(--bg3)' }}>
       <td style={{ ...tdL, fontWeight: bold }}>{label}</td>
       <td style={tdL}></td>
-      <td style={tdL}></td>
+      {!groupBy && <td style={tdL}></td>}
       {detail === 'full' && <>
         <td style={{ ...td, fontWeight: bold }}>{fm(t.value)}</td>
         <td style={{ ...td, fontWeight: bold, color: 'var(--red)' }}>{fm(t.debt)}</td>
@@ -152,7 +152,7 @@ export default function ReoPage() {
                   <tr>
                     <th style={thL}>Property</th>
                     <th style={thL}>Type</th>
-                    <th style={thL}>Owner / Entity</th>
+                    {!groupBy && <th style={thL}>Owner / Entity</th>}
                     {detail === 'full' && <><th style={th}>Market Value</th><th style={th}>Loan Balance</th><th style={th}>Equity</th><th style={th}>Rent /mo</th><th style={th}>Payment /mo</th><th style={thL}>Status</th></>}
                   </tr>
                 </thead>
