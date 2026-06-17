@@ -249,6 +249,8 @@ export default function EditPropertyPage({ params }) {
                     <option value='duplex'>Duplex</option>
                     <option value='multi_family'>Multi Family</option>
                     <option value='commercial'>Commercial</option>
+                    <option value='land'>Land / Lot</option>
+                    <option value='primary_residence'>Primary Residence</option>
                   </select>
                 </div>
                 <div><label style={lbl}>Owned by (Entity)</label>

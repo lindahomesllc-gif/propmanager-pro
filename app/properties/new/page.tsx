@@ -71,7 +71,7 @@ export default function NewPropertyPage() {
         <div style={card}>
           <div style={secTtl}>Property Details</div>
           <div style={{ ...g2, marginBottom:'12px' }}>
-            <div><label style={lbl}>Type</label><select style={sel} value={form.type} onChange={e => set('type', e.target.value)}><option value="single_family">Single Family</option><option value="condo">Condo</option><option value="duplex">Duplex</option><option value="multi_family">Multi Family</option><option value="commercial">Commercial</option></select></div>
+            <div><label style={lbl}>Type</label><select style={sel} value={form.type} onChange={e => set('type', e.target.value)}><option value="single_family">Single Family</option><option value="condo">Condo</option><option value="duplex">Duplex</option><option value="multi_family">Multi Family</option><option value="commercial">Commercial</option><option value="land">Land / Lot</option><option value="primary_residence">Primary Residence</option></select></div>
             <div><label style={lbl}>Owned by (Entity)</label><select style={sel} value={form.entity_id} onChange={e => set('entity_id', e.target.value)}><option value="">— Unassigned —</option>{entities.map(en => <option key={en.id} value={en.id}>{en.name}</option>)}</select></div>
           </div>
           <div style={{ ...g3, marginBottom:'12px' }}>
