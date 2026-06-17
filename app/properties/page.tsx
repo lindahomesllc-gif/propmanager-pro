@@ -11,7 +11,7 @@ export default function PropertiesPage() {
   const [entities, setEntities] = useState<any[]>([])
   const [filterEntity, setFilterEntity] = useState('all')
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<'cards' | 'table'>('cards')
+  const [view, setView] = useState<'cards' | 'table' | 'entity'>('cards')
   const [rentByProperty, setRentByProperty] = useState<Record<string, number>>({})
 
   useEffect(() => {
@@ -25,6 +25,13 @@ export default function PropertiesPage() {
       setRentByProperty(m)
     })
   }, [])
+
+  // assign (or change) a property's entity inline from the By-Entity view
+  async function assignEntity(propertyId: string, entityId: string) {
+    const name = entities.find(e => e.id === entityId)?.name || null
+    await supabase.from('properties').update({ entity_id: entityId || null, owner_entity: name }).eq('id', propertyId)
+    setProperties(prev => prev.map(p => p.id === propertyId ? ({ ...p, entity_id: entityId || null, owner_entity: name } as any) : p))
+  }
 
   const filtered = filterEntity === 'all' ? properties
     : filterEntity === 'unassigned' ? properties.filter(p => !(p as any).entity_id)
@@ -50,9 +57,11 @@ export default function PropertiesPage() {
               {entities.map(en => <option key={en.id} value={en.id}>{en.name}</option>)}
             </select>
           )}
-          <button onClick={() => setView(v => v === 'cards' ? 'table' : 'cards')} className='btn btn-ghost'>
-            {view === 'cards' ? '☰ Table' : '⊞ Cards'}
-          </button>
+          <div style={{ display: 'flex', background: 'var(--bg3)', borderRadius: '8px', padding: '3px', border: '0.5px solid var(--border)' }}>
+            {([['cards', '⊞ Cards'], ['table', '☰ Table'], ['entity', '🏛 By Entity']] as const).map(([v, l]) => (
+              <button key={v} onClick={() => setView(v)} style={{ padding: '5px 11px', borderRadius: '6px', border: 'none', background: view === v ? 'var(--bg2)' : 'transparent', color: view === v ? 'var(--text)' : 'var(--text3)', fontSize: '12px', cursor: 'pointer', fontWeight: view === v ? 600 : 400 }}>{l}</button>
+            ))}
+          </div>
           <a href='/properties/new' className='btn btn-primary'>+ Add Property</a>
         </div>
       </div>
@@ -124,7 +133,7 @@ export default function PropertiesPage() {
               )
             })}
           </div>
-        ) : (
+        ) : view === 'table' ? (
           <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
@@ -155,6 +164,51 @@ export default function PropertiesPage() {
               </tbody>
             </table>
           </div>
+        ) : (
+          // ===== By Entity =====
+          (() => {
+            const groups = entities.map(en => ({ en, props: properties.filter(p => (p as any).entity_id === en.id) }))
+            const unassigned = properties.filter(p => !(p as any).entity_id)
+            const Row = ({ p, showAssign }: { p: any; showAssign: boolean }) => (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 14px', borderBottom: '0.5px solid var(--border)', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: '18px' }}>{typeIcon(p.type)}</div>
+                <a href={'/properties/' + p.id} style={{ textDecoration: 'none', flex: '1 1 200px', minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{p.address}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{p.city}, {p.state} · {typeLabel(p.type)}{p.ownership_percentage != null && p.ownership_percentage < 100 ? ' · ' + p.ownership_percentage + '%' : ''}</div>
+                </a>
+                <div style={{ fontSize: '13px', color: 'var(--green)', fontWeight: 600 }}>{fm(p.market_value)}</div>
+                <span className={'chip ' + (p.occupancy_status === 'occupied' ? 'chip-g' : 'chip-a')} style={{ textTransform: 'capitalize' }}>{p.occupancy_status}</span>
+                {showAssign && (
+                  <select value='' onChange={e => assignEntity(p.id, e.target.value)} className='input' style={{ width: 'auto', fontSize: '11px' }}>
+                    <option value=''>Assign entity…</option>
+                    {entities.map(en => <option key={en.id} value={en.id}>{en.name}</option>)}
+                  </select>
+                )}
+                <a href={'/properties/' + p.id + '/edit'} style={{ fontSize: '11px', color: 'var(--text2)', textDecoration: 'none' }}>Edit</a>
+              </div>
+            )
+            return (
+              <div style={{ display: 'grid', gap: '14px' }}>
+                {groups.map(({ en, props }) => (
+                  <div key={en.id} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg3)', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>🏛 {en.name} <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--text3)' }}>· {props.length} propert{props.length === 1 ? 'y' : 'ies'} · {fm(props.reduce((s: number, p: any) => s + (p.market_value || 0), 0))}</span></div>
+                      <a href={'/properties/new?entity=' + en.id} className='btn btn-ghost' style={{ fontSize: '11px' }}>+ Add property</a>
+                    </div>
+                    {props.length === 0 ? <div style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text3)' }}>No properties assigned yet.</div> : props.map((p: any) => <Row key={p.id} p={p} showAssign={false} />)}
+                  </div>
+                ))}
+                <div style={{ background: 'var(--bg2)', border: '0.5px solid ' + (unassigned.length ? 'var(--amber)' : 'var(--border)'), borderRadius: '12px', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg3)' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>🏷 Unassigned / Self <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--text3)' }}>· {unassigned.length}</span></div>
+                    <a href='/properties/new' className='btn btn-ghost' style={{ fontSize: '11px' }}>+ Add property</a>
+                  </div>
+                  {unassigned.length === 0 ? <div style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--green)' }}>Every property is assigned to an entity 🎉</div> : unassigned.map((p: any) => <Row key={p.id} p={p} showAssign={true} />)}
+                </div>
+                {entities.length === 0 && <div style={{ fontSize: '12px', color: 'var(--text3)', padding: '4px' }}>No entities yet — create them on the <a href='/entities' style={{ color: 'var(--green)' }}>Entities</a> page, then come back to assign properties.</div>}
+              </div>
+            )
+          })()
         )}
       </div>
     </AppShell>

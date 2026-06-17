@@ -16,7 +16,11 @@ export default function NewPropertyPage() {
     purchase_price: '', market_value: '',
     occupancy_status: 'vacant', notes: ''
   })
-  useEffect(() => { supabase.from('entities').select('id, name').order('name').then(({ data }) => setEntities(data || [])) }, [])
+  useEffect(() => {
+    supabase.from('entities').select('id, name').order('name').then(({ data }) => setEntities(data || []))
+    const ent = new URLSearchParams(window.location.search).get('entity')
+    if (ent) setForm(f => ({ ...f, entity_id: ent }))
+  }, [])
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
   async function save() {
     if (!form.address) { alert('Address is required'); return }
