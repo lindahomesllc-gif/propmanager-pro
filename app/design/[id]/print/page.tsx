@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { supabase, fm, formatDate } from '@/lib/supabase'
 
-const INK = '#1A1A18', MUTE = '#5A5A56', FAINT = '#9A9A96', LINE = '#E4E4E0', GREEN = '#0E9C9C'
+const INK = '#3D362E', MUTE = '#7C7264', FAINT = '#A99E8E', LINE = '#E7DECE', GREEN = '#A78A5E'
 const STATUS: Record<string, { label: string; bg: string; fg: string }> = {
   idea: { label: 'Idea', bg: '#EFEFEC', fg: '#5A5A56' },
   proposed: { label: 'Proposed', bg: '#E7EEFB', fg: '#2563EB' },

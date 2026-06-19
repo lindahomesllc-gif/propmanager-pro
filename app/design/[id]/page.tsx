@@ -688,7 +688,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                       <div style={{ height: '4px', borderRadius: '12px 12px 0 0', margin: '-16px -18px 14px', background: b.room ? ROOM_ACCENTS[Math.max(0, rooms.findIndex(r => r.id === b.id)) % ROOM_ACCENTS.length] : '#94A3B8' }} />
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
                         <div>
-                          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>{b.room ? b.room.name : '🏠 Whole-home'}{b.room?.sqft ? <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text3)' }}> · {b.room.sqft} sq ft</span> : ''}</div>
+                          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '21px', fontWeight: 600, color: 'var(--text)' }}>{b.room ? b.room.name : '🏠 Whole-home'}{b.room?.sqft ? <span style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--text3)' }}> · {b.room.sqft} sq ft</span> : ''}</div>
                           {b.room?.feel && <div style={{ fontSize: '12px', color: 'var(--text2)', marginTop: '3px', maxWidth: '600px' }}>{b.room.feel}</div>}
                         </div>
                         {b.room && (
@@ -820,7 +820,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                   if (!b.room && swatches.length === 0 && roomFins.length === 0) return null
                   return (
                     <div key={b.id || 'whole'} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '16px 18px' }}>
-                      <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>{b.room ? b.room.name : '🏠 Whole-home'}{b.room?.area ? <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text3)' }}> · {b.room.area}</span> : ''}</div>
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '21px', fontWeight: 600, color: 'var(--text)' }}>{b.room ? b.room.name : '🏠 Whole-home'}{b.room?.area ? <span style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--text3)' }}> · {b.room.area}</span> : ''}</div>
                       {b.room?.feel && <div style={{ fontSize: '12px', color: 'var(--text2)', marginTop: '3px' }}>{b.room.feel}</div>}
                       {swatches.length > 0 && (
                         <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
@@ -916,7 +916,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                         const cover = imgs[0]
                         return (
                           <div key={f.id} onClick={() => setDetailFinish(f)} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
-                            <div style={{ height: '4px', background: catColor(f.category) }} />
+                            <div style={{ height: '3px', background: catColor(f.category), opacity: 0.8 }} />
                             <div style={{ height: '120px', background: 'var(--bg3)', position: 'relative' }}>
                               {cover
                                 ? <img src={cover} alt='' style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -1146,7 +1146,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
       {finishModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }} onClick={() => setFinishModal(null)}>
           <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '24px', width: '520px', maxHeight: '92vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>{finishModal.id ? 'Edit Finish' : 'Add Finish'}</div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '22px', fontWeight: 600, color: 'var(--text)', marginBottom: '16px' }}>{finishModal.id ? 'Edit Finish' : 'Add Finish'}</div>
             {finishErr && <div style={{ background: 'var(--red-bg)', color: 'var(--red)', fontSize: '12px', padding: '10px 14px', borderRadius: '7px', marginBottom: '12px' }}>{finishErr}</div>}
 
             {/* paste-a-link importer */}
@@ -1371,7 +1371,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
               )}
               <div style={{ padding: '16px 22px 22px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>{f.name}</div>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '24px', fontWeight: 600, lineHeight: 1.1, color: 'var(--text)' }}>{f.name}</div>
                   {(f.price != null || f.actual_cost != null) && <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text)', flexShrink: 0 }}>{fm(lineAllIn(f))}</div>}
                 </div>
                 {appr && <div style={{ marginTop: '8px' }}><span className={'chip ' + (appr.decision === 'approved' ? 'chip-g' : appr.decision === 'rejected' ? 'chip-r' : 'chip-b')}>{appr.decision === 'approved' ? '✓ Client approved' : appr.decision === 'rejected' ? '✗ Client requested change' : '💬 Client commented'}</span>{appr.comment && <span style={{ fontSize: '12px', color: 'var(--text2)', marginLeft: '8px' }}>“{appr.comment}”</span>}</div>}
@@ -1414,7 +1414,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1500, padding: '16px' }} onClick={() => setPhotoPicker(null)}>
           <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '20px', width: '560px', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>📂 Reuse a photo</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '22px', fontWeight: 600, color: 'var(--text)' }}>📂 Reuse a photo</div>
               <button onClick={() => setPhotoPicker(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: '20px', cursor: 'pointer', lineHeight: 1 }}>×</button>
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '14px' }}>{photoPicker.mode === 'finish' ? 'Tap to add to this finish — no re-uploading. Added photos are checked.' : 'Tap a photo already in the project to add it to this room.'}</div>
@@ -1447,7 +1447,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }} onClick={() => setCompareGroup('')}>
             <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '22px', width: 'min(820px, 96vw)', maxHeight: '92vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '17px', fontWeight: 700, color: 'var(--text)' }}>⚖ Compare — {compareGroup}</div>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '23px', fontWeight: 600, color: 'var(--text)' }}>⚖ Compare — {compareGroup}</div>
                 <button onClick={() => setCompareGroup('')} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: '20px', cursor: 'pointer', lineHeight: 1 }}>×</button>
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '4px', marginBottom: '14px' }}>Pick the winner — it’s approved and the others are marked rejected. Reversible anytime.</div>
@@ -1494,7 +1494,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
             <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', maxWidth: '1100px', width: '100%', margin: '0 auto' }} onClick={e => e.stopPropagation()}>
               <div style={{ padding: '12px 18px', borderBottom: '0.5px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap' }}>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>✨ Vision Board — {title}</div>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '20px', fontWeight: 600, color: 'var(--text)' }}>✨ Vision Board — {title}</div>
                   <span style={{ fontSize: '10.5px', color: 'var(--text3)' }}><span style={{ display: 'inline-block', width: '9px', height: '9px', borderRadius: '2px', border: '2px solid #fff', boxShadow: '0 0 0 1px var(--border2)', verticalAlign: 'middle' }} /> inspiration · <span style={{ display: 'inline-block', width: '9px', height: '9px', borderRadius: '2px', border: '2px solid var(--green)', verticalAlign: 'middle' }} /> chosen finish · drag corner to resize</span>
                 </div>
                 <button onClick={() => setCanvasRoom(null)} className='btn btn-primary' style={{ fontSize: '12px' }}>Done</button>
@@ -1570,7 +1570,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
       {roomModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setRoomModal(null)}>
           <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '24px', width: '420px' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>{roomModal.id ? 'Edit Room' : 'Add Rooms'}</div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '22px', fontWeight: 600, color: 'var(--text)', marginBottom: '16px' }}>{roomModal.id ? 'Edit Room' : 'Add Rooms'}</div>
 
             {!roomModal.id && (
               <div style={{ marginBottom: '16px', padding: '12px 14px', background: 'var(--green-bg)', border: '0.5px solid var(--border)', borderRadius: '9px' }}>
@@ -1613,7 +1613,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
       {settingsModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }} onClick={() => setSettingsModal(null)}>
           <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '24px', width: '460px', maxHeight: '92vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>Project Settings</div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '22px', fontWeight: 600, color: 'var(--text)', marginBottom: '16px' }}>Project Settings</div>
             <div style={{ display: 'flex', gap: '12px', marginBottom: '14px', alignItems: 'center' }}>
               <div style={{ width: '70px', height: '52px', borderRadius: '8px', background: (settingsModal._coverPreview || settingsModal.cover_image_url) ? `center/cover no-repeat url(${settingsModal._coverPreview || settingsModal.cover_image_url})` : 'var(--bg3)', border: '0.5px solid var(--border2)', flexShrink: 0 }} />
               <label className='btn btn-ghost' style={{ fontSize: '11px', cursor: 'pointer' }}>
