@@ -396,6 +396,28 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
     setFinishErr(''); setImportUrl('')
     setFinishModal({ ...emptyFinish, images: [url], room_id: roomId || '' })
   }
+  // Paste an image you copied (e.g. "Copy Image" from Pinterest) onto a room's board.
+  async function pasteInspiration(roomId: string | null) {
+    try {
+      if (!navigator.clipboard || !(navigator.clipboard as any).read) { alert('This browser won’t let the app read your clipboard here. Use “＋ Add photos” to choose the file instead.'); return }
+      const data = await (navigator.clipboard as any).read()
+      const files: File[] = []
+      for (const it of data) {
+        const type = it.types.find((t: string) => t.startsWith('image/'))
+        if (type) { const blob = await it.getType(type); files.push(new File([blob], 'pasted_' + Date.now() + '.' + (type.split('/')[1] || 'png'), { type })) }
+      }
+      if (!files.length) { alert('No image found on your clipboard. Right-click a photo → “Copy Image”, then click Paste.'); return }
+      await addInspiration(roomId, files)
+    } catch {
+      alert('Couldn’t read the clipboard. Right-click the photo → “Copy Image”, then click Paste again (your browser may ask permission the first time).')
+    }
+  }
+  async function editInspoCaption(im: any) {
+    const t = window.prompt('Description for this photo:', im.notes || '')
+    if (t === null) return
+    await supabase.from('design_items').update({ notes: t.trim() || null }).eq('id', im.id)
+    load()
+  }
   async function addInspiration(roomId: string | null, files: FileList | File[]) {
     const list = Array.from(files)
     if (!list.length) return
@@ -748,17 +770,23 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                             {uploadingFor === (b.id || 'whole') ? 'Uploading…' : '＋ Add photos'}
                             <input type='file' accept='image/*' multiple style={{ display: 'none' }} onChange={e => { const fs = e.target.files; if (fs && fs.length) addInspiration(b.id, fs); e.currentTarget.value = '' }} />
                           </label>
+                          <button type='button' onClick={() => pasteInspiration(b.id)} className='btn btn-ghost' style={{ fontSize: '10px', padding: '4px 10px' }}>📋 Paste</button>
                           {allProjectPhotos.length > 0 && <button type='button' onClick={() => setPhotoPicker({ mode: 'room', roomId: b.id })} className='btn btn-ghost' style={{ fontSize: '10px', padding: '4px 10px' }}>📂 Reuse</button>}
                           {(inspo.length >= 1 || roomFinishes.length >= 1) && <button onClick={() => openCanvas(b.id)} className='btn btn-ghost' style={{ fontSize: '10px', padding: '4px 10px' }}>✨ Vision Board</button>}
                         </div>
                       </div>
                       {inspo.length > 0 ? (
-                        <div style={{ columnWidth: '165px', columnGap: '10px', marginTop: '12px' }}>
+                        <div style={{ columnWidth: '170px', columnGap: '10px', marginTop: '12px' }}>
                           {inspo.map(im => (
-                            <div key={im.id} style={{ breakInside: 'avoid', WebkitColumnBreakInside: 'avoid', marginBottom: '10px', position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 1px 4px rgba(61,54,46,0.06)' }}>
-                              <img src={im.image_url} alt='' onClick={() => setLightbox(im.image_url)} style={{ width: '100%', height: 'auto', display: 'block', cursor: 'zoom-in' }} />
-                              <button onClick={() => { if (confirm('Remove this image?')) deleteItem(im.id) }} style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '6px', width: '22px', height: '22px', cursor: 'pointer', fontSize: '13px', lineHeight: 1 }}>×</button>
-                              <button onClick={() => useInFinish(b.id, im.image_url)} title='Use as a finish' style={{ position: 'absolute', bottom: '5px', left: '5px', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '6px', padding: '2px 7px', cursor: 'pointer', fontSize: '9px' }}>→ Finish</button>
+                            <div key={im.id} style={{ breakInside: 'avoid', WebkitColumnBreakInside: 'avoid', marginBottom: '10px', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 1px 4px rgba(61,54,46,0.06)', background: '#fff' }}>
+                              <div style={{ position: 'relative' }}>
+                                <img src={im.image_url} alt='' onClick={() => setLightbox(im.image_url)} style={{ width: '100%', height: 'auto', display: 'block', cursor: 'zoom-in' }} />
+                                <button onClick={() => { if (confirm('Remove this image?')) deleteItem(im.id) }} style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '6px', width: '22px', height: '22px', cursor: 'pointer', fontSize: '13px', lineHeight: 1 }}>×</button>
+                                <button onClick={() => useInFinish(b.id, im.image_url)} title='Use as a finish' style={{ position: 'absolute', bottom: '5px', left: '5px', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '6px', padding: '2px 7px', cursor: 'pointer', fontSize: '9px' }}>→ Finish</button>
+                              </div>
+                              <div onClick={() => editInspoCaption(im)} title='Click to edit' style={{ padding: '7px 10px 8px', fontSize: '11.5px', lineHeight: 1.45, color: im.notes ? 'var(--text2)' : 'var(--text3)', cursor: 'pointer', fontStyle: im.notes ? 'normal' : 'italic' }}>
+                                {im.notes || '＋ Add description'}
+                              </div>
                             </div>
                           ))}
                         </div>

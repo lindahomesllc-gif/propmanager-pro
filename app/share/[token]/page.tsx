@@ -107,10 +107,11 @@ export default function ShareBoardPage({ params }: { params: { token: string } }
 
               {/* inspiration */}
               {ims.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px,1fr))', gap: '10px', marginBottom: '18px' }}>
+                <div style={{ columnWidth: '180px', columnGap: '12px', marginBottom: '18px' }}>
                   {ims.map((im: any) => (
-                    <div key={im.id} style={{ borderRadius: '10px', overflow: 'hidden', aspectRatio: '1', border: '0.5px solid var(--border)' }}>
-                      <img src={im.image_url} alt='' style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    <div key={im.id} style={{ breakInside: 'avoid', WebkitColumnBreakInside: 'avoid', marginBottom: '12px', borderRadius: '10px', overflow: 'hidden', border: '0.5px solid var(--border)', background: '#fff' }}>
+                      <img src={im.image_url} alt='' style={{ width: '100%', height: 'auto', display: 'block' }} />
+                      {im.notes && <div style={{ padding: '8px 11px 9px', fontSize: '12px', color: 'var(--text2)', lineHeight: 1.45 }}>{im.notes}</div>}
                     </div>
                   ))}
                 </div>
