@@ -148,6 +148,9 @@ body {
 .design-theme { --green: #A78A5E; --green-dk: #8E7349; --green-bg: rgba(167,138,94,0.14); }
 /* keep approval chips a soft sage so "approved" still reads positive against the warm palette */
 .design-theme .chip-g { --green: #5E7355; --green-bg: rgba(94,115,85,0.12); }
+/* lightly mute the louder status chips so they sit quietly on the cream */
+.design-theme .chip-b { --blue: #6E7C92; --blue-bg: rgba(110,124,146,0.12); }
+.design-theme .chip-a { --amber: #A98A52; --amber-bg: rgba(169,138,82,0.12); }
 .design-grad { background: linear-gradient(100deg, #C9B79A, #B7A07E 55%, #A78A5E); }
 .design-theme .btn-primary { background: #A78A5E; border-color: transparent; }
 .design-theme .btn-primary:hover { background: #8E7349; border-color: transparent; }

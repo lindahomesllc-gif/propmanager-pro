@@ -727,10 +727,11 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                 {project.cover_image_url ? (
                   <div style={{ position: 'relative', height: '220px', borderRadius: '12px', overflow: 'hidden', background: `center/cover no-repeat url(${project.cover_image_url})` }}>
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(40,35,28,0.5))' }} />
-                    <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '18px 22px', color: '#fff' }}>
-                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '30px', fontWeight: 600, lineHeight: 1 }}>{project.name}</div>
-                      {project.style_summary && <div style={{ fontSize: '12.5px', opacity: 0.92, marginTop: '5px', maxWidth: '560px', lineHeight: 1.5 }}>{project.style_summary}</div>}
-                    </div>
+                    {project.style_summary && (
+                      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '20px 24px', color: '#fff' }}>
+                        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '21px', fontStyle: 'italic', fontWeight: 500, lineHeight: 1.3, maxWidth: '640px' }}>{project.style_summary}</div>
+                      </div>
+                    )}
                     <label style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(255,255,255,0.9)', color: 'var(--text)', fontSize: '11px', padding: '6px 11px', borderRadius: '6px', cursor: 'pointer' }}>
                       {uploadingFor === 'cover' ? 'Uploading…' : '⤢ Change cover'}
                       <input type='file' accept='image/*' style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) setCover(f); e.currentTarget.value = '' }} />
@@ -756,7 +757,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                     const arrow: any = { background: 'rgba(255,255,255,0.65)', border: '0.5px solid var(--border)', borderRadius: '5px', width: '22px', height: '20px', fontSize: '9px', color: 'var(--text2)', cursor: 'pointer', lineHeight: 1 }
                     return (
                       <div key={'area:' + b.area} onClick={() => setCollapsedAreas(prev => { const n = new Set(prev); n.has(b.area) ? n.delete(b.area) : n.add(b.area); return n })}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', cursor: 'pointer', padding: '10px 14px', borderRadius: '10px', marginTop: '4px', border: '0.5px solid var(--border)', background: 'linear-gradient(100deg, rgba(167,138,94,0.18), rgba(201,183,154,0.12) 55%, rgba(142,115,73,0.16))' }}>
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', cursor: 'pointer', padding: '10px 14px', borderRadius: '10px', marginTop: '20px', border: '0.5px solid var(--border)', background: 'linear-gradient(100deg, rgba(167,138,94,0.18), rgba(201,183,154,0.12) 55%, rgba(142,115,73,0.16))' }}>
                         <div className='design-grad-text' style={{ fontSize: '20px', fontWeight: 600 }}>{collapsed ? '▸' : '▾'} {b.area}</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                           <div style={{ fontSize: '11px', color: 'var(--text2)' }}>{b.count} room{b.count === 1 ? '' : 's'}{b.sqft ? ' · ' + b.sqft + ' sq ft' : ''}</div>
