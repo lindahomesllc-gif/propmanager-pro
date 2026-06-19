@@ -79,6 +79,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const [roomModal, setRoomModal] = useState<any>(null)
   const [detailFinish, setDetailFinish] = useState<any>(null)
   const [lightbox, setLightbox] = useState('')
+  const [moveItem, setMoveItem] = useState<any>(null)
   const [collapsedAreas, setCollapsedAreas] = useState<Set<string>>(new Set())
   const [photoPicker, setPhotoPicker] = useState<{ mode: 'finish' | 'room'; roomId?: string | null } | null>(null)
   const [compareGroup, setCompareGroup] = useState<string>('')
@@ -417,6 +418,11 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
     if (t === null) return
     await supabase.from('design_items').update({ notes: t.trim() || null }).eq('id', im.id)
     load()
+  }
+  async function moveItemToRoom(roomId: string | null) {
+    if (!moveItem) return
+    await supabase.from('design_items').update({ room_id: roomId }).eq('id', moveItem.id)
+    setMoveItem(null); load()
   }
   async function addInspiration(roomId: string | null, files: FileList | File[]) {
     const list = Array.from(files)
@@ -783,6 +789,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                                 <img src={im.image_url} alt='' onClick={() => setLightbox(im.image_url)} style={{ width: '100%', height: 'auto', display: 'block', cursor: 'zoom-in' }} />
                                 <button onClick={() => { if (confirm('Remove this image?')) deleteItem(im.id) }} style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '6px', width: '22px', height: '22px', cursor: 'pointer', fontSize: '13px', lineHeight: 1 }}>×</button>
                                 <button onClick={() => useInFinish(b.id, im.image_url)} title='Use as a finish' style={{ position: 'absolute', bottom: '5px', left: '5px', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '6px', padding: '2px 7px', cursor: 'pointer', fontSize: '9px' }}>→ Finish</button>
+                                <button onClick={() => setMoveItem(im)} title='Move to another room' style={{ position: 'absolute', bottom: '5px', right: '5px', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '6px', padding: '2px 7px', cursor: 'pointer', fontSize: '9px' }}>⤷ Move</button>
                               </div>
                               <div onClick={() => editInspoCaption(im)} title='Click to edit' style={{ padding: '7px 10px 8px', fontSize: '11.5px', lineHeight: 1.45, color: im.notes ? 'var(--text2)' : 'var(--text3)', cursor: 'pointer', fontStyle: im.notes ? 'normal' : 'italic' }}>
                                 {im.notes || '＋ Add description'}
@@ -1585,6 +1592,30 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
           </div>
         )
       })()}
+
+      {/* ===== move photo to room ===== */}
+      {moveItem && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(40,35,28,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1600, padding: '16px' }} onClick={() => setMoveItem(null)}>
+          <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '22px', width: '380px', maxHeight: '88vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '22px', fontWeight: 600, color: 'var(--text)' }}>Move photo to…</div>
+            {moveItem.notes && <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '3px', fontStyle: 'italic' }}>“{moveItem.notes}”</div>}
+            <div style={{ display: 'grid', gap: '5px', marginTop: '16px' }}>
+              {rooms.map(r => {
+                const cur = (moveItem.room_id || null) === r.id
+                return (
+                  <button key={r.id} onClick={() => moveItemToRoom(r.id)} disabled={cur} style={{ width: '100%', textAlign: 'left', padding: '10px 13px', fontSize: '13px', background: cur ? 'var(--green-bg)' : 'var(--bg3)', color: 'var(--text)', border: '0.5px solid var(--border)', borderRadius: '8px', cursor: cur ? 'default' : 'pointer', opacity: cur ? 0.6 : 1 }}>
+                    {r.name}{r.area ? <span style={{ color: 'var(--text3)' }}> · {r.area}</span> : ''}{cur ? <span style={{ color: 'var(--text3)', fontSize: '11px' }}>  ·  current</span> : ''}
+                  </button>
+                )
+              })}
+              <button onClick={() => moveItemToRoom(null)} disabled={!moveItem.room_id} style={{ width: '100%', textAlign: 'left', padding: '10px 13px', fontSize: '13px', background: !moveItem.room_id ? 'var(--green-bg)' : 'var(--bg3)', color: 'var(--text)', border: '0.5px solid var(--border)', borderRadius: '8px', cursor: !moveItem.room_id ? 'default' : 'pointer', opacity: !moveItem.room_id ? 0.6 : 1 }}>🏠 Whole-home{!moveItem.room_id ? <span style={{ color: 'var(--text3)', fontSize: '11px' }}>  ·  current</span> : ''}</button>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+              <button onClick={() => setMoveItem(null)} className='btn btn-ghost'>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ===== lightbox ===== */}
       {lightbox && (
