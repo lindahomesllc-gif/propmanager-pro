@@ -52,7 +52,8 @@ export default function ShareBoardPage({ params }: { params: { token: string } }
     </div>
   )
 
-  const { project, rooms, items, approvals } = data
+  const { project, rooms, items, approvals, budget } = data
+  const money = (n: number) => '$' + Math.round(n || 0).toLocaleString()
   const finishes = items.filter((i: any) => i.kind === 'finish')
   const colors = (roomId: string | null) => items.filter((i: any) => i.kind === 'color' && (i.room_id || null) === (roomId || null))
   const inspo = (roomId: string | null) => items.filter((i: any) => i.kind === 'inspiration' && (i.room_id || null) === (roomId || null))
@@ -76,6 +77,20 @@ export default function ShareBoardPage({ params }: { params: { token: string } }
       </div>
 
       <div style={{ maxWidth: '960px', margin: '0 auto', padding: '24px' }}>
+        {budget && (
+          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px' }}>
+            <div>
+              <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text3)' }}>Selections total</div>
+              <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)' }}>{money(budget.allIn)}</div>
+            </div>
+            {budget.budget_total != null && (
+              <div>
+                <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text3)' }}>Budget</div>
+                <div style={{ fontSize: '22px', fontWeight: 700, color: budget.allIn > budget.budget_total ? 'var(--red)' : 'var(--green)' }}>{money(budget.budget_total)}</div>
+              </div>
+            )}
+          </div>
+        )}
         {/* name gate */}
         <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '16px 18px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           {nameSaved ? (

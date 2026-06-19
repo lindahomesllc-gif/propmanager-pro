@@ -247,6 +247,21 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
     setUploadingFor('')
     if (url) { await supabase.from('design_projects').update({ cover_image_url: url }).eq('id', pid); load() }
   }
+  async function addFloorplan(file: File) {
+    setUploadingFor('plan')
+    const url = await uploadImage(file)
+    setUploadingFor('')
+    if (url) { await supabase.from('design_projects').update({ floorplan_urls: [...(project.floorplan_urls || []), url] }).eq('id', pid); load() }
+  }
+  async function removeFloorplan(url: string) {
+    if (!confirm('Remove this floor plan?')) return
+    await supabase.from('design_projects').update({ floorplan_urls: (project.floorplan_urls || []).filter((u: string) => u !== url) }).eq('id', pid); load()
+  }
+  async function toggleShareBudget() {
+    const next = !project.share_budget
+    await supabase.from('design_projects').update({ share_budget: next }).eq('id', pid)
+    setProject((p: any) => ({ ...p, share_budget: next }))
+  }
   async function deleteRoom(r: any) {
     if (!confirm('Delete room “' + r.name + '”? Items in it will move to Whole-home.')) return
     await supabase.from('design_rooms').delete().eq('id', r.id)
@@ -819,6 +834,22 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                     </div>
                   </div>
 
+                  <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: '22px' }}>
+                    <div style={sec}>Floor plan &amp; reference</div>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                      {(project.floorplan_urls || []).map((url: string) => (
+                        <div key={url} style={{ position: 'relative', width: '160px', borderRadius: '8px', overflow: 'hidden', border: '0.5px solid var(--border)', background: '#fff' }}>
+                          <img src={url} alt='' onClick={() => setLightbox(url)} style={{ width: '100%', height: 'auto', display: 'block', cursor: 'zoom-in' }} />
+                          <button onClick={() => removeFloorplan(url)} style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '6px', width: '22px', height: '22px', cursor: 'pointer', fontSize: '13px', lineHeight: 1 }}>×</button>
+                        </div>
+                      ))}
+                      <label style={{ width: '160px', minHeight: '96px', borderRadius: '8px', border: '1px dashed var(--border2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text3)', fontSize: '12px', textAlign: 'center', padding: '8px', gap: '3px' }}>
+                        {uploadingFor === 'plan' ? 'Uploading…' : <><div style={{ fontSize: '20px' }}>＋</div>Add floor plan</>}
+                        <input type='file' accept='image/*' style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) addFloorplan(f); e.currentTarget.value = '' }} />
+                      </label>
+                    </div>
+                  </div>
+
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <button onClick={saveBrief} disabled={savingBrief} className='btn btn-primary'>{savingBrief ? 'Saving…' : 'Save brief'}</button>
                     {briefSaved && <span style={{ fontSize: '12px', color: 'var(--green)' }}>✓ Saved</span>}
@@ -1379,9 +1410,38 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                           {emailSent ? '✓ Sent to ' + emailSent : project.client_email ? 'Sends to ' + project.client_email : 'No client email saved — you’ll be asked for one.'}
                         </span>
                       </div>
+                      <div style={{ marginTop: '12px', borderTop: '0.5px solid var(--border)', paddingTop: '12px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--text2)', cursor: 'pointer' }}>
+                          <input type='checkbox' checked={!!project.share_budget} onChange={toggleShareBudget} style={{ cursor: 'pointer' }} />
+                          Show the budget total to the client on their board
+                        </label>
+                      </div>
                     </>
                   )}
                 </div>
+
+                {finishes.length > 0 && (() => {
+                  const a = { approved: 0, changes: 0, awaiting: 0 }
+                  finishes.forEach(f => { const r = latestApprovalByItem[f.id]; if (!r || r.decision === 'comment') a.awaiting++; else if (r.decision === 'approved') a.approved++; else a.changes++ })
+                  const cards = [
+                    { label: 'Approved', val: a.approved, c: 'var(--green)' },
+                    { label: 'Changes requested', val: a.changes, c: 'var(--red)' },
+                    { label: 'Awaiting response', val: a.awaiting, c: 'var(--text2)' },
+                  ]
+                  return (
+                    <div>
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '20px', fontWeight: 600, color: 'var(--text)', marginBottom: '10px' }}>Approvals at a glance</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px' }}>
+                        {cards.map(m => (
+                          <div key={m.label} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '14px 16px' }}>
+                            <div style={{ fontSize: '24px', fontWeight: 700, color: m.c }}>{m.val}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{m.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
 
                 <div>
                   <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '20px', fontWeight: 600, color: 'var(--text)', marginBottom: '10px' }}>Client responses {approvals.length > 0 && '(' + approvals.length + ')'}</div>

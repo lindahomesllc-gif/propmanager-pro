@@ -25,11 +25,24 @@ export async function GET(request: Request) {
     svc.from('design_approvals').select('id, item_id, decision, comment, client_name, created_at').eq('project_id', project.id).order('created_at', { ascending: false }),
   ])
 
-  // Only expose what the client needs (no price, no internal user_id, no emails).
+  // Budget total — only if the owner opted to show it to the client.
+  let budget: any = null
+  if (project.share_budget) {
+    const { data: priced } = await svc.from('design_items').select('price, qty, sqft, actual_cost').eq('project_id', project.id).eq('kind', 'finish')
+    const allIn = (priced || []).reduce((s: number, f: any) => {
+      if (f.actual_cost != null) return s + (Number(f.actual_cost) || 0)
+      const base = (Number(f.sqft) || 0) > 0 ? Number(f.sqft) : (f.qty == null ? 1 : Number(f.qty) || 0)
+      return s + (Number(f.price) || 0) * base
+    }, 0)
+    budget = { allIn, budget_total: project.budget_total != null ? Number(project.budget_total) : null }
+  }
+
+  // Only expose what the client needs (no per-item price, no internal user_id, no emails).
   return NextResponse.json({
     project: { name: project.name, client_name: project.client_name, address: project.address, style_summary: project.style_summary, cover_image_url: project.cover_image_url },
     rooms: rooms || [],
     items: items || [],
     approvals: approvals || [],
+    budget,
   })
 }
