@@ -64,7 +64,7 @@ export default function ShareBoardPage({ params }: { params: { token: string } }
   return (
     <div className='design-theme' style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'Plus Jakarta Sans, sans-serif', color: 'var(--text)' }}>
       {/* hero */}
-      <div style={{ background: project.cover_image_url ? `center/cover no-repeat url(${project.cover_image_url})` : 'linear-gradient(100deg, #0EA5A5, #38BDF8 55%, #FB7185)', color: '#fff' }}>
+      <div style={{ background: project.cover_image_url ? `center/cover no-repeat url(${project.cover_image_url})` : 'linear-gradient(100deg, #C9B79A, #B7A07E 55%, #A78A5E)', color: '#fff' }}>
         <div style={{ background: project.cover_image_url ? 'rgba(0,0,0,0.45)' : 'transparent', padding: '40px 24px' }}>
           <div style={{ maxWidth: '960px', margin: '0 auto' }}>
             <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.85 }}>Design Vision Board</div>

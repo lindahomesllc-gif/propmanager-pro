@@ -144,16 +144,16 @@ body {
 .input:focus { border-color: var(--green); }
 .input::placeholder { color: var(--text3); }
 
-/* ---- Design Studio theme: vibrant "Coastal" accent, scoped to /design + /share ---- */
-.design-theme { --green: #0E9C9C; --green-dk: #0B7E7E; --green-bg: rgba(14,156,156,0.12); }
-/* keep status/approval chips their semantic green (approved = green, not brand teal) */
-.design-theme .chip-g { --green: #2D6A4F; --green-bg: rgba(45,106,79,0.10); }
-.design-grad { background: linear-gradient(100deg, #0EA5A5, #38BDF8 55%, #FB7185); }
-/* go-all-in: gradient primary buttons inside the Design area */
-.design-theme .btn-primary { background: linear-gradient(100deg, #0EA5A5, #2BA8C7 52%, #FB7185); border-color: transparent; }
-.design-theme .btn-primary:hover { background: linear-gradient(100deg, #0B8E8E, #1E96B4 52%, #F2566F); border-color: transparent; }
+/* ---- Design Studio theme: warm editorial "studio" accent, scoped to /design + /share ---- */
+.design-theme { --green: #A78A5E; --green-dk: #8E7349; --green-bg: rgba(167,138,94,0.14); }
+/* keep approval chips a soft sage so "approved" still reads positive against the warm palette */
+.design-theme .chip-g { --green: #5E7355; --green-bg: rgba(94,115,85,0.12); }
+.design-grad { background: linear-gradient(100deg, #C9B79A, #B7A07E 55%, #A78A5E); }
+.design-theme .btn-primary { background: #A78A5E; border-color: transparent; }
+.design-theme .btn-primary:hover { background: #8E7349; border-color: transparent; }
 .design-grad-text {
-  background: linear-gradient(100deg, #0E9C9C, #2563EB 50%, #E0457B);
+  font-family: 'Cormorant Garamond', serif;
+  background: linear-gradient(100deg, #6E6253, #8E7349 55%, #A78A5E);
   -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent; color: transparent;
 }

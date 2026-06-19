@@ -24,13 +24,13 @@ const PRESET_COLORS = [
   '#f3e6d8', '#e6c9a8', '#c99a5b', '#b5924e', '#8c6a3a',
   '#f0dede', '#d9a9a9', '#b56b6b',
 ]
-// Rotating accent colors (Coastal palette) for room cards.
-const ROOM_ACCENTS = ['#0EA5A5', '#38BDF8', '#FB7185', '#F4C77B', '#5DCAA5', '#A78BFA']
-// A color per finish category — for the stripe on each finish card.
+// Rotating accent colors (warm earthy palette) for room cards.
+const ROOM_ACCENTS = ['#A78A5E', '#9C8A6E', '#B0A188', '#8E9279', '#C2A878', '#A88F7A']
+// A muted earth tone per finish category — for the stripe on each finish card.
 const CATEGORY_COLORS: Record<string, string> = {
-  Tile: '#0EA5A5', Paint: '#FB7185', Flooring: '#B45309', Cabinetry: '#A78BFA', Countertop: '#38BDF8',
-  Fixture: '#14B8A6', Lighting: '#F59E0B', Hardware: '#64748B', Appliance: '#6366F1', Plumbing: '#0891B2',
-  Textile: '#EC4899', Furniture: '#84CC16', Wallpaper: '#F472B6', Window: '#22D3EE', Other: '#94A3B8',
+  Tile: '#A78A5E', Paint: '#B08968', Flooring: '#8E6F4E', Cabinetry: '#9C8A6E', Countertop: '#94917F',
+  Fixture: '#A8936E', Lighting: '#C2A878', Hardware: '#7C746A', Appliance: '#8A8674', Plumbing: '#8E9279',
+  Textile: '#B59A86', Furniture: '#94A07C', Wallpaper: '#B7A07E', Window: '#9FA38C', Other: '#A99E8E',
 }
 const catColor = (c: string) => CATEGORY_COLORS[c] || '#94A3B8'
 // One-click area templates — create a whole suite of rooms at once.
@@ -623,12 +623,12 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
       <div className='design-theme' style={{ display: 'contents' }}>
       <div className='design-grad' style={{ height: '5px', flexShrink: 0 }} />
       {/* header */}
-      <div style={{ padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
+      <div style={{ padding: '14px 20px', borderBottom: '0.5px solid var(--border)', background: '#FCFAF5', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>
             <a href='/design' style={{ fontSize: '11px', color: 'var(--text3)', textDecoration: 'none' }}>← Design Studio</a>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-              <div className='design-grad-text' style={{ fontFamily: 'Syne, sans-serif', fontSize: '17px', fontWeight: 700 }}>{project?.name || '…'}</div>
+              <div className='design-grad-text' style={{ fontSize: '25px', fontWeight: 600, lineHeight: 1.05 }}>{project?.name || '…'}</div>
               {project?.status === 'archived' && <span className='chip chip-x'>Archived</span>}
               {project?.share_enabled && <span className='chip chip-g'>🔗 Shared</span>}
             </div>
@@ -653,7 +653,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px', background: 'linear-gradient(180deg, rgba(56,189,248,0.07), rgba(251,113,133,0.04) 280px, transparent 560px)' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px', background: '#F6F1E8' }}>
         {loading ? (
           <div style={{ display: 'grid', gap: '10px' }}>{[0, 1, 2].map(i => <div key={i} className='skeleton' style={{ height: '90px' }} />)}</div>
         ) : (
@@ -673,7 +673,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                     const collapsed = collapsedAreas.has(b.area)
                     return (
                       <div key={'area:' + b.area} onClick={() => setCollapsedAreas(prev => { const n = new Set(prev); n.has(b.area) ? n.delete(b.area) : n.add(b.area); return n })}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '10px 14px', borderRadius: '10px', marginTop: '4px', border: '0.5px solid var(--border)', background: 'linear-gradient(100deg, rgba(14,165,165,0.16), rgba(56,189,248,0.10) 55%, rgba(251,113,133,0.14))' }}>
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '10px 14px', borderRadius: '10px', marginTop: '4px', border: '0.5px solid var(--border)', background: 'linear-gradient(100deg, rgba(167,138,94,0.18), rgba(201,183,154,0.12) 55%, rgba(142,115,73,0.16))' }}>
                         <div className='design-grad-text' style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700 }}>{collapsed ? '▸' : '▾'} {b.area}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text2)' }}>{b.count} room{b.count === 1 ? '' : 's'}{b.sqft ? ' · ' + b.sqft + ' sq ft' : ''}</div>
                       </div>
@@ -740,30 +740,34 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                         )}
                       </div>
 
-                      {/* inspiration */}
-                      {(inspo.length >= 1 || roomFinishes.length >= 1) && (
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px', marginBottom: '-4px' }}>
-                          <button onClick={() => openCanvas(b.id)} className='btn btn-ghost' style={{ fontSize: '10px', padding: '4px 10px' }}>✨ Vision Board</button>
+                      {/* inspiration — masonry collage */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '16px', flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text3)' }}>Inspiration</div>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          <label className='btn btn-ghost' style={{ fontSize: '10px', padding: '4px 10px', cursor: 'pointer' }}>
+                            {uploadingFor === (b.id || 'whole') ? 'Uploading…' : '＋ Add photos'}
+                            <input type='file' accept='image/*' multiple style={{ display: 'none' }} onChange={e => { const fs = e.target.files; if (fs && fs.length) addInspiration(b.id, fs); e.currentTarget.value = '' }} />
+                          </label>
+                          {allProjectPhotos.length > 0 && <button type='button' onClick={() => setPhotoPicker({ mode: 'room', roomId: b.id })} className='btn btn-ghost' style={{ fontSize: '10px', padding: '4px 10px' }}>📂 Reuse</button>}
+                          {(inspo.length >= 1 || roomFinishes.length >= 1) && <button onClick={() => openCanvas(b.id)} className='btn btn-ghost' style={{ fontSize: '10px', padding: '4px 10px' }}>✨ Vision Board</button>}
                         </div>
-                      )}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px,1fr))', gap: '8px', marginTop: '12px' }}>
-                        {inspo.map(im => (
-                          <div key={im.id} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', aspectRatio: '1', border: '0.5px solid var(--border)' }}>
-                            <img src={im.image_url} alt='' onClick={() => setLightbox(im.image_url)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
-                            <button onClick={() => { if (confirm('Remove this image?')) deleteItem(im.id) }} style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '6px', width: '22px', height: '22px', cursor: 'pointer', fontSize: '13px', lineHeight: 1 }}>×</button>
-                            <button onClick={() => useInFinish(b.id, im.image_url)} title='Use as a finish' style={{ position: 'absolute', bottom: '4px', left: '4px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '6px', padding: '2px 7px', cursor: 'pointer', fontSize: '9px' }}>→ Finish</button>
-                          </div>
-                        ))}
-                        <label style={{ aspectRatio: '1', borderRadius: '8px', border: '1px dashed var(--border2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text3)', fontSize: '12px', textAlign: 'center', padding: '6px' }}>
-                          {uploadingFor === (b.id || 'whole') ? 'Uploading…' : <><div style={{ fontSize: '20px' }}>＋</div>Add photos</>}
+                      </div>
+                      {inspo.length > 0 ? (
+                        <div style={{ columnWidth: '165px', columnGap: '10px', marginTop: '12px' }}>
+                          {inspo.map(im => (
+                            <div key={im.id} style={{ breakInside: 'avoid', WebkitColumnBreakInside: 'avoid', marginBottom: '10px', position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 1px 4px rgba(61,54,46,0.06)' }}>
+                              <img src={im.image_url} alt='' onClick={() => setLightbox(im.image_url)} style={{ width: '100%', height: 'auto', display: 'block', cursor: 'zoom-in' }} />
+                              <button onClick={() => { if (confirm('Remove this image?')) deleteItem(im.id) }} style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '6px', width: '22px', height: '22px', cursor: 'pointer', fontSize: '13px', lineHeight: 1 }}>×</button>
+                              <button onClick={() => useInFinish(b.id, im.image_url)} title='Use as a finish' style={{ position: 'absolute', bottom: '5px', left: '5px', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '6px', padding: '2px 7px', cursor: 'pointer', fontSize: '9px' }}>→ Finish</button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <label style={{ display: 'block', marginTop: '12px', border: '1px dashed var(--border2)', borderRadius: '10px', padding: '26px', textAlign: 'center', color: 'var(--text3)', fontSize: '12px', cursor: 'pointer' }}>
+                          {uploadingFor === (b.id || 'whole') ? 'Uploading…' : '＋ Add inspiration photos to start the board'}
                           <input type='file' accept='image/*' multiple style={{ display: 'none' }} onChange={e => { const fs = e.target.files; if (fs && fs.length) addInspiration(b.id, fs); e.currentTarget.value = '' }} />
                         </label>
-                        {allProjectPhotos.length > 0 && (
-                          <button type='button' onClick={() => setPhotoPicker({ mode: 'room', roomId: b.id })} style={{ aspectRatio: '1', borderRadius: '8px', border: '1px dashed var(--border2)', background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text3)', fontSize: '11px', textAlign: 'center', padding: '6px' }} title='Reuse a photo already in this project'>
-                            <div style={{ fontSize: '18px' }}>📂</div>Reuse
-                          </button>
-                        )}
-                      </div>
+                      )}
 
                       {roomFinishes.length > 0 && (
                         <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '12px' }}>
