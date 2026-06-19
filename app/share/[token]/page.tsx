@@ -68,7 +68,7 @@ export default function ShareBoardPage({ params }: { params: { token: string } }
         <div style={{ background: project.cover_image_url ? 'rgba(0,0,0,0.45)' : 'transparent', padding: '40px 24px' }}>
           <div style={{ maxWidth: '960px', margin: '0 auto' }}>
             <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.85 }}>Design Vision Board</div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '30px', fontWeight: 800, marginTop: '6px' }}>{project.name}</div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '40px', fontWeight: 600, lineHeight: 1.02, marginTop: '8px' }}>{project.name}</div>
             {project.address && <div style={{ fontSize: '14px', opacity: 0.9, marginTop: '4px' }}>{project.address}</div>}
             {project.style_summary && <div style={{ fontSize: '15px', marginTop: '14px', maxWidth: '640px', lineHeight: 1.6, fontStyle: 'italic', opacity: 0.95 }}>“{project.style_summary}”</div>}
           </div>
@@ -95,7 +95,7 @@ export default function ShareBoardPage({ params }: { params: { token: string } }
           if (!b.room && cols.length === 0 && ims.length === 0 && fins.length === 0) return null
           return (
             <div key={b.id || 'whole'} style={{ marginBottom: '34px' }}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, marginBottom: '4px' }}>{b.room ? b.room.name : 'Whole-home'}</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '26px', fontWeight: 600, marginBottom: '4px' }}>{b.room ? b.room.name : 'Whole-home'}</div>
               {b.room?.feel && <div style={{ fontSize: '14px', color: 'var(--text2)', marginBottom: '14px', maxWidth: '640px', lineHeight: 1.5 }}>{b.room.feel}</div>}
 
               {/* palette */}

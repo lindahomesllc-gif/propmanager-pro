@@ -668,9 +668,9 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const lbl = { display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '4px' }
   const tabBtn = (t: string, label: string) => (
     <button onClick={() => setTab(t as any)} style={{
-      padding: '7px 14px', fontSize: '12.5px', fontWeight: tab === t ? 700 : 500, cursor: 'pointer',
-      background: tab === t ? 'var(--green-bg)' : 'transparent', border: 'none', color: tab === t ? 'var(--green)' : 'var(--text2)',
-      borderBottom: tab === t ? '2px solid var(--green)' : '2px solid transparent', borderRadius: '8px 8px 0 0', fontFamily: 'inherit',
+      padding: '8px 13px', fontSize: '11px', fontWeight: tab === t ? 600 : 500, letterSpacing: '0.09em', textTransform: 'uppercase', cursor: 'pointer',
+      background: 'transparent', border: 'none', color: tab === t ? 'var(--green)' : 'var(--text2)',
+      borderBottom: tab === t ? '2px solid var(--green)' : '2px solid transparent', fontFamily: 'inherit',
     }}>{label}</button>
   )
 
@@ -707,12 +707,12 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
         </div>
         {project?.style_summary && <div style={{ fontSize: '12px', color: 'var(--text2)', marginTop: '8px', fontStyle: 'italic', maxWidth: '720px' }}>“{project.style_summary}”</div>}
         <div style={{ display: 'flex', gap: '4px', marginTop: '10px', borderBottom: '0', marginBottom: '-12px' }}>
-          {tabBtn('moodboard', '🖼 Moodboard')}
-          {tabBtn('concept', '✨ Concept')}
-          {tabBtn('finishes', '🧱 Finishes' + (finishes.length ? ' (' + finishes.length + ')' : ''))}
-          {tabBtn('budget', '💰 Budget & ROI')}
-          {tabBtn('decisions', '📝 Decisions')}
-          {tabBtn('share', '🔗 Share' + (approvals.length ? ' (' + approvals.length + ')' : ''))}
+          {tabBtn('moodboard', 'Moodboard')}
+          {tabBtn('concept', 'Concept')}
+          {tabBtn('finishes', 'Finishes' + (finishes.length ? ' (' + finishes.length + ')' : ''))}
+          {tabBtn('budget', 'Budget & ROI')}
+          {tabBtn('decisions', 'Decisions')}
+          {tabBtn('share', 'Share' + (approvals.length ? ' (' + approvals.length + ')' : ''))}
         </div>
       </div>
 
@@ -776,7 +776,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                       <div style={{ height: '4px', borderRadius: '12px 12px 0 0', margin: '-16px -18px 14px', background: b.room ? ROOM_ACCENTS[Math.max(0, rooms.findIndex(r => r.id === b.id)) % ROOM_ACCENTS.length] : '#94A3B8' }} />
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
                         <div>
-                          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '21px', fontWeight: 600, color: 'var(--text)' }}>{b.room ? b.room.name : '🏠 Whole-home'}{b.room?.sqft ? <span style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--text3)' }}> · {b.room.sqft} sq ft</span> : ''}</div>
+                          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '21px', fontWeight: 600, color: 'var(--text)' }}>{b.room ? b.room.name : 'Whole-home'}{b.room?.sqft ? <span style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--text3)' }}> · {b.room.sqft} sq ft</span> : ''}</div>
                           {b.room?.feel && <div style={{ fontSize: '12px', color: 'var(--text2)', marginTop: '3px', maxWidth: '600px' }}>{b.room.feel}</div>}
                         </div>
                         {b.room && (
@@ -915,7 +915,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                   if (!b.room && swatches.length === 0 && roomFins.length === 0) return null
                   return (
                     <div key={b.id || 'whole'} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '16px 18px' }}>
-                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '21px', fontWeight: 600, color: 'var(--text)' }}>{b.room ? b.room.name : '🏠 Whole-home'}{b.room?.area ? <span style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--text3)' }}> · {b.room.area}</span> : ''}</div>
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '21px', fontWeight: 600, color: 'var(--text)' }}>{b.room ? b.room.name : 'Whole-home'}{b.room?.area ? <span style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: '11px', fontWeight: 500, color: 'var(--text3)' }}> · {b.room.area}</span> : ''}</div>
                       {b.room?.feel && <div style={{ fontSize: '12px', color: 'var(--text2)', marginTop: '3px' }}>{b.room.feel}</div>}
                       {swatches.length > 0 && (
                         <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
@@ -1065,7 +1065,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                 {/* budget summary */}
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>Renovation budget</div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '20px', fontWeight: 600, color: 'var(--text)' }}>Renovation budget</div>
                     <button onClick={() => setSettingsModal({ ...project })} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 12px' }}>⚙ Set budget & property</button>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px,1fr))', gap: '10px' }}>
@@ -1097,7 +1097,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                 {/* per-room breakdown */}
                 {finishes.length > 0 && (
                   <div>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', marginBottom: '10px' }}>By room</div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '20px', fontWeight: 600, color: 'var(--text)', marginBottom: '10px' }}>By room</div>
                     <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
                       {[...rooms.map(r => ({ id: r.id, name: r.name })), { id: null as any, name: 'Whole-home / Unassigned' }].map(r => {
                         const c = roomCost(r.id)
@@ -1118,7 +1118,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
 
                 {/* returns */}
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', marginBottom: '10px' }}>Return on the renovation</div>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '20px', fontWeight: 600, color: 'var(--text)', marginBottom: '10px' }}>Return on the renovation</div>
                   {!linkedProperty ? (
                     <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '20px', textAlign: 'center' }}>
                       <div style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '4px' }}>Link this project to a property to see ROI.</div>
@@ -1187,7 +1187,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                 <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '18px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
                     <div>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>Client share link</div>
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '20px', fontWeight: 600, color: 'var(--text)' }}>Client share link</div>
                       <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>A read-only board your client opens — no login. They can approve, reject or comment on each finish.</div>
                     </div>
                     <button onClick={toggleShare} className={project?.share_enabled ? 'btn btn-ghost' : 'btn btn-primary'} style={{ flexShrink: 0 }}>{project?.share_enabled ? 'Turn off' : 'Turn on sharing'}</button>
@@ -1210,7 +1210,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                 </div>
 
                 <div>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', marginBottom: '10px' }}>Client responses {approvals.length > 0 && '(' + approvals.length + ')'}</div>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '20px', fontWeight: 600, color: 'var(--text)', marginBottom: '10px' }}>Client responses {approvals.length > 0 && '(' + approvals.length + ')'}</div>
                   {approvals.length === 0 ? (
                     <div style={{ fontSize: '12px', color: 'var(--text3)', padding: '20px', textAlign: 'center', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px' }}>No responses yet. Turn on sharing and send the link.</div>
                   ) : (
@@ -1616,7 +1616,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                     )
                     if (it.kind === 'text') return (
                       <div key={it.id} onMouseDown={e => startDrag(e, it.id)} onDoubleClick={() => editBoardText(it)} title='Double-click to edit' style={{ ...base, maxWidth: '240px', background: '#fff', border: '0.5px solid var(--border2)', borderRadius: '9px', padding: '10px 13px' }}>
-                        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>{it.notes}</div>
+                        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '17px', fontWeight: 600, color: 'var(--text)' }}>{it.notes}</div>
                         <button onMouseDown={e => e.stopPropagation()} onClick={e => rm(e, it)} style={{ position: 'absolute', top: '-7px', right: '-7px', background: 'var(--text2)', color: '#fff', border: 'none', borderRadius: '50%', width: '18px', height: '18px', cursor: 'pointer', fontSize: '11px', lineHeight: 1 }}>×</button>
                       </div>
                     )

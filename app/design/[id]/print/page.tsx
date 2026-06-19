@@ -76,7 +76,7 @@ export default function DesignPrintPage({ params }: { params: { id: string } }) 
       <div style={{ maxWidth: '820px', margin: '0 auto', padding: '32px 28px 60px' }}>
         {/* header */}
         <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: GREEN }}>Design Studio · Finishes Schedule</div>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '30px', fontWeight: 800, margin: '6px 0 4px' }}>{project.name}</h1>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '30px', fontWeight: 800, margin: '6px 0 4px' }}>{project.name}</h1>
         <div style={{ fontSize: '13px', color: MUTE }}>{[project.client_name, property?.address || project.address].filter(Boolean).join(' · ')}</div>
         {project.style_summary && <div style={{ fontSize: '14px', color: INK, fontStyle: 'italic', marginTop: '12px', lineHeight: 1.6, maxWidth: '620px' }}>“{project.style_summary}”</div>}
         <div style={{ fontSize: '11px', color: FAINT, marginTop: '10px' }}>Prepared {formatDate(new Date().toISOString())}</div>
@@ -107,7 +107,7 @@ export default function DesignPrintPage({ params }: { params: { id: string } }) 
           if (!b.room && cols.length === 0 && ims.length === 0 && fins.length === 0) return null
           return (
             <div key={b.id || 'whole'} className='room' style={{ marginTop: '30px' }}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '19px', fontWeight: 700, borderBottom: '2px solid ' + GREEN, paddingBottom: '6px' }}>{b.room ? b.room.name : 'Whole-home'}</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '19px', fontWeight: 700, borderBottom: '2px solid ' + GREEN, paddingBottom: '6px' }}>{b.room ? b.room.name : 'Whole-home'}</div>
               {b.room?.feel && <div style={{ fontSize: '13px', color: MUTE, marginTop: '8px', lineHeight: 1.5 }}>{b.room.feel}</div>}
 
               {cols.length > 0 && (
@@ -183,7 +183,7 @@ export default function DesignPrintPage({ params }: { params: { id: string } }) 
 
         {finishes.length > 0 && (
           <div style={{ marginTop: '26px', paddingTop: '14px', borderTop: '2px solid ' + INK, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '15px', fontWeight: 700 }}>Project total ({finishes.length} item{finishes.length === 1 ? '' : 's'})</div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '15px', fontWeight: 700 }}>Project total ({finishes.length} item{finishes.length === 1 ? '' : 's'})</div>
             <div style={{ fontSize: '22px', fontWeight: 800 }}>{fm(allIn)}</div>
           </div>
         )}
