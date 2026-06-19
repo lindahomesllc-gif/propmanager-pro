@@ -73,6 +73,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const [taskText, setTaskText] = useState('')
   const [taskKind, setTaskKind] = useState<'task' | 'question'>('task')
   const [taskDue, setTaskDue] = useState('')
+  const [linkUrl, setLinkUrl] = useState('')
   const [notFound, setNotFound] = useState(false)
 
   // modals / editors
@@ -256,6 +257,15 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   async function removeFloorplan(url: string) {
     if (!confirm('Remove this floor plan?')) return
     await supabase.from('design_projects').update({ floorplan_urls: (project.floorplan_urls || []).filter((u: string) => u !== url) }).eq('id', pid); load()
+  }
+  async function addLink() {
+    const u = linkUrl.trim(); if (!u) return
+    setUploadingFor('link')
+    let meta: any = {}
+    try { const res = await fetch('/api/design/scrape', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: u }) }); if (res.ok) meta = await res.json() } catch {}
+    setUploadingFor('')
+    await supabase.from('design_items').insert({ project_id: pid, room_id: null, kind: 'link', supplier_url: u, name: String(meta.name || u).slice(0, 180), image_url: meta.image || null, notes: meta.site || null })
+    setLinkUrl(''); load()
   }
   async function toggleShareBudget() {
     const next = !project.share_budget
@@ -774,6 +784,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
             )}
           </div>
           <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+            <a href={'/design/' + pid + '/present'} target='_blank' className='btn btn-ghost' style={{ fontSize: '11px', padding: '6px 12px' }}>▶ Present</a>
             <a href={'/design/' + pid + '/print'} target='_blank' className='btn btn-ghost' style={{ fontSize: '11px', padding: '6px 12px' }}>⤓ PDF</a>
             <button onClick={() => setSettingsModal({ ...project })} className='btn btn-ghost' style={{ fontSize: '11px', padding: '6px 12px' }}>⚙ Settings</button>
             <button onClick={() => openFinish(null)} className='btn btn-primary' style={{ fontSize: '11px', padding: '6px 12px' }}>+ Add Finish</button>
@@ -847,6 +858,28 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                         {uploadingFor === 'plan' ? 'Uploading…' : <><div style={{ fontSize: '20px' }}>＋</div>Add floor plan</>}
                         <input type='file' accept='image/*' style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) addFloorplan(f); e.currentTarget.value = '' }} />
                       </label>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: '22px' }}>
+                    <div style={sec}>Links &amp; references</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '10px' }}>Save articles, product pages, or boards — paste a link and we’ll grab its title &amp; thumbnail.</div>
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+                      <input style={{ ...inp, flex: 1 }} placeholder='https://…' value={linkUrl} onChange={e => setLinkUrl(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addLink() }} />
+                      <button onClick={addLink} disabled={uploadingFor === 'link' || !linkUrl.trim()} className='btn btn-ghost' style={{ flexShrink: 0 }}>{uploadingFor === 'link' ? 'Saving…' : 'Add link'}</button>
+                    </div>
+                    <div style={{ display: 'grid', gap: '8px' }}>
+                      {items.filter(i => i.kind === 'link').map(l => (
+                        <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '8px' }}>
+                          <div style={{ width: '44px', height: '44px', borderRadius: '6px', flexShrink: 0, background: l.image_url ? `center/cover no-repeat url(${l.image_url})` : 'var(--bg3)', border: '0.5px solid var(--border)' }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <a href={l.supplier_url} target='_blank' style={{ fontSize: '13px', color: 'var(--text)', textDecoration: 'none', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.name}</a>
+                            <div style={{ fontSize: '10.5px', color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.notes || l.supplier_url}</div>
+                          </div>
+                          <a href={l.supplier_url} target='_blank' className='btn btn-ghost' style={{ fontSize: '10px', padding: '4px 9px', flexShrink: 0 }}>Open ↗</a>
+                          <button onClick={() => deleteItem(l.id)} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: '14px', cursor: 'pointer', flexShrink: 0 }}>×</button>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
