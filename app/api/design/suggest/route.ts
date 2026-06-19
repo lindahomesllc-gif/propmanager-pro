@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 800, messages: [{ role: 'user', content: lines.join('\n') }] }),
+      body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 800, messages: [{ role: 'user', content: lines.join('\n') }] }),
     })
     if (!res.ok) return NextResponse.json({ error: 'ai_failed' }, { status: 502 })
     const data = await res.json()
