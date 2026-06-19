@@ -179,6 +179,24 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
     await supabase.from('design_rooms').insert(t.rooms.map((name, i) => ({ project_id: pid, name, area, sort_order: base + i })))
     setRoomModal(null); load()
   }
+  // Duplicate a whole suite's room structure (names/feel/sqft) into a new area.
+  async function duplicateSuite(area: string) {
+    const suiteRooms = rooms.filter(r => (r.area || '').trim() === area)
+    if (!suiteRooms.length) return
+    const existing = new Set(rooms.map(r => (r.area || '').trim()))
+    const baseName = area.replace(/\s+\d+$/, '')
+    let n = 2, newArea = baseName + ' ' + n
+    while (existing.has(newArea)) { n++; newArea = baseName + ' ' + n }
+    const base = rooms.length
+    await supabase.from('design_rooms').insert(suiteRooms.map((r, i) => ({ project_id: pid, name: r.name, feel: r.feel, sqft: r.sqft, area: newArea, sort_order: base + i })))
+    load()
+  }
+  async function setCover(file: File) {
+    setUploadingFor('cover')
+    const url = await uploadImage(file)
+    setUploadingFor('')
+    if (url) { await supabase.from('design_projects').update({ cover_image_url: url }).eq('id', pid); load() }
+  }
   async function deleteRoom(r: any) {
     if (!confirm('Delete room “' + r.name + '”? Items in it will move to Whole-home.')) return
     await supabase.from('design_rooms').delete().eq('id', r.id)
@@ -693,6 +711,24 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
             {/* ============ MOODBOARD ============ */}
             {tab === 'moodboard' && (
               <div style={{ display: 'grid', gap: '16px' }}>
+                {project.cover_image_url ? (
+                  <div style={{ position: 'relative', height: '220px', borderRadius: '12px', overflow: 'hidden', background: `center/cover no-repeat url(${project.cover_image_url})` }}>
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(40,35,28,0.5))' }} />
+                    <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '18px 22px', color: '#fff' }}>
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '30px', fontWeight: 600, lineHeight: 1 }}>{project.name}</div>
+                      {project.style_summary && <div style={{ fontSize: '12.5px', opacity: 0.92, marginTop: '5px', maxWidth: '560px', lineHeight: 1.5 }}>{project.style_summary}</div>}
+                    </div>
+                    <label style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(255,255,255,0.9)', color: 'var(--text)', fontSize: '11px', padding: '6px 11px', borderRadius: '6px', cursor: 'pointer' }}>
+                      {uploadingFor === 'cover' ? 'Uploading…' : '⤢ Change cover'}
+                      <input type='file' accept='image/*' style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) setCover(f); e.currentTarget.value = '' }} />
+                    </label>
+                  </div>
+                ) : (
+                  <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '120px', borderRadius: '12px', border: '1px dashed var(--border2)', cursor: 'pointer', color: 'var(--text3)', fontSize: '12px', gap: '4px' }}>
+                    <div style={{ fontSize: '22px' }}>🖼</div>{uploadingFor === 'cover' ? 'Uploading…' : '＋ Add a cover photo for this project'}
+                    <input type='file' accept='image/*' style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) setCover(f); e.currentTarget.value = '' }} />
+                  </label>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ fontSize: '12px', color: 'var(--text3)' }}>Capture the feel of each room — colors, materials, and inspiration photos.</div>
                   <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
@@ -705,9 +741,12 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                     const collapsed = collapsedAreas.has(b.area)
                     return (
                       <div key={'area:' + b.area} onClick={() => setCollapsedAreas(prev => { const n = new Set(prev); n.has(b.area) ? n.delete(b.area) : n.add(b.area); return n })}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '10px 14px', borderRadius: '10px', marginTop: '4px', border: '0.5px solid var(--border)', background: 'linear-gradient(100deg, rgba(167,138,94,0.18), rgba(201,183,154,0.12) 55%, rgba(142,115,73,0.16))' }}>
-                        <div className='design-grad-text' style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700 }}>{collapsed ? '▸' : '▾'} {b.area}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text2)' }}>{b.count} room{b.count === 1 ? '' : 's'}{b.sqft ? ' · ' + b.sqft + ' sq ft' : ''}</div>
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', cursor: 'pointer', padding: '10px 14px', borderRadius: '10px', marginTop: '4px', border: '0.5px solid var(--border)', background: 'linear-gradient(100deg, rgba(167,138,94,0.18), rgba(201,183,154,0.12) 55%, rgba(142,115,73,0.16))' }}>
+                        <div className='design-grad-text' style={{ fontSize: '20px', fontWeight: 600 }}>{collapsed ? '▸' : '▾'} {b.area}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                          <div style={{ fontSize: '11px', color: 'var(--text2)' }}>{b.count} room{b.count === 1 ? '' : 's'}{b.sqft ? ' · ' + b.sqft + ' sq ft' : ''}</div>
+                          <button onClick={e => { e.stopPropagation(); duplicateSuite(b.area) }} title='Duplicate this suite' style={{ background: 'rgba(255,255,255,0.65)', border: '0.5px solid var(--border)', borderRadius: '6px', padding: '3px 9px', fontSize: '10px', color: 'var(--text2)', cursor: 'pointer' }}>⎘ Duplicate</button>
+                        </div>
                       </div>
                     )
                   }
