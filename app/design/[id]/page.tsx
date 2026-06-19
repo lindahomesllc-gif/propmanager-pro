@@ -191,6 +191,19 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
     await supabase.from('design_rooms').insert(suiteRooms.map((r, i) => ({ project_id: pid, name: r.name, feel: r.feel, sqft: r.sqft, area: newArea, sort_order: base + i })))
     load()
   }
+  // Reorder a whole suite up/down by re-sequencing every room's sort_order.
+  async function moveArea(area: string, dir: number) {
+    const order = [...areaOrder]
+    const idx = order.indexOf(area)
+    const swap = idx + dir
+    if (idx < 0 || swap < 0 || swap >= order.length) return
+    ;[order[idx], order[swap]] = [order[swap], order[idx]]
+    let so = 0
+    const updates: { id: string; sort_order: number }[] = []
+    for (const a of order) for (const r of (roomsByArea[a] || [])) updates.push({ id: r.id, sort_order: so++ })
+    await Promise.all(updates.map(u => supabase.from('design_rooms').update({ sort_order: u.sort_order }).eq('id', u.id)))
+    load()
+  }
   async function setCover(file: File) {
     setUploadingFor('cover')
     const url = await uploadImage(file)
@@ -739,12 +752,16 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                 {buckets.map(b => {
                   if (b.type === 'area') {
                     const collapsed = collapsedAreas.has(b.area)
+                    const ai = areaOrder.indexOf(b.area)
+                    const arrow: any = { background: 'rgba(255,255,255,0.65)', border: '0.5px solid var(--border)', borderRadius: '5px', width: '22px', height: '20px', fontSize: '9px', color: 'var(--text2)', cursor: 'pointer', lineHeight: 1 }
                     return (
                       <div key={'area:' + b.area} onClick={() => setCollapsedAreas(prev => { const n = new Set(prev); n.has(b.area) ? n.delete(b.area) : n.add(b.area); return n })}
                         style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', cursor: 'pointer', padding: '10px 14px', borderRadius: '10px', marginTop: '4px', border: '0.5px solid var(--border)', background: 'linear-gradient(100deg, rgba(167,138,94,0.18), rgba(201,183,154,0.12) 55%, rgba(142,115,73,0.16))' }}>
                         <div className='design-grad-text' style={{ fontSize: '20px', fontWeight: 600 }}>{collapsed ? '▸' : '▾'} {b.area}</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                           <div style={{ fontSize: '11px', color: 'var(--text2)' }}>{b.count} room{b.count === 1 ? '' : 's'}{b.sqft ? ' · ' + b.sqft + ' sq ft' : ''}</div>
+                          <button onClick={e => { e.stopPropagation(); moveArea(b.area, -1) }} disabled={ai <= 0} title='Move suite up' style={{ ...arrow, opacity: ai <= 0 ? 0.35 : 1 }}>▲</button>
+                          <button onClick={e => { e.stopPropagation(); moveArea(b.area, 1) }} disabled={ai >= areaOrder.length - 1} title='Move suite down' style={{ ...arrow, opacity: ai >= areaOrder.length - 1 ? 0.35 : 1 }}>▼</button>
                           <button onClick={e => { e.stopPropagation(); duplicateSuite(b.area) }} title='Duplicate this suite' style={{ background: 'rgba(255,255,255,0.65)', border: '0.5px solid var(--border)', borderRadius: '6px', padding: '3px 9px', fontSize: '10px', color: 'var(--text2)', cursor: 'pointer' }}>⎘ Duplicate</button>
                         </div>
                       </div>
