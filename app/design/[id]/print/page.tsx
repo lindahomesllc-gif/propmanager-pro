@@ -122,9 +122,12 @@ export default function DesignPrintPage({ params }: { params: { id: string } }) 
               )}
 
               {ims.length > 0 && (
-                <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
-                  {ims.slice(0, 6).map((im: any) => (
-                    <img key={im.id} src={im.image_url} alt='' style={{ width: '92px', height: '92px', objectFit: 'cover', borderRadius: '7px', border: '1px solid ' + LINE }} />
+                <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap' }}>
+                  {ims.slice(0, 8).map((im: any) => (
+                    <div key={im.id} className='fcard' style={{ width: '112px' }}>
+                      <img src={im.image_url} alt='' style={{ width: '112px', height: '112px', objectFit: 'cover', borderRadius: '7px', border: '1px solid ' + LINE, display: 'block' }} />
+                      {im.notes && <div style={{ fontSize: '9px', color: MUTE, marginTop: '4px', lineHeight: 1.35 }}>{im.notes}</div>}
+                    </div>
                   ))}
                 </div>
               )}
@@ -156,6 +159,10 @@ export default function DesignPrintPage({ params }: { params: { id: string } }) 
                           <td style={{ ...td, color: MUTE, fontSize: '10px' }}>
                             {[f.material, f.dimensions, Number(f.sqft) > 0 ? f.sqft + ' SF' : null, f.color_hex].filter(Boolean).join(' · ')}
                             {f.supplier && <div style={{ marginTop: '2px' }}>{f.supplier}</div>}
+                            {f.option_group && <div style={{ marginTop: '2px', color: f.status === 'approved' ? GREEN : FAINT }}>{f.status === 'approved' ? '✓ chosen' : 'option'} · {f.option_group}</div>}
+                            {f.delivered_date
+                              ? <div style={{ marginTop: '2px', color: GREEN }}>Delivered {formatDate(f.delivered_date)}</div>
+                              : f.eta_date ? <div style={{ marginTop: '2px' }}>ETA {formatDate(f.eta_date)}</div> : null}
                           </td>
                           <td style={{ ...td, textAlign: 'right' }}>{Number(f.sqft) > 0 ? f.sqft + ' SF' : (f.qty != null ? f.qty : 1)}</td>
                           <td style={{ ...td, textAlign: 'right' }}>
