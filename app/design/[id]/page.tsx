@@ -65,7 +65,14 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const [approvals, setApprovals] = useState<any[]>([])
   const [properties, setProperties] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'moodboard' | 'concept' | 'finishes' | 'budget' | 'decisions' | 'share'>('moodboard')
+  const [tab, setTab] = useState<'brief' | 'moodboard' | 'concept' | 'finishes' | 'budget' | 'decisions' | 'share'>('moodboard')
+  const [tasks, setTasks] = useState<any[]>([])
+  const [briefForm, setBriefForm] = useState<any>(null)
+  const [briefSaved, setBriefSaved] = useState(false)
+  const [savingBrief, setSavingBrief] = useState(false)
+  const [taskText, setTaskText] = useState('')
+  const [taskKind, setTaskKind] = useState<'task' | 'question'>('task')
+  const [taskDue, setTaskDue] = useState('')
   const [notFound, setNotFound] = useState(false)
 
   // modals / editors
@@ -110,16 +117,23 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const finishFileRef = useRef<HTMLInputElement>(null)
 
   async function load() {
-    const [{ data: proj }, { data: rms }, { data: its }, { data: act }, { data: appr }, { data: props }] = await Promise.all([
+    const [{ data: proj }, { data: rms }, { data: its }, { data: act }, { data: appr }, { data: props }, { data: tks }] = await Promise.all([
       supabase.from('design_projects').select('*').eq('id', pid).maybeSingle(),
       supabase.from('design_rooms').select('*').eq('project_id', pid).order('sort_order').order('created_at'),
       supabase.from('design_items').select('*').eq('project_id', pid).order('sort_order').order('created_at'),
       supabase.from('design_activity').select('*').eq('project_id', pid).order('created_at', { ascending: false }),
       supabase.from('design_approvals').select('*').eq('project_id', pid).order('created_at', { ascending: false }),
       supabase.from('properties').select('id, address, market_value, purchase_price').order('address'),
+      supabase.from('design_tasks').select('*').eq('project_id', pid).order('done').order('created_at'),
     ])
     if (!proj) { setNotFound(true); setLoading(false); return }
-    setProject(proj); setRooms(rms || []); setItems(its || []); setActivity(act || []); setApprovals(appr || []); setProperties(props || [])
+    setProject(proj); setRooms(rms || []); setItems(its || []); setActivity(act || []); setApprovals(appr || []); setProperties(props || []); setTasks(tks || [])
+    const b = proj.brief || {}, c = proj.concept || {}
+    setBriefForm({
+      household: b.household || '', lifestyle: b.lifestyle || '', mustKeeps: b.mustKeeps || '', dislikes: b.dislikes || '', priorities: b.priorities || '',
+      budgetLow: b.budgetLow ?? '', budgetHigh: b.budgetHigh ?? '', timeline: b.timeline || '', clientNotes: b.clientNotes || '',
+      moodWords: c.moodWords || '', story: c.story || '', dos: c.dos || '', avoids: c.avoids || '',
+    })
     setLoading(false)
   }
   useEffect(() => { load() }, [pid])
@@ -138,6 +152,29 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
     return () => window.removeEventListener('paste', onPaste)
   }, [!!finishModal])
 
+  async function saveBrief() {
+    if (!briefForm) return
+    setSavingBrief(true)
+    const num = (v: any) => v === '' || v == null ? null : Number(v)
+    const brief = { household: briefForm.household.trim(), lifestyle: briefForm.lifestyle.trim(), mustKeeps: briefForm.mustKeeps.trim(), dislikes: briefForm.dislikes.trim(), priorities: briefForm.priorities.trim(), budgetLow: num(briefForm.budgetLow), budgetHigh: num(briefForm.budgetHigh), timeline: briefForm.timeline.trim(), clientNotes: briefForm.clientNotes.trim() }
+    const concept = { moodWords: briefForm.moodWords.trim(), story: briefForm.story.trim(), dos: briefForm.dos.trim(), avoids: briefForm.avoids.trim() }
+    await supabase.from('design_projects').update({ brief, concept }).eq('id', pid)
+    setSavingBrief(false); setBriefSaved(true); setTimeout(() => setBriefSaved(false), 2000)
+    setProject((p: any) => ({ ...p, brief, concept }))
+  }
+  async function addTask() {
+    if (!taskText.trim()) return
+    await supabase.from('design_tasks').insert({ project_id: pid, text: taskText.trim(), kind: taskKind, due_date: taskDue || null, sort_order: tasks.length })
+    setTaskText(''); setTaskDue(''); load()
+  }
+  async function toggleTask(t: any) {
+    await supabase.from('design_tasks').update({ done: !t.done }).eq('id', t.id)
+    load()
+  }
+  async function deleteTask(t: any) {
+    await supabase.from('design_tasks').delete().eq('id', t.id)
+    load()
+  }
   async function logActivity(text: string, kind: string, item_id?: string) {
     await supabase.from('design_activity').insert({ project_id: pid, text, kind, item_id: item_id || null, author: 'you' })
   }
@@ -602,6 +639,28 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   }
   const recurringMaterials = tally('material')
   const recurringBrands = tally('brand')
+  // Cohesion nudges + "still to source" (Concept tab)
+  const metalTone = (s: string) => {
+    const x = (s || '').toLowerCase()
+    if (/matte black|\bblack\b/.test(x)) return 'black'
+    if (/brass|\bgold\b|champagne/.test(x)) return 'brass'
+    if (/bronze|copper/.test(x)) return 'bronze'
+    if (/chrome|nickel|stainless|\bsteel\b|silver|polished/.test(x)) return 'chrome / nickel'
+    return null
+  }
+  const metalTones = new Set<string>()
+  finishes.filter(f => ['Hardware', 'Fixture', 'Lighting', 'Plumbing'].includes(f.category)).forEach(f => {
+    const t = metalTone((f.material || '') + ' ' + (f.name || ''))
+    if (t) metalTones.add(t)
+  })
+  const mixedMetals = metalTones.size >= 2 ? Array.from(metalTones) : null
+  const roomsNoPalette = rooms.filter(r => items.some(i => i.room_id === r.id && (i.kind === 'finish' || i.kind === 'inspiration')) && !items.some(i => i.room_id === r.id && i.kind === 'color'))
+  const BASICS = ['Flooring', 'Lighting', 'Paint']
+  const stillNeeded = rooms.map(r => {
+    const fs = finishes.filter(f => f.room_id === r.id)
+    const cats = new Set(fs.map(f => f.category))
+    return { room: r, missing: BASICS.filter(b => !cats.has(b)), count: fs.length }
+  }).filter(x => x.count === 0 || x.missing.length > 0)
   // Deliveries: ordered (or ETA'd) but not yet delivered, soonest first; overdue = ETA past.
   const todayStr = new Date().toISOString().split('T')[0]
   const deliveries = finishes.filter(f => !f.delivered_date && (f.eta_date || f.status === 'ordered'))
@@ -707,6 +766,7 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
         </div>
         {project?.style_summary && <div style={{ fontSize: '12px', color: 'var(--text2)', marginTop: '8px', fontStyle: 'italic', maxWidth: '720px' }}>“{project.style_summary}”</div>}
         <div style={{ display: 'flex', gap: '4px', marginTop: '10px', borderBottom: '0', marginBottom: '-12px' }}>
+          {tabBtn('brief', 'Brief')}
           {tabBtn('moodboard', 'Moodboard')}
           {tabBtn('concept', 'Concept')}
           {tabBtn('finishes', 'Finishes' + (finishes.length ? ' (' + finishes.length + ')' : ''))}
@@ -721,6 +781,52 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
           <div style={{ display: 'grid', gap: '10px' }}>{[0, 1, 2].map(i => <div key={i} className='skeleton' style={{ height: '90px' }} />)}</div>
         ) : (
           <>
+            {/* ============ BRIEF ============ */}
+            {tab === 'brief' && briefForm && (() => {
+              const set = (k: string, v: any) => setBriefForm((f: any) => ({ ...f, [k]: v }))
+              const sec: any = { fontFamily: "'Cormorant Garamond', serif", fontSize: '23px', fontWeight: 600, color: 'var(--text)', marginBottom: '14px' }
+              return (
+                <div style={{ maxWidth: '820px', display: 'grid', gap: '26px', paddingBottom: '40px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text3)' }}>The foundation — who this home is for, and the design direction. Everything else traces back here.</div>
+
+                  <div>
+                    <div style={sec}>The client</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                      <div><label style={lbl}>Household — who lives here</label><input style={inp} placeholder='e.g. Couple + 2 kids + a dog' value={briefForm.household} onChange={e => set('household', e.target.value)} /></div>
+                      <div><label style={lbl}>Timeline / deadline</label><input style={inp} placeholder='e.g. Move-in by Oct; reno done Aug' value={briefForm.timeline} onChange={e => set('timeline', e.target.value)} /></div>
+                    </div>
+                    <div style={{ marginTop: '14px' }}><label style={lbl}>Lifestyle — how they live &amp; use the space</label><textarea style={{ ...inp, resize: 'vertical' }} rows={2} placeholder='Entertain often, work from home, love to cook…' value={briefForm.lifestyle} onChange={e => set('lifestyle', e.target.value)} /></div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '14px' }}>
+                      <div><label style={lbl}>Must-keep / non-negotiable</label><textarea style={{ ...inp, resize: 'vertical' }} rows={2} placeholder='Keep the fireplace, the grandma china cabinet…' value={briefForm.mustKeeps} onChange={e => set('mustKeeps', e.target.value)} /></div>
+                      <div><label style={lbl}>Dislikes / avoid</label><textarea style={{ ...inp, resize: 'vertical' }} rows={2} placeholder='No cool grays, hates open shelving…' value={briefForm.dislikes} onChange={e => set('dislikes', e.target.value)} /></div>
+                    </div>
+                    <div style={{ marginTop: '14px' }}><label style={lbl}>Priorities — where to spend &amp; splurge</label><textarea style={{ ...inp, resize: 'vertical' }} rows={2} placeholder='Kitchen is the hero; save on guest rooms…' value={briefForm.priorities} onChange={e => set('priorities', e.target.value)} /></div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', marginTop: '14px' }}>
+                      <div><label style={lbl}>Budget — low</label><input style={inp} type='number' placeholder='$' value={briefForm.budgetLow} onChange={e => set('budgetLow', e.target.value)} /></div>
+                      <div><label style={lbl}>Budget — high</label><input style={inp} type='number' placeholder='$' value={briefForm.budgetHigh} onChange={e => set('budgetHigh', e.target.value)} /></div>
+                      <div style={{ display: 'flex', alignItems: 'flex-end', fontSize: '11px', color: 'var(--text3)', paddingBottom: '9px' }}>{briefForm.budgetLow || briefForm.budgetHigh ? 'Range: ' + fm(Number(briefForm.budgetLow) || 0) + '–' + fm(Number(briefForm.budgetHigh) || 0) : ''}</div>
+                    </div>
+                    <div style={{ marginTop: '14px' }}><label style={lbl}>Other client notes</label><textarea style={{ ...inp, resize: 'vertical' }} rows={2} value={briefForm.clientNotes} onChange={e => set('clientNotes', e.target.value)} /></div>
+                  </div>
+
+                  <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: '22px' }}>
+                    <div style={sec}>The concept</div>
+                    <div><label style={lbl}>Mood words</label><input style={inp} placeholder='warm · airy · coastal · collected · calm' value={briefForm.moodWords} onChange={e => set('moodWords', e.target.value)} /></div>
+                    <div style={{ marginTop: '14px' }}><label style={lbl}>The story / direction</label><textarea style={{ ...inp, resize: 'vertical' }} rows={3} placeholder='The feeling we’re chasing, the narrative that ties the home together…' value={briefForm.story} onChange={e => set('story', e.target.value)} /></div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '14px' }}>
+                      <div><label style={lbl}>Do — say yes to</label><textarea style={{ ...inp, resize: 'vertical' }} rows={2} placeholder='Warm metals, natural oak, linen, soft curves…' value={briefForm.dos} onChange={e => set('dos', e.target.value)} /></div>
+                      <div><label style={lbl}>Avoid — say no to</label><textarea style={{ ...inp, resize: 'vertical' }} rows={2} placeholder='Chrome, high-gloss, cool grays…' value={briefForm.avoids} onChange={e => set('avoids', e.target.value)} /></div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <button onClick={saveBrief} disabled={savingBrief} className='btn btn-primary'>{savingBrief ? 'Saving…' : 'Save brief'}</button>
+                    {briefSaved && <span style={{ fontSize: '12px', color: 'var(--green)' }}>✓ Saved</span>}
+                  </div>
+                </div>
+              )
+            })()}
+
             {/* ============ MOODBOARD ============ */}
             {tab === 'moodboard' && (
               <div style={{ display: 'grid', gap: '16px' }}>
@@ -884,12 +990,18 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
               <div style={{ display: 'grid', gap: '22px', maxWidth: '900px' }}>
                 <div style={{ fontSize: '12px', color: 'var(--text3)' }}>The whole home at a glance — see if the color story, materials and selections flow together. Doubles as a concept board to show a client.</div>
 
-                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '18px 20px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '8px' }}>The vision</div>
-                  {project.style_summary
-                    ? <div style={{ fontSize: '15px', color: 'var(--text)', fontStyle: 'italic', lineHeight: 1.6 }}>“{project.style_summary}”</div>
-                    : <div style={{ fontSize: '13px', color: 'var(--text3)' }}>Add an overall style in ⚙ Settings to anchor the concept.</div>}
-                </div>
+                {(() => { const c = project.concept || {}; const hasAny = project.style_summary || c.story || c.moodWords || c.dos || c.avoids; return (
+                  <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '18px 20px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '10px' }}>The vision</div>
+                    {!hasAny && <div style={{ fontSize: '13px', color: 'var(--text3)' }}>Define the concept in the <span onClick={() => setTab('brief')} style={{ color: 'var(--green)', cursor: 'pointer' }}>Brief</span> to anchor everything.</div>}
+                    {(c.story || project.style_summary) && <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '21px', fontStyle: 'italic', color: 'var(--text)', lineHeight: 1.4 }}>“{c.story || project.style_summary}”</div>}
+                    {c.moodWords && <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '13px' }}>{c.moodWords.split(/[,·]/).map((w: string) => w.trim()).filter(Boolean).map((w: string) => <span key={w} style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', padding: '4px 11px', borderRadius: '20px', background: 'var(--green-bg)', color: 'var(--green-dk)' }}>{w}</span>)}</div>}
+                    {(c.dos || c.avoids) && <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '15px' }}>
+                      {c.dos && <div><div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--green-dk)', marginBottom: '3px' }}>Do</div><div style={{ fontSize: '12.5px', color: 'var(--text2)', lineHeight: 1.5 }}>{c.dos}</div></div>}
+                      {c.avoids && <div><div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--red)', marginBottom: '3px' }}>Avoid</div><div style={{ fontSize: '12.5px', color: 'var(--text2)', lineHeight: 1.5 }}>{c.avoids}</div></div>}
+                    </div>}
+                  </div>
+                ) })()}
 
                 {allSwatches.length > 0 && (
                   <div>
@@ -906,6 +1018,30 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       {recurringMaterials.map(([m, n]) => <span key={'m' + m} style={{ fontSize: '12px', padding: '5px 11px', borderRadius: '8px', background: 'var(--green-bg)', color: 'var(--green-dk)', fontWeight: 600 }}>{m} · ×{n}</span>)}
                       {recurringBrands.map(([b, n]) => <span key={'b' + b} style={{ fontSize: '12px', padding: '5px 11px', borderRadius: '8px', background: 'var(--bg3)', color: 'var(--text2)', fontWeight: 600 }}>{b} · ×{n}</span>)}
+                    </div>
+                  </div>
+                )}
+
+                {(mixedMetals || roomsNoPalette.length > 0) && (
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '10px' }}>Cohesion check</div>
+                    <div style={{ display: 'grid', gap: '8px' }}>
+                      {mixedMetals && <div style={{ fontSize: '12.5px', color: 'var(--text2)', padding: '10px 13px', background: 'var(--amber-bg)', border: '0.5px solid var(--border)', borderRadius: '8px' }}>⚠ Mixed metal finishes — <b>{mixedMetals.join(', ')}</b>. Intentional, or unify to one?</div>}
+                      {roomsNoPalette.map(r => <div key={r.id} style={{ fontSize: '12.5px', color: 'var(--text2)', padding: '10px 13px', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '8px' }}><b>{r.name}</b> has selections but no color palette yet — add swatches to anchor it.</div>)}
+                    </div>
+                  </div>
+                )}
+
+                {stillNeeded.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: '10px' }}>Still to source <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>— common categories not yet selected</span></div>
+                    <div style={{ display: 'grid', gap: '6px' }}>
+                      {stillNeeded.map(({ room, missing, count }) => (
+                        <div key={room.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', fontSize: '12.5px', padding: '9px 13px', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '8px' }}>
+                          <span style={{ color: 'var(--text)' }}>{room.name}</span>
+                          <span style={{ color: 'var(--text3)' }}>{count === 0 ? 'no finishes yet' : 'needs: ' + missing.join(', ')}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -1157,6 +1293,43 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
             {/* ============ DECISIONS ============ */}
             {tab === 'decisions' && (
               <div style={{ maxWidth: '720px' }}>
+                {/* open items & to-do */}
+                <div style={{ marginBottom: '28px' }}>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '22px', fontWeight: 600, color: 'var(--text)', marginBottom: '12px' }}>Open items &amp; to-do</div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                    <input style={{ ...inp, flex: 1, minWidth: '200px' }} placeholder='Add a to-do or a question for the client…' value={taskText} onChange={e => setTaskText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addTask() }} />
+                    <select style={{ ...inp, width: 'auto' }} value={taskKind} onChange={e => setTaskKind(e.target.value as any)}>
+                      <option value='task'>To-do</option>
+                      <option value='question'>Ask client</option>
+                    </select>
+                    <input style={{ ...inp, width: 'auto' }} type='date' value={taskDue} onChange={e => setTaskDue(e.target.value)} title='Due date (optional)' />
+                    <button onClick={addTask} className='btn btn-primary' style={{ flexShrink: 0 }}>Add</button>
+                  </div>
+                  {tasks.length === 0 ? (
+                    <div style={{ fontSize: '12px', color: 'var(--text3)' }}>Nothing open. Add tasks or questions to ask the client.</div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: '1px' }}>
+                      {tasks.map(t => {
+                        const overdue = !t.done && t.due_date && t.due_date < todayStr
+                        return (
+                          <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
+                            <input type='checkbox' checked={t.done} onChange={() => toggleTask(t)} style={{ marginTop: '2px', cursor: 'pointer' }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '13px', color: t.done ? 'var(--text3)' : 'var(--text)', textDecoration: t.done ? 'line-through' : 'none' }}>{t.text}</div>
+                              <div style={{ fontSize: '10.5px', color: overdue ? 'var(--red)' : 'var(--text3)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '5px', background: t.kind === 'question' ? 'var(--blue-bg)' : 'var(--bg3)', color: t.kind === 'question' ? 'var(--blue)' : 'var(--text3)' }}>{t.kind === 'question' ? 'Ask client' : 'To-do'}</span>
+                                {t.due_date && <span>{overdue ? 'due ' + formatDate(t.due_date) + ' · overdue' : 'due ' + formatDate(t.due_date)}</span>}
+                              </div>
+                            </div>
+                            <button onClick={() => deleteTask(t)} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: '15px', cursor: 'pointer', lineHeight: 1 }}>×</button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '22px', fontWeight: 600, color: 'var(--text)', marginBottom: '12px' }}>Decisions log</div>
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '18px' }}>
                   <input style={inp} placeholder='Log a decision or change… e.g. “Client chose matte black hardware over brass”' value={noteText} onChange={e => setNoteText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addNote() }} />
                   <button onClick={addNote} className='btn btn-primary' style={{ flexShrink: 0 }}>Log</button>
