@@ -171,8 +171,12 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
     setRoomModal(null); load()
   }
   async function applyTemplate(t: { area: string; rooms: string[] }) {
+    // If this suite already exists, make a distinct one ("Guest Suite 2", "3"…).
+    const existing = new Set(rooms.map(r => (r.area || '').trim()))
+    let area = t.area
+    if (existing.has(area)) { let n = 2; while (existing.has(t.area + ' ' + n)) n++; area = t.area + ' ' + n }
     const base = rooms.length
-    await supabase.from('design_rooms').insert(t.rooms.map((name, i) => ({ project_id: pid, name, area: t.area, sort_order: base + i })))
+    await supabase.from('design_rooms').insert(t.rooms.map((name, i) => ({ project_id: pid, name, area, sort_order: base + i })))
     setRoomModal(null); load()
   }
   async function deleteRoom(r: any) {
