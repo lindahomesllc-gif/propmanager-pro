@@ -83,7 +83,10 @@ export default function DesignPage() {
               <h1 style={{ fontFamily: SERIF, fontSize: '56px', fontWeight: 500, lineHeight: 0.98, letterSpacing: '0.005em', color: INK, margin: 0 }}>Design <span style={{ fontStyle: 'italic', fontWeight: 500 }}>Studio</span></h1>
               <div style={{ fontSize: '14px', color: INK2, lineHeight: 1.6, maxWidth: '460px', marginTop: '16px' }}>Moodboards, finishes &amp; client approvals — one calm place to design every home, from first inspiration to the last fixture.</div>
             </div>
-            <button onClick={openAdd} style={cta} onMouseEnter={e => (e.currentTarget.style.background = '#8E7349')} onMouseLeave={e => (e.currentTarget.style.background = ACCENT)}>+ New Project</button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '11px' }}>
+              <button onClick={openAdd} style={cta} onMouseEnter={e => (e.currentTarget.style.background = '#8E7349')} onMouseLeave={e => (e.currentTarget.style.background = ACCENT)}>+ New Project</button>
+              <a href='/design/vendors' style={{ fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: INK2, textDecoration: 'none', borderBottom: '1px solid ' + LINE2, paddingBottom: '2px' }}>Vendors &amp; trades →</a>
+            </div>
           </div>
         </div>
 

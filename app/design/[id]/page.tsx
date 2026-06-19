@@ -74,6 +74,12 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   const [taskKind, setTaskKind] = useState<'task' | 'question'>('task')
   const [taskDue, setTaskDue] = useState('')
   const [linkUrl, setLinkUrl] = useState('')
+  const [libraryOpen, setLibraryOpen] = useState(false)
+  const [libraryItems, setLibraryItems] = useState<any[]>([])
+  const [librarySearch, setLibrarySearch] = useState('')
+  const [aiOpen, setAiOpen] = useState(false)
+  const [aiText, setAiText] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
   const [notFound, setNotFound] = useState(false)
 
   // modals / editors
@@ -257,6 +263,30 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   async function removeFloorplan(url: string) {
     if (!confirm('Remove this floor plan?')) return
     await supabase.from('design_projects').update({ floorplan_urls: (project.floorplan_urls || []).filter((u: string) => u !== url) }).eq('id', pid); load()
+  }
+  async function openLibrary() {
+    setLibraryOpen(true); setLibrarySearch('')
+    const { data } = await supabase.from('design_items').select('id, name, brand, category, material, dimensions, color_hex, price, qty, sqft, supplier, supplier_url, image_url, image_urls').eq('kind', 'finish').neq('project_id', pid).order('created_at', { ascending: false })
+    // de-dupe by name+brand to keep the library tidy
+    const seen = new Set<string>(); const uniq: any[] = []
+    for (const f of (data || [])) { const k = (f.name || '') + '|' + (f.brand || ''); if (!seen.has(k)) { seen.add(k); uniq.push(f) } }
+    setLibraryItems(uniq)
+  }
+  function useFromLibrary(f: any) {
+    setFinishErr(''); setImportUrl(''); setImportImg('')
+    setFinishModal({ ...emptyFinish, name: f.name || '', brand: f.brand || '', category: f.category || 'Tile', material: f.material || '', dimensions: f.dimensions || '', color_hex: f.color_hex || '', price: f.price ?? '', qty: f.qty ?? '', sqft: f.sqft ?? '', supplier: f.supplier || '', supplier_url: f.supplier_url || '', images: finishImages(f), room_id: finishFilter && finishFilter !== '__none' ? finishFilter : '' })
+    setLibraryOpen(false)
+  }
+  async function askAi() {
+    setAiOpen(true); setAiLoading(true); setAiText('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/design/suggest', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session?.access_token || '') }, body: JSON.stringify({ projectId: pid }) })
+      const d = await res.json()
+      if (!res.ok) setAiText(d.error === 'no_key' ? '⚠ AI suggestions need an Anthropic API key. Add ANTHROPIC_API_KEY in your Vercel environment variables, then redeploy.' : 'Could not get suggestions right now. Please try again.')
+      else setAiText(d.text || 'No suggestions returned.')
+    } catch { setAiText('Network error — please try again.') }
+    setAiLoading(false)
   }
   async function addLink() {
     const u = linkUrl.trim(); if (!u) return
@@ -1052,7 +1082,10 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
             {/* ============ CONCEPT (whole-home overview) ============ */}
             {tab === 'concept' && (
               <div style={{ display: 'grid', gap: '22px', maxWidth: '900px' }}>
-                <div style={{ fontSize: '12px', color: 'var(--text3)' }}>The whole home at a glance — see if the color story, materials and selections flow together. Doubles as a concept board to show a client.</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text3)', maxWidth: '560px' }}>The whole home at a glance — see if the color story, materials and selections flow together. Doubles as a concept board to show a client.</div>
+                  <button onClick={askAi} className='btn btn-ghost' style={{ fontSize: '11px', padding: '6px 12px', flexShrink: 0 }}>✨ Ask the design assistant</button>
+                </div>
 
                 {(() => { const c = project.concept || {}; const hasAny = project.style_summary || c.story || c.moodWords || c.dos || c.avoids; return (
                   <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '18px 20px' }}>
@@ -1154,7 +1187,10 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
                     {roomOptions()}
                     <option value='__none'>Whole-home / Unassigned</option>
                   </select>
-                  <button onClick={() => openFinish(finishFilter && finishFilter !== '__none' ? finishFilter : null)} className='btn btn-primary' style={{ fontSize: '11px', padding: '6px 12px' }}>+ Add Finish</button>
+                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <button onClick={openLibrary} className='btn btn-ghost' style={{ fontSize: '11px', padding: '6px 12px' }}>📚 My library</button>
+                    <button onClick={() => openFinish(finishFilter && finishFilter !== '__none' ? finishFilter : null)} className='btn btn-primary' style={{ fontSize: '11px', padding: '6px 12px' }}>+ Add Finish</button>
+                  </div>
                 </div>
                 {decisionGroups.length > 0 && (
                   <div style={{ marginBottom: '16px', display: 'grid', gap: '8px' }}>
@@ -1940,6 +1976,56 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
               <button onClick={() => setMoveItem(null)} className='btn btn-ghost'>Cancel</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== my library (cross-project) ===== */}
+      {libraryOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(40,35,28,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1500, padding: '16px' }} onClick={() => setLibraryOpen(false)}>
+          <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '20px', width: '720px', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '22px', fontWeight: 600, color: 'var(--text)' }}>📚 My library</div>
+              <button onClick={() => setLibraryOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: '20px', cursor: 'pointer', lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '14px' }}>Finishes you’ve used in other projects — tap one to reuse it here (it copies the details into a new finish).</div>
+            <input value={librarySearch} onChange={e => setLibrarySearch(e.target.value)} placeholder='Search by name, brand, category…' style={{ ...inp, marginBottom: '14px' }} />
+            {libraryItems.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text3)', fontSize: '13px' }}>Nothing in your library yet — finishes from your other projects will appear here.</div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px,1fr))', gap: '10px' }}>
+                {libraryItems.filter(f => !librarySearch || (f.name + ' ' + (f.brand || '') + ' ' + (f.category || '')).toLowerCase().includes(librarySearch.toLowerCase())).map(f => {
+                  const cover = finishImages(f)[0]
+                  return (
+                    <div key={f.id} onClick={() => useFromLibrary(f)} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer' }}>
+                      <div style={{ height: '92px', background: cover ? 'var(--bg3)' : (f.color_hex || 'var(--bg3)') }}>{cover && <img src={cover} alt='' style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}</div>
+                      <div style={{ padding: '8px 10px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
+                        <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{[f.category, f.brand].filter(Boolean).join(' · ')}</div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ===== AI design assistant ===== */}
+      {aiOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(40,35,28,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1500, padding: '16px' }} onClick={() => setAiOpen(false)}>
+          <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', padding: '22px', width: '580px', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '22px', fontWeight: 600, color: 'var(--text)' }}>✨ Design assistant</div>
+              <button onClick={() => setAiOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: '20px', cursor: 'pointer', lineHeight: 1 }}>×</button>
+            </div>
+            {aiLoading ? (
+              <div style={{ color: 'var(--text3)', fontSize: '13px', padding: '20px 0' }}>Thinking through your concept and selections…</div>
+            ) : (
+              <div style={{ fontSize: '13.5px', color: 'var(--text)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{aiText}</div>
+            )}
+            {!aiLoading && <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}><button onClick={askAi} className='btn btn-ghost'>Regenerate</button><button onClick={() => setAiOpen(false)} className='btn btn-primary'>Done</button></div>}
           </div>
         </div>
       )}
