@@ -123,8 +123,8 @@ export default function PropertyDetailPage({ params }) {
           <a href='/properties' style={{ color: 'var(--text3)', textDecoration: 'none' }}>All Properties</a>
         </div>
         <div style={{ padding: '14px 20px 0', display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-          <div style={{ width: '52px', height: '52px', borderRadius: '12px', background: p.occupancy_status === 'occupied' ? 'var(--green-bg)' : 'var(--amber-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', flexShrink: 0 }}>
-            {({'single_family':'🏠','condo':'🏢','duplex':'🏘','triplex':'🏘','quadplex':'🏘','multi_family':'🏗','commercial':'🏬','land':'🏞','primary_residence':'🏡'})[p.type] || '🏠'}
+          <div style={{ width: '52px', height: '52px', borderRadius: '12px', background: p.cover_photo_url ? `center/cover no-repeat url(${p.cover_photo_url})` : (p.occupancy_status === 'occupied' ? 'var(--green-bg)' : 'var(--amber-bg)'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', flexShrink: 0 }}>
+            {p.cover_photo_url ? '' : (({'single_family':'🏠','condo':'🏢','duplex':'🏘','triplex':'🏘','quadplex':'🏘','multi_family':'🏗','commercial':'🏬','land':'🏞','primary_residence':'🏡'})[p.type] || '🏠')}
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: 'var(--text)' }}>{p.address}</div>

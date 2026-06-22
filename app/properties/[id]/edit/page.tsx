@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, fm, projectCost } from '@/lib/supabase'
 
@@ -26,6 +26,7 @@ export default function EditPropertyPage({ params }) {
     sqft: '', year_built: '', entity_id: '',
     purchase_price: '', purchase_date: '', market_value: '', ownership_percentage: '100', cash_invested: '',
     deal_type: 'buy', land_cost: '', construction_cost: '', soft_costs: '', rehab_cost: '', closing_costs: '', financing_costs: '',
+    cover_photo_url: '',
     occupancy_status: 'vacant', notes: '',
     county: '', parcel_id: '', alt_key: '', prop_description: '',
     assessed_value: '', annual_tax: '', tax_due_date: '',
@@ -56,6 +57,7 @@ export default function EditPropertyPage({ params }) {
           market_value: data.market_value ? String(data.market_value) : '',
           cash_invested: data.cash_invested ? String(data.cash_invested) : '',
           deal_type: data.deal_type || 'buy',
+          cover_photo_url: data.cover_photo_url || '',
           land_cost: data.land_cost ? String(data.land_cost) : '',
           construction_cost: data.construction_cost ? String(data.construction_cost) : '',
           soft_costs: data.soft_costs ? String(data.soft_costs) : '',
@@ -103,6 +105,20 @@ export default function EditPropertyPage({ params }) {
   }, [params.id])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const photoRef = useRef<HTMLInputElement>(null)
+  const [photoUploading, setPhotoUploading] = useState(false)
+  async function uploadPhoto(e: any) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPhotoUploading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    const path = (user?.id || 'unknown') + '/photos/' + params.id + '/' + Date.now() + '_' + file.name
+    const { error } = await supabase.storage.from('lease-documents').upload(path, file, { upsert: true })
+    if (error) { alert('Upload failed: ' + error.message); setPhotoUploading(false); return }
+    const { data } = supabase.storage.from('lease-documents').getPublicUrl(path)
+    set('cover_photo_url', data.publicUrl)
+    setPhotoUploading(false)
+  }
 
   // Project cost breakdown → total basis, suggested cash invested, and created equity.
   const isBuild = form.deal_type === 'build'
@@ -132,6 +148,7 @@ export default function EditPropertyPage({ params }) {
       market_value: form.market_value ? parseFloat(form.market_value) : null,
       cash_invested: form.cash_invested ? parseFloat(form.cash_invested) : null,
       deal_type: form.deal_type || 'buy',
+      cover_photo_url: form.cover_photo_url || null,
       land_cost: form.land_cost ? parseFloat(form.land_cost) : null,
       construction_cost: form.construction_cost ? parseFloat(form.construction_cost) : null,
       soft_costs: form.soft_costs ? parseFloat(form.soft_costs) : null,
@@ -228,6 +245,18 @@ export default function EditPropertyPage({ params }) {
 
         {tab === 'basic' && (
           <>
+            <div style={card}>
+              <div style={secTtl}>Photo</div>
+              <input ref={photoRef} type='file' accept='image/*' style={{ display: 'none' }} onChange={uploadPhoto} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                <div onClick={() => photoRef.current?.click()} style={{ width: '120px', height: '90px', borderRadius: '10px', border: '1px dashed var(--border2)', background: form.cover_photo_url ? `center/cover no-repeat url(${form.cover_photo_url})` : 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', color: 'var(--text3)', flexShrink: 0 }}>{form.cover_photo_url ? '' : '🏠'}</div>
+                <div>
+                  <button type='button' onClick={() => photoRef.current?.click()} className='btn btn-ghost' disabled={photoUploading} style={{ fontSize: '12px' }}>{photoUploading ? 'Uploading…' : form.cover_photo_url ? 'Replace photo' : '⬆ Upload photo'}</button>
+                  {form.cover_photo_url && <button type='button' onClick={() => set('cover_photo_url', '')} style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: '12px', marginLeft: '8px' }}>Remove</button>}
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>Shows on the property card &amp; detail header.</div>
+                </div>
+              </div>
+            </div>
             <div style={card}>
               <div style={secTtl}>Property Address</div>
               <div style={{ marginBottom: '12px' }}><label style={lbl}>Street Address *</label><input className='input' value={form.address} onChange={e => set('address', e.target.value)} /></div>

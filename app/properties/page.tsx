@@ -124,6 +124,7 @@ export default function PropertiesPage() {
               const isOccupied = p.occupancy_status === 'occupied'
               return (
                 <div key={p.id} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+                  {(p as any).cover_photo_url && <div style={{ height: '130px', background: `center/cover no-repeat url(${(p as any).cover_photo_url})`, borderBottom: '0.5px solid var(--border)' }} />}
                   <div style={{ padding: '16px 18px', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                     <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: isOccupied ? 'var(--green-bg)' : 'var(--amber-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 }}>
                       {typeIcon(p.type)}
