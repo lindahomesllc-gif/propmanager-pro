@@ -85,6 +85,8 @@ export default function DashboardPage() {
   const duePayments = payments.filter(p => p.status === 'due' || p.status === 'upcoming')
   const totalRentRoll = leases.reduce((s, l) => s + (l.rent_amount || 0), 0)
   const totalExpYTD = expenses.filter(e => e.expense_date?.startsWith(thisYear)).reduce((s, e) => s + (e.amount || 0), 0)
+  const totalDoors = Math.max(units.length, properties.reduce((s, p) => s + (p.num_units || 1), 0))
+  const occPct = properties.length ? (occupied.length / properties.length) * 100 : 0
   const totalCollectedYTD = paidYTD.reduce((s, p) => s + (p.amount_paid || 0), 0)
   // portfolio value & equity reflect YOUR share (ownership %); rent/collected/expenses stay full
   const portfolioValue = properties.reduce((s, p) => s + share(p.market_value, p), 0)
@@ -114,7 +116,8 @@ export default function DashboardPage() {
     const monthStr = String(i + 1).padStart(2, '0')
     const monthPayments = payments.filter(p => p.paid_date?.startsWith(thisYear + '-' + monthStr))
     const collected = monthPayments.filter(p => p.status === 'paid').reduce((s, p) => s + (p.amount_paid || 0), 0)
-    return { month, collected, due: i <= curMonthIdx ? totalRentRoll : 0 }
+    const spent = expenses.filter(e => e.expense_date?.startsWith(thisYear + '-' + monthStr)).reduce((s, e) => s + (e.amount || 0), 0)
+    return { month, collected, due: i <= curMonthIdx ? totalRentRoll : 0, spent }
   })
 
   const returns = computeReturns({ properties, leases, expenses, mortgages, year: currentYear })
@@ -259,9 +262,12 @@ export default function DashboardPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: '10px', marginBottom: '20px' }}>
           {[
             { label: 'Properties', value: properties.length, sub: occupied.length + ' occupied · ' + vacant.length + ' vacant', color: 'var(--text)', href: '/properties' },
+            { label: 'Total Doors', value: totalDoors, sub: 'rentable units', color: 'var(--text)', href: '/properties', tip: 'Total rentable units across the portfolio (a duplex = 2 doors).' },
+            { label: 'Occupancy', value: occPct.toFixed(0) + '%', sub: occupied.length + ' of ' + properties.length + ' occupied', color: occPct >= 90 ? 'var(--green)' : occPct >= 70 ? 'var(--amber)' : 'var(--red)', href: '/properties' },
             { label: 'Monthly Rent Roll', value: fm(totalRentRoll), sub: leases.length + ' active leases', color: 'var(--green)', href: '/reports?tab=rentroll' },
             { label: 'Collected YTD', value: fm(totalCollectedYTD), sub: paidYTD.length + ' payments', color: 'var(--green)', href: '/payments' },
-            { label: 'Expenses YTD', value: fm(totalExpYTD), sub: 'Net: ' + fm(totalCollectedYTD - totalExpYTD), color: 'var(--amber)', href: '/expenses' },
+            { label: 'Expenses YTD', value: fm(totalExpYTD), sub: 'operating costs', color: 'var(--amber)', href: '/expenses' },
+            { label: 'Net Profit YTD', value: fm(totalCollectedYTD - totalExpYTD), sub: 'collected − expenses', color: totalCollectedYTD - totalExpYTD >= 0 ? 'var(--green)' : 'var(--red)', href: '/reports', tip: 'Rent actually collected this year minus expenses logged this year. Your real bottom line so far.' },
             { label: 'Late Payments', value: latePayments.length, sub: duePayments.length + ' upcoming', color: latePayments.length > 0 ? 'var(--red)' : 'var(--green)', href: '/payments' },
           ].map(mc => <Tile key={mc.label} {...mc} />)}
         </div>
@@ -384,18 +390,20 @@ export default function DashboardPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{currentYear} Monthly Trend</div>
             <div style={{ display: 'flex', gap: '16px', fontSize: '11px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--green)', display: 'inline-block' }} />Collected</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--green)', display: 'inline-block' }} />Income</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--red)', display: 'inline-block' }} />Expenses</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--border2)', display: 'inline-block' }} />Rent Roll</span>
             </div>
           </div>
           <ResponsiveContainer width='100%' height={170}>
-            <BarChart data={chartData} barGap={4} barCategoryGap='30%'>
+            <BarChart data={chartData} barGap={2} barCategoryGap='24%'>
               <CartesianGrid vertical={false} stroke='var(--border)' strokeDasharray='3 3' />
               <XAxis dataKey='month' tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? '$' + (v/1000).toFixed(0) + 'k' : '$' + v} width={40} />
               <Tooltip contentStyle={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '8px', fontSize: '12px' }} />
               <Bar dataKey='due' fill='var(--border2)' radius={[3,3,0,0]} />
               <Bar dataKey='collected' fill='var(--green)' radius={[3,3,0,0]} />
+              <Bar dataKey='spent' fill='var(--red)' radius={[3,3,0,0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
