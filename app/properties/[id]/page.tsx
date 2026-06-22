@@ -15,6 +15,7 @@ export default function PropertyDetailPage({ params }) {
   const [expenses, setExpenses] = useState([])
   const [mortgages, setMortgages] = useState([])
   const [leases, setLeases] = useState([])
+  const [maintenance, setMaintenance] = useState([])
   const [scheduleFor, setScheduleFor] = useState<any>(null)
   const [showMortgageForm, setShowMortgageForm] = useState(false)
   const [editingMortgage, setEditingMortgage] = useState<any>(null)
@@ -40,14 +41,16 @@ export default function PropertyDetailPage({ params }) {
       supabase.from('payments').select('*').eq('property_id', id).order('due_date', { ascending: false }).limit(10),
       supabase.from('expenses').select('*').eq('property_id', id).order('expense_date', { ascending: false }).limit(10),
       supabase.from('mortgages').select('*, properties(address, city, state)').eq('property_id', id),
-      supabase.from('leases').select('rent_amount').eq('property_id', id).eq('status', 'executed'),
-    ]).then(([p, t, pay, exp, mtg, ls]) => {
+      supabase.from('leases').select('*, tenants(full_name)').eq('property_id', id).order('created_at', { ascending: false }),
+      supabase.from('maintenance').select('*').eq('property_id', id).order('created_at', { ascending: false }),
+    ]).then(([p, t, pay, exp, mtg, ls, mt]) => {
       setProperty(p.data)
       setTenants(t.data || [])
       setPayments(pay.data || [])
       setExpenses(exp.data || [])
       setMortgages(mtg.data || [])
       setLeases(ls.data || [])
+      setMaintenance(mt.data || [])
       setLoading(false)
     })
   }, [params.id])
@@ -86,7 +89,7 @@ export default function PropertyDetailPage({ params }) {
   const totalRent = payments.filter(x => x.status === 'paid').reduce((s, x) => s + (x.amount_paid || 0), 0)
   const totalExp = expenses.reduce((s, x) => s + (x.amount || 0), 0)
   const equity = (p.market_value || 0) - (p.purchase_price || 0)
-  const monthlyRent = leases.reduce((s, l) => s + (l.rent_amount || 0), 0)
+  const monthlyRent = leases.filter((l: any) => l.status === 'executed').reduce((s: number, l: any) => s + (l.rent_amount || 0), 0)
   // project cost breakdown (build or buy)
   const pc = (k: string) => Number((p as any)[k]) || 0
   const isBuild = p.deal_type === 'build'
@@ -109,8 +112,8 @@ export default function PropertyDetailPage({ params }) {
   const lbl = { fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }
   const val = { fontSize: '13px', fontWeight: 500, color: 'var(--text)', marginTop: '2px' }
   // Cohesive flow: identity → money → income/tenancy → the physical asset → reference
-  const tabs = ['overview', 'financials', 'insurance', 'units', 'appliances', 'paint', 'utilities', 'documents']
-  const tabLabels = { overview: 'Overview', units: 'Units & Rooms', appliances: 'Appliances & Systems', paint: 'Paint & Materials', financials: 'Financials', insurance: 'Insurance & Tax', utilities: 'Utilities & Schools', documents: 'Documents' }
+  const tabs = ['overview', 'financials', 'insurance', 'units', 'maintenance', 'appliances', 'paint', 'utilities', 'documents', 'history']
+  const tabLabels = { overview: 'Overview', units: 'Units & Rooms', maintenance: 'Maintenance', appliances: 'Appliances & Systems', paint: 'Paint & Materials', financials: 'Financials', insurance: 'Insurance & Tax', utilities: 'Utilities & Schools', documents: 'Documents', history: 'Notes & History' }
 
   return (
     <AppShell>
@@ -305,6 +308,26 @@ export default function PropertyDetailPage({ params }) {
         )}
 
         {tab === 'units' && <UnitsManager propertyId={p.id} tenants={tenants} />}
+
+        {tab === 'maintenance' && (
+          <div style={card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={secTtl}>🔧 Maintenance</div>
+              <a href={'/maintenance?property=' + p.id} className='btn btn-ghost' style={{ fontSize: '12px' }}>Open in Maintenance →</a>
+            </div>
+            {maintenance.length === 0 ? <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No maintenance requests for this property.</div> : maintenance.map((m: any) => (
+              <a key={m.id} href={'/maintenance/' + m.id} style={{ textDecoration: 'none', display: 'block' }}>
+                <div style={{ background: 'var(--bg3)', borderRadius: '8px', padding: '12px 14px', marginBottom: '8px', borderLeft: '3px solid ' + (m.priority === 'emergency' ? 'var(--red)' : m.priority === 'high' ? 'var(--amber)' : 'var(--blue)') }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{m.title}</div>
+                    <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '20px', background: 'var(--bg2)', color: m.status === 'completed' ? 'var(--green)' : 'var(--text2)', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{(m.status || '').replace(/_/g, ' ')}</span>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '3px' }}>{(m.priority || 'normal') + ' priority'}{m.created_at ? ' · ' + formatDate(m.created_at) : ''}{m.cost ? ' · ' + fm(m.cost) : ''}</div>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
 
         {tab === 'appliances' && <AssetsManager propertyId={p.id} />}
 
@@ -518,6 +541,35 @@ export default function PropertyDetailPage({ params }) {
             )}
           </div>
         )}
+
+        {tab === 'history' && (() => {
+          const events = [
+            ...payments.map((x: any) => ({ date: x.paid_date || x.due_date, icon: '💰', text: 'Rent ' + (x.status || '') + ' — ' + fm(x.amount_paid || x.amount_due), href: '/payments' })),
+            ...expenses.map((x: any) => ({ date: x.expense_date, icon: '🧾', text: (x.category || 'expense').replace(/_/g, ' ') + ' — ' + fm(x.amount) + (x.description ? ' (' + x.description + ')' : ''), href: '/expenses' })),
+            ...maintenance.map((x: any) => ({ date: x.created_at, icon: '🔧', text: x.title + ' (' + (x.status || '').replace(/_/g, ' ') + ')', href: '/maintenance/' + x.id })),
+            ...leases.map((x: any) => ({ date: x.created_at || x.start_date, icon: '📄', text: 'Lease ' + (x.status || '') + ' — ' + (x.tenants?.full_name || '') + ' ' + fm(x.rent_amount) + '/mo', href: '/leases/' + x.id })),
+          ].filter(e => e.date).sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 30)
+          return (
+            <>
+              <div style={card}>
+                <div style={secTtl}>📝 Notes</div>
+                {p.notes ? <div style={{ fontSize: '13px', color: 'var(--text2)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{p.notes}</div> : <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No notes yet. Add them on the <a href={'/properties/' + p.id + '/edit'} style={{ color: 'var(--green)' }}>Edit</a> page.</div>}
+              </div>
+              <div style={card}>
+                <div style={secTtl}>🕘 Activity History</div>
+                {events.length === 0 ? <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No recent activity for this property.</div> : events.map((ev, i) => (
+                  <a key={i} href={ev.href} style={{ textDecoration: 'none', display: 'flex', gap: '10px', padding: '9px 0', borderBottom: '0.5px solid var(--border)' }}>
+                    <span style={{ fontSize: '15px', flexShrink: 0 }}>{ev.icon}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '13px', color: 'var(--text)' }}>{ev.text}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{formatDate(ev.date)}</div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </>
+          )
+        })()}
 
       </div>
       {scheduleFor && <AmortizationModal mortgage={scheduleFor} onClose={() => setScheduleFor(null)} />}
