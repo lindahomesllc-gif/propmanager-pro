@@ -12,6 +12,8 @@ export default function MaintenancePage() {
   const [view, setView] = useState('list')
 
   useEffect(() => {
+    const qp = new URLSearchParams(window.location.search).get('property')
+    if (qp) setPropFilter(qp)
     Promise.all([
       supabase.from('maintenance').select('*, properties(address), tenants(full_name)').order('created_at', { ascending: false }),
       supabase.from('properties').select('id, address'),

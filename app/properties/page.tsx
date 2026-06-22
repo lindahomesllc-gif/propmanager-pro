@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import { getProperties, fm, share, supabase, type Property } from '@/lib/supabase'
 
-const typeIcon = (t) => ({ single_family: '🏠', condo: '🏢', duplex: '🏘', triplex: '🏘', quadplex: '🏘', multi_family: '🏗', commercial: '🏬' }[t] || '🏠')
+const typeIcon = (t) => ({ single_family: '🏠', condo: '🏢', duplex: '🏘', triplex: '🏘', quadplex: '🏘', multi_family: '🏗', commercial: '🏬', land: '🏞', primary_residence: '🏡' }[t] || '🏠')
 const typeLabel = (t) => (t || 'property').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 
 export default function PropertiesPage() {
@@ -13,6 +13,9 @@ export default function PropertiesPage() {
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'cards' | 'table' | 'entity'>('cards')
   const [rentByProperty, setRentByProperty] = useState<Record<string, number>>({})
+  const [q, setQ] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [cityFilter, setCityFilter] = useState('all')
 
   useEffect(() => {
     const ent = new URLSearchParams(window.location.search).get('entity')
@@ -33,9 +36,18 @@ export default function PropertiesPage() {
     setProperties(prev => prev.map(p => p.id === propertyId ? ({ ...p, entity_id: entityId || null, owner_entity: name } as any) : p))
   }
 
-  const filtered = filterEntity === 'all' ? properties
-    : filterEntity === 'unassigned' ? properties.filter(p => !(p as any).entity_id)
-    : properties.filter(p => (p as any).entity_id === filterEntity)
+  const cities = Array.from(new Set(properties.map(p => p.city).filter(Boolean))).sort()
+  const ql = q.trim().toLowerCase()
+  const filtered = properties.filter(p => {
+    if (filterEntity === 'unassigned' ? (p as any).entity_id : filterEntity !== 'all' && (p as any).entity_id !== filterEntity) return false
+    if (statusFilter !== 'all' && p.occupancy_status !== statusFilter) return false
+    if (cityFilter !== 'all' && p.city !== cityFilter) return false
+    if (ql) {
+      const hay = [p.address, p.city, p.state, p.zip, p.type, (p as any).owner_entity].filter(Boolean).join(' ').toLowerCase()
+      if (!hay.includes(ql)) return false
+    }
+    return true
+  })
 
   // net-worth totals reflect YOUR share (ownership %); full-owned props are unaffected
   const portfolioValue = filtered.reduce((s, p) => s + share(p.market_value, p), 0)
@@ -64,6 +76,26 @@ export default function PropertiesPage() {
           </div>
           <a href='/properties/new' className='btn btn-primary'>+ Add Property</a>
         </div>
+      </div>
+
+      {/* search + filters */}
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '10px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0, flexWrap: 'wrap' }}>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder='🔎 Search address, city, type…' className='input' style={{ flex: '1 1 240px', fontSize: '13px', maxWidth: '360px' }} />
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className='input' style={{ width: 'auto', fontSize: '12px' }}>
+          <option value='all'>Any status</option>
+          <option value='occupied'>Occupied</option>
+          <option value='vacant'>Vacant</option>
+        </select>
+        {cities.length > 1 && (
+          <select value={cityFilter} onChange={e => setCityFilter(e.target.value)} className='input' style={{ width: 'auto', fontSize: '12px' }}>
+            <option value='all'>Any city</option>
+            {cities.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        )}
+        {(q || statusFilter !== 'all' || cityFilter !== 'all' || filterEntity !== 'all') && (
+          <button onClick={() => { setQ(''); setStatusFilter('all'); setCityFilter('all'); setFilterEntity('all') }} className='btn btn-ghost' style={{ fontSize: '12px' }}>Clear</button>
+        )}
+        <span style={{ fontSize: '12px', color: 'var(--text3)', marginLeft: 'auto' }}>{filtered.length} of {properties.length}</span>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
@@ -124,6 +156,11 @@ export default function PropertiesPage() {
                     {p.sqft && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--text2)', border: '0.5px solid var(--border)' }}>{p.sqft.toLocaleString()} sqft</span>}
                     {p.year_built && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--text2)', border: '0.5px solid var(--border)' }}>Built {p.year_built}</span>}
                     {p.hoa && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--blue)', border: '0.5px solid var(--border)' }}>HOA</span>}
+                  </div>
+                  <div style={{ padding: '8px 18px', display: 'flex', gap: '12px', borderTop: '0.5px solid var(--border)', flexWrap: 'wrap' }}>
+                    {[['💰 Finances', '/properties/' + p.id + '?tab=financials'], ['📁 Documents', '/properties/' + p.id + '?tab=documents'], ['🔧 Maintenance', '/maintenance?property=' + p.id]].map(([l, href]) => (
+                      <a key={l} href={href} style={{ fontSize: '11px', color: 'var(--text2)', textDecoration: 'none' }}>{l}</a>
+                    ))}
                   </div>
                   <div style={{ padding: '10px 18px', display: 'flex', gap: '8px', borderTop: '0.5px solid var(--border)' }}>
                     <a href={'/properties/' + p.id} style={{ flex: 1, background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '7px', padding: '7px', fontSize: '12px', fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}>View Details</a>
