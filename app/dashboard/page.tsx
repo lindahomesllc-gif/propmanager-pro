@@ -2,20 +2,22 @@
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, fm, share, formatDate, computeReturns, nextAnnualReportDue, monthlyPI, propertyMoves, loanBalance } from '@/lib/supabase'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts'
 import GettingStarted from '@/components/GettingStarted'
 import GoalsCard from '@/components/GoalsCard'
 
 // Customizable dashboard: each section is a keyed widget the user can reorder or hide.
 // investor-first: financial position → opportunities → goals → problems → income → ops
-const DEFAULT_ORDER = ['portfolio', 'moves', 'goals', 'attention', 'rentGaps', 'operations', 'rentCollection', 'thisMonth', 'rentStatus', 'quickActions', 'propertiesTenants']
+const DEFAULT_ORDER = ['portfolio', 'moves', 'goals', 'attention', 'rentGaps', 'operations', 'breakdowns', 'rentCollection', 'thisMonth', 'rentStatus', 'quickActions', 'propertiesTenants']
+const DONUT_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6', '#ec4899', '#f97316', '#6366f1', '#84cc16']
+const propTypeLabel = (t: string) => ({ single_family: 'Single Family', condo: 'Condo', duplex: 'Duplex', triplex: 'Triplex', quadplex: 'Quadplex', multi_family: 'Multi-Family', commercial: 'Commercial', land: 'Land/Lot', primary_residence: 'Residence' }[t] || 'Other')
 // Bump when DEFAULT_ORDER changes meaningfully so an older saved order is superseded
 // once (the new investor-first order re-applies); the user's hidden choices are kept,
 // and any reorder they make afterward persists under the current version.
-const LAYOUT_VERSION = 2
+const LAYOUT_VERSION = 3
 const WIDGET_LABELS: Record<string, string> = {
   portfolio: '📈 Portfolio', goals: '🎯 Goals', operations: '🏠 Operations',
-  attention: '⚠️ Needs Attention', moves: '💡 Moves to Consider', rentGaps: '💸 Rent vs Market', thisMonth: '📅 This Month', rentCollection: '💰 Rent Collection',
+  attention: '⚠️ Needs Attention', moves: '💡 Moves to Consider', rentGaps: '💸 Rent vs Market', thisMonth: '📅 This Month', rentCollection: '💰 Rent Collection', breakdowns: '🍩 Breakdowns',
   rentStatus: '🧾 Rent Status', quickActions: '⚡ Quick Actions', propertiesTenants: '🏠 Properties & Tenants',
 }
 
@@ -23,6 +25,8 @@ export default function DashboardPage() {
   const [editMode, setEditMode] = useState(false)
   const [layout, setLayout] = useState<{ order: string[]; hidden: string[] }>({ order: DEFAULT_ORDER, hidden: [] })
   const [data, setData] = useState({ properties: [], tenants: [], payments: [], expenses: [], leases: [], maintenance: [], mortgages: [], assets: [], entities: [], schedules: [], units: [] })
+  const [allPaid, setAllPaid] = useState<any[]>([])   // full paid-payment history for trends + multi-range chart
+  const [chartRange, setChartRange] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -42,6 +46,7 @@ export default function DashboardPage() {
       setData({ properties: p.data || [], tenants: t.data || [], payments: pay.data || [], expenses: exp.data || [], leases: l.data || [], maintenance: m.data || [], mortgages: mo.data || [], assets: as.data || [], entities: en.data || [], schedules: ms.data || [], units: un.data || [] })
       setLoading(false)
     })
+    supabase.from('payments').select('paid_date, amount_paid, status').eq('status', 'paid').then(({ data }) => setAllPaid(data || []))
   }, [])
 
   // load saved layout once; merge with defaults so newly-added widgets always appear
@@ -112,13 +117,33 @@ export default function DashboardPage() {
 
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   const curMonthIdx = new Date().getMonth()
-  const chartData = monthNames.map((month, i) => {
-    const monthStr = String(i + 1).padStart(2, '0')
-    const monthPayments = payments.filter(p => p.paid_date?.startsWith(thisYear + '-' + monthStr))
-    const collected = monthPayments.filter(p => p.status === 'paid').reduce((s, p) => s + (p.amount_paid || 0), 0)
-    const spent = expenses.filter(e => e.expense_date?.startsWith(thisYear + '-' + monthStr)).reduce((s, e) => s + (e.amount || 0), 0)
-    return { month, collected, due: i <= curMonthIdx ? totalRentRoll : 0, spent }
-  })
+  // full-history aggregators (use allPaid so multi-year/quarter views are complete)
+  const paidIn = (prefix: string) => allPaid.filter(p => p.paid_date?.startsWith(prefix)).reduce((s, p) => s + (p.amount_paid || 0), 0)
+  const expIn = (prefix: string) => expenses.filter(e => e.expense_date?.startsWith(prefix)).reduce((s, e) => s + (e.amount || 0), 0)
+  // month-over-month trends for the hero cards
+  const nowD = new Date()
+  const ym = (y: number, m: number) => y + '-' + String(m + 1).padStart(2, '0')
+  const thisYM = ym(nowD.getFullYear(), nowD.getMonth())
+  const lastDate = new Date(nowD.getFullYear(), nowD.getMonth() - 1, 1)
+  const lastYM = ym(lastDate.getFullYear(), lastDate.getMonth())
+  const collMo = paidIn(thisYM), collLast = paidIn(lastYM)
+  const expMo = expIn(thisYM), expLast = expIn(lastYM)
+  const netMo = collMo - expMo, netLast = collLast - expLast
+  const trendPct = (cur: number, prev: number) => prev > 0 ? Math.round(((cur - prev) / prev) * 100) : null
+  // range-aware trend chart
+  const chartData = chartRange === 'yearly'
+    ? Array.from(new Set([...allPaid.map(p => p.paid_date?.slice(0, 4)), ...expenses.map(e => e.expense_date?.slice(0, 4))].filter(Boolean))).sort().slice(-5)
+        .map(y => ({ label: y, collected: paidIn(y as string), spent: expIn(y as string), due: 0 }))
+    : chartRange === 'quarterly'
+    ? [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]].map((ms, qi) => {
+        let collected = 0, spent = 0
+        ms.forEach(i => { const mk = thisYear + '-' + String(i + 1).padStart(2, '0'); collected += paidIn(mk); spent += expIn(mk) })
+        return { label: 'Q' + (qi + 1), collected, spent, due: 0 }
+      })
+    : monthNames.map((month, i) => {
+        const mk = thisYear + '-' + String(i + 1).padStart(2, '0')
+        return { label: month, collected: paidIn(mk), spent: expIn(mk), due: i <= curMonthIdx ? totalRentRoll : 0 }
+      })
 
   const returns = computeReturns({ properties, leases, expenses, mortgages, year: currentYear })
   const attentionCount = latePayments.length + expiringLeases.length + maintenance.length + vacant.length + expiringWarranties.length + insuranceRenewing.length + taxDueSoon.length + complianceDue.length + preventiveDue.length
@@ -273,6 +298,46 @@ export default function DashboardPage() {
         </div>
       </>
     ),
+    breakdowns: (() => {
+      const unassignedVal = properties.filter((p: any) => !p.entity_id).reduce((s: number, p: any) => s + (p.market_value || 0), 0)
+      const byEntity = [...entities.map((en: any) => ({ name: en.name, value: properties.filter((p: any) => p.entity_id === en.id).reduce((s: number, p: any) => s + (p.market_value || 0), 0) })), ...(unassignedVal > 0 ? [{ name: 'Self', value: unassignedVal }] : [])].filter(d => d.value > 0)
+      const byType = Object.entries(properties.reduce((a: any, p: any) => { const t = propTypeLabel(p.type); a[t] = (a[t] || 0) + 1; return a }, {})).map(([name, value]) => ({ name, value: value as number }))
+      const byCat = Object.entries(expenses.filter((e: any) => e.expense_date?.startsWith(thisYear)).reduce((a: any, e: any) => { const c = (e.category || 'other').replace(/_/g, ' '); a[c] = (a[c] || 0) + (e.amount || 0); return a }, {})).map(([name, value]) => ({ name, value: value as number })).sort((a, b) => b.value - a.value)
+      const Donut = ({ title, dataset, money }: { title: string; dataset: any[]; money?: boolean }) => (
+        <div style={{ ...panel, padding: '16px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', marginBottom: '8px' }}>{title}</div>
+          {dataset.length === 0 ? <div style={{ fontSize: '12px', color: 'var(--text3)', padding: '30px 0', textAlign: 'center' }}>No data yet</div> : (
+            <>
+              <ResponsiveContainer width='100%' height={150}>
+                <PieChart>
+                  <Pie data={dataset} dataKey='value' nameKey='name' innerRadius={42} outerRadius={66} paddingAngle={2} stroke='none'>
+                    {dataset.map((_, i) => <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(v: any) => money ? fm(v) : v} contentStyle={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '8px', fontSize: '12px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px', marginTop: '8px' }}>
+                {dataset.slice(0, 6).map((d, i) => (
+                  <span key={i} style={{ fontSize: '10.5px', color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: DONUT_COLORS[i % DONUT_COLORS.length], display: 'inline-block' }} />{d.name} {money ? fm(d.value) : '· ' + d.value}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )
+      return (
+        <>
+          <div style={secLabel}>🍩 Breakdowns</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px,1fr))', gap: '12px', marginBottom: '20px' }}>
+            <Donut title='Portfolio by Entity' dataset={byEntity} money />
+            <Donut title='Property Types' dataset={byType} />
+            <Donut title={'Expenses by Category · ' + thisYear} dataset={byCat} money />
+          </div>
+        </>
+      )
+    })(),
     attention: (
       <>
         <div style={secLabel}>⚠️ Needs Attention</div>
@@ -387,18 +452,24 @@ export default function DashboardPage() {
           <div style={{ width: collectionPct + '%', height: '100%', background: pctColor, borderRadius: '20px', transition: 'width 0.4s' }} />
         </div>
         <div style={{ borderTop: '0.5px solid var(--border)', marginTop: '18px', paddingTop: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{currentYear} Monthly Trend</div>
-            <div style={{ display: 'flex', gap: '16px', fontSize: '11px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--green)', display: 'inline-block' }} />Income</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--red)', display: 'inline-block' }} />Expenses</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--border2)', display: 'inline-block' }} />Rent Roll</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Income vs Expenses{chartRange === 'monthly' ? ' · ' + currentYear : chartRange === 'quarterly' ? ' · ' + currentYear + ' by quarter' : ' · by year'}</div>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '14px', fontSize: '11px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--green)', display: 'inline-block' }} />Income</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text3)' }}><span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--red)', display: 'inline-block' }} />Expenses</span>
+              </div>
+              <div style={{ display: 'flex', background: 'var(--bg3)', borderRadius: '8px', padding: '2px', border: '0.5px solid var(--border)' }}>
+                {(['monthly', 'quarterly', 'yearly'] as const).map(r => (
+                  <button key={r} onClick={() => setChartRange(r)} style={{ padding: '4px 10px', borderRadius: '6px', border: 'none', background: chartRange === r ? 'var(--bg2)' : 'transparent', color: chartRange === r ? 'var(--text)' : 'var(--text3)', fontSize: '11px', cursor: 'pointer', fontWeight: chartRange === r ? 600 : 400, textTransform: 'capitalize' }}>{r}</button>
+                ))}
+              </div>
             </div>
           </div>
           <ResponsiveContainer width='100%' height={170}>
             <BarChart data={chartData} barGap={2} barCategoryGap='24%'>
               <CartesianGrid vertical={false} stroke='var(--border)' strokeDasharray='3 3' />
-              <XAxis dataKey='month' tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
+              <XAxis dataKey='label' tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: 'var(--text3)' }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? '$' + (v/1000).toFixed(0) + 'k' : '$' + v} width={40} />
               <Tooltip contentStyle={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '8px', fontSize: '12px' }} />
               <Bar dataKey='due' fill='var(--border2)' radius={[3,3,0,0]} />
@@ -507,6 +578,28 @@ export default function DashboardPage() {
         ) : (
           <>
             <GettingStarted />
+
+            {/* gradient hero strip with month-over-month trends */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(178px,1fr))', gap: '12px', marginBottom: '18px' }}>
+              {[
+                { label: 'Portfolio Value', value: fm(portfolioValue), sub: 'Equity ' + fm(totalEquity), grad: 'linear-gradient(135deg,#3b82f6,#2563eb)', href: '/properties' },
+                { label: 'Monthly Cash Flow', value: fm(returns.totals.cashFlow / 12), sub: 'after debt service', grad: 'linear-gradient(135deg,#10b981,#059669)', href: '/reports?tab=returns' },
+                { label: 'Collected This Month', value: fm(collMo), trend: trendPct(collMo, collLast), grad: 'linear-gradient(135deg,#14b8a6,#0d9488)', href: '/payments' },
+                { label: 'Net Profit · Month', value: fm(netMo), trend: trendPct(netMo, netLast), grad: 'linear-gradient(135deg,#8b5cf6,#7c3aed)', href: '/reports' },
+                { label: 'Occupancy', value: occPct.toFixed(0) + '%', sub: occupied.length + '/' + properties.length + ' occupied', grad: 'linear-gradient(135deg,#f59e0b,#d97706)', href: '/properties' },
+              ].map((c: any) => (
+                <a key={c.label} href={c.href} style={{ textDecoration: 'none' }} className='tile-link'>
+                  <div style={{ background: c.grad, borderRadius: '14px', padding: '15px 17px', color: '#fff', boxShadow: '0 4px 14px rgba(0,0,0,0.14)' }}>
+                    <div style={{ fontSize: '10.5px', fontWeight: 600, opacity: 0.92, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{c.label}</div>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '23px', fontWeight: 800, marginTop: '6px' }}>{c.value}</div>
+                    <div style={{ fontSize: '11px', opacity: 0.92, marginTop: '5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {c.trend != null && <span style={{ background: 'rgba(255,255,255,0.24)', borderRadius: '20px', padding: '1px 7px', fontWeight: 700 }}>{c.trend >= 0 ? '▲' : '▼'} {Math.abs(c.trend)}%</span>}
+                      <span>{c.trend != null ? 'vs last month' : c.sub}</span>
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
 
             {editMode && (
               <div style={{ background: 'var(--bg3)', border: '0.5px dashed var(--border2)', borderRadius: '10px', padding: '12px 14px', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
