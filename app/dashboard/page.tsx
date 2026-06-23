@@ -2,9 +2,67 @@
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, fm, share, formatDate, computeReturns, nextAnnualReportDue, monthlyPI, propertyMoves, loanBalance } from '@/lib/supabase'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Sector } from 'recharts'
 import GettingStarted from '@/components/GettingStarted'
 import GoalsCard from '@/components/GoalsCard'
+
+// Animated count-up — numbers tick from 0 to their value on mount (browser rAF).
+function CountUp({ value, format }: { value: number; format: (n: number) => string }) {
+  const [n, setN] = useState(0)
+  useEffect(() => {
+    let raf = 0; const t0 = performance.now(); const dur = 850
+    const tick = (t: number) => { const p = Math.min(1, (t - t0) / dur); setN(value * (1 - Math.pow(1 - p, 3))); if (p < 1) raf = requestAnimationFrame(tick) }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [value])
+  return <>{format(n)}</>
+}
+
+// Interactive donut — segment + legend item grow/bold on hover.
+function DonutCard({ title, dataset, money }: { title: string; dataset: any[]; money?: boolean }) {
+  const [active, setActive] = useState(-1)
+  return (
+    <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', padding: '16px' }}>
+      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', marginBottom: '8px' }}>{title}</div>
+      {dataset.length === 0 ? <div style={{ fontSize: '12px', color: 'var(--text3)', padding: '30px 0', textAlign: 'center' }}>No data yet</div> : (
+        <>
+          <ResponsiveContainer width='100%' height={150}>
+            <PieChart>
+              <Pie data={dataset} dataKey='value' nameKey='name' innerRadius={42} outerRadius={66} paddingAngle={2} stroke='none'
+                activeIndex={active >= 0 ? active : undefined}
+                activeShape={(p: any) => <Sector cx={p.cx} cy={p.cy} innerRadius={p.innerRadius} outerRadius={p.outerRadius + 6} startAngle={p.startAngle} endAngle={p.endAngle} fill={p.fill} />}
+                onMouseEnter={(_: any, i: number) => setActive(i)} onMouseLeave={() => setActive(-1)}>
+                {dataset.map((_, i) => <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />)}
+              </Pie>
+              <Tooltip formatter={(v: any) => money ? fm(v) : v} contentStyle={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '8px', fontSize: '12px' }} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px', marginTop: '8px' }}>
+            {dataset.slice(0, 6).map((d, i) => (
+              <span key={i} onMouseEnter={() => setActive(i)} onMouseLeave={() => setActive(-1)} style={{ fontSize: '10.5px', color: active === i ? 'var(--text)' : 'var(--text3)', fontWeight: active === i ? 700 : 400, display: 'flex', alignItems: 'center', gap: '5px', cursor: 'default' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: DONUT_COLORS[i % DONUT_COLORS.length], display: 'inline-block' }} />{d.name} {money ? fm(d.value) : '· ' + d.value}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// Tiny inline sparkline (SVG polyline + soft fill) for a short numeric series.
+function Sparkline({ data, color }: { data: number[]; color: string }) {
+  if (data.length < 2) return null
+  const max = Math.max(...data, 1), min = Math.min(...data, 0), range = max - min || 1
+  const w = 100, h = 26
+  const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${(h - 2) - ((v - min) / range) * (h - 4) + 2}`)
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio='none' style={{ width: '100%', height: '26px', display: 'block', marginTop: '6px' }}>
+      <polyline points={[`0,${h}`, ...pts, `${w},${h}`].join(' ')} fill={color} opacity='0.18' stroke='none' />
+      <polyline points={pts.join(' ')} fill='none' stroke={color} strokeWidth='2' vectorEffect='non-scaling-stroke' />
+    </svg>
+  )
+}
 
 // Customizable dashboard: each section is a keyed widget the user can reorder or hide.
 // investor-first: financial position → opportunities → goals → problems → income → ops
@@ -130,6 +188,9 @@ export default function DashboardPage() {
   const expMo = expIn(thisYM), expLast = expIn(lastYM)
   const netMo = collMo - expMo, netLast = collLast - expLast
   const trendPct = (cur: number, prev: number) => prev > 0 ? Math.round(((cur - prev) / prev) * 100) : null
+  const last6 = Array.from({ length: 6 }, (_, k) => { const d = new Date(nowD.getFullYear(), nowD.getMonth() - 5 + k, 1); return ym(d.getFullYear(), d.getMonth()) })
+  const collSeries = last6.map(m => paidIn(m))
+  const netSeries = last6.map(m => paidIn(m) - expIn(m))
   // range-aware trend chart
   const chartData = chartRange === 'yearly'
     ? Array.from(new Set([...allPaid.map(p => p.paid_date?.slice(0, 4)), ...expenses.map(e => e.expense_date?.slice(0, 4))].filter(Boolean))).sort().slice(-5)
@@ -303,37 +364,13 @@ export default function DashboardPage() {
       const byEntity = [...entities.map((en: any) => ({ name: en.name, value: properties.filter((p: any) => p.entity_id === en.id).reduce((s: number, p: any) => s + (p.market_value || 0), 0) })), ...(unassignedVal > 0 ? [{ name: 'Self', value: unassignedVal }] : [])].filter(d => d.value > 0)
       const byType = Object.entries(properties.reduce((a: any, p: any) => { const t = propTypeLabel(p.type); a[t] = (a[t] || 0) + 1; return a }, {})).map(([name, value]) => ({ name, value: value as number }))
       const byCat = Object.entries(expenses.filter((e: any) => e.expense_date?.startsWith(thisYear)).reduce((a: any, e: any) => { const c = (e.category || 'other').replace(/_/g, ' '); a[c] = (a[c] || 0) + (e.amount || 0); return a }, {})).map(([name, value]) => ({ name, value: value as number })).sort((a, b) => b.value - a.value)
-      const Donut = ({ title, dataset, money }: { title: string; dataset: any[]; money?: boolean }) => (
-        <div style={{ ...panel, padding: '16px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', marginBottom: '8px' }}>{title}</div>
-          {dataset.length === 0 ? <div style={{ fontSize: '12px', color: 'var(--text3)', padding: '30px 0', textAlign: 'center' }}>No data yet</div> : (
-            <>
-              <ResponsiveContainer width='100%' height={150}>
-                <PieChart>
-                  <Pie data={dataset} dataKey='value' nameKey='name' innerRadius={42} outerRadius={66} paddingAngle={2} stroke='none'>
-                    {dataset.map((_, i) => <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip formatter={(v: any) => money ? fm(v) : v} contentStyle={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '8px', fontSize: '12px' }} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px', marginTop: '8px' }}>
-                {dataset.slice(0, 6).map((d, i) => (
-                  <span key={i} style={{ fontSize: '10.5px', color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: DONUT_COLORS[i % DONUT_COLORS.length], display: 'inline-block' }} />{d.name} {money ? fm(d.value) : '· ' + d.value}
-                  </span>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )
       return (
         <>
           <div style={secLabel}>🍩 Breakdowns</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px,1fr))', gap: '12px', marginBottom: '20px' }}>
-            <Donut title='Portfolio by Entity' dataset={byEntity} money />
-            <Donut title='Property Types' dataset={byType} />
-            <Donut title={'Expenses by Category · ' + thisYear} dataset={byCat} money />
+            <DonutCard title='Portfolio by Entity' dataset={byEntity} money />
+            <DonutCard title='Property Types' dataset={byType} />
+            <DonutCard title={'Expenses by Category · ' + thisYear} dataset={byCat} money />
           </div>
         </>
       )
@@ -579,23 +616,24 @@ export default function DashboardPage() {
           <>
             <GettingStarted />
 
-            {/* gradient hero strip with month-over-month trends */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(178px,1fr))', gap: '12px', marginBottom: '18px' }}>
+            {/* gradient hero strip — animated count-up, sparklines, trend pills, hover lift */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))', gap: '12px', marginBottom: '18px' }}>
               {[
-                { label: 'Portfolio Value', value: fm(portfolioValue), sub: 'Equity ' + fm(totalEquity), grad: 'linear-gradient(135deg,#3b82f6,#2563eb)', href: '/properties' },
-                { label: 'Monthly Cash Flow', value: fm(returns.totals.cashFlow / 12), sub: 'after debt service', grad: 'linear-gradient(135deg,#10b981,#059669)', href: '/reports?tab=returns' },
-                { label: 'Collected This Month', value: fm(collMo), trend: trendPct(collMo, collLast), grad: 'linear-gradient(135deg,#14b8a6,#0d9488)', href: '/payments' },
-                { label: 'Net Profit · Month', value: fm(netMo), trend: trendPct(netMo, netLast), grad: 'linear-gradient(135deg,#8b5cf6,#7c3aed)', href: '/reports' },
-                { label: 'Occupancy', value: occPct.toFixed(0) + '%', sub: occupied.length + '/' + properties.length + ' occupied', grad: 'linear-gradient(135deg,#f59e0b,#d97706)', href: '/properties' },
+                { label: 'Portfolio Value', value: portfolioValue, fmt: fm, sub: 'Equity ' + fm(totalEquity), grad: 'linear-gradient(135deg,#3b82f6,#2563eb)', href: '/properties' },
+                { label: 'Monthly Cash Flow', value: returns.totals.cashFlow / 12, fmt: fm, sub: 'after debt service', grad: 'linear-gradient(135deg,#10b981,#059669)', href: '/reports?tab=returns' },
+                { label: 'Collected This Month', value: collMo, fmt: fm, trend: trendPct(collMo, collLast), series: collSeries, grad: 'linear-gradient(135deg,#14b8a6,#0d9488)', href: '/payments' },
+                { label: 'Net Profit · Month', value: netMo, fmt: fm, trend: trendPct(netMo, netLast), series: netSeries, grad: 'linear-gradient(135deg,#8b5cf6,#7c3aed)', href: '/reports' },
+                { label: 'Occupancy', value: occPct, fmt: (n: number) => n.toFixed(0) + '%', sub: occupied.length + '/' + properties.length + ' occupied', grad: 'linear-gradient(135deg,#f59e0b,#d97706)', href: '/properties' },
               ].map((c: any) => (
-                <a key={c.label} href={c.href} style={{ textDecoration: 'none' }} className='tile-link'>
-                  <div style={{ background: c.grad, borderRadius: '14px', padding: '15px 17px', color: '#fff', boxShadow: '0 4px 14px rgba(0,0,0,0.14)' }}>
+                <a key={c.label} href={c.href} style={{ textDecoration: 'none' }} className='hero-card'>
+                  <div style={{ background: c.grad, borderRadius: '14px', padding: '15px 17px', color: '#fff', boxShadow: '0 4px 14px rgba(0,0,0,0.14)', display: 'flex', flexDirection: 'column', height: '100%' }}>
                     <div style={{ fontSize: '10.5px', fontWeight: 600, opacity: 0.92, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{c.label}</div>
-                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '23px', fontWeight: 800, marginTop: '6px' }}>{c.value}</div>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '23px', fontWeight: 800, marginTop: '6px' }}><CountUp value={c.value} format={c.fmt} /></div>
                     <div style={{ fontSize: '11px', opacity: 0.92, marginTop: '5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       {c.trend != null && <span style={{ background: 'rgba(255,255,255,0.24)', borderRadius: '20px', padding: '1px 7px', fontWeight: 700 }}>{c.trend >= 0 ? '▲' : '▼'} {Math.abs(c.trend)}%</span>}
                       <span>{c.trend != null ? 'vs last month' : c.sub}</span>
                     </div>
+                    {c.series && <Sparkline data={c.series} color='#fff' />}
                   </div>
                 </a>
               ))}
