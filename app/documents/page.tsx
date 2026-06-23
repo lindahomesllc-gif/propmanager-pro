@@ -28,7 +28,7 @@ export default function DocumentsVaultPage() {
 
   async function load() {
     const [d, p] = await Promise.all([
-      supabase.from('documents').select('*, properties(address)').order('created_at', { ascending: false }),
+      supabase.from('documents').select('*, properties(address), entities(name)').order('created_at', { ascending: false }),
       supabase.from('properties').select('id, address').order('address'),
     ])
     setDocs(d.data || []); setProperties(p.data || []); setLoading(false)
@@ -129,7 +129,7 @@ export default function DocumentsVaultPage() {
                 </div>
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', wordBreak: 'break-word' }}>{d.name}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{d.properties?.address ? d.properties.address + ' · ' : ''}{formatDate(d.created_at)}{d.size ? ' · ' + fmtSize(d.size) : ''}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{d.properties?.address ? d.properties.address + ' · ' : d.entities?.name ? '🏛 ' + d.entities.name + ' · ' : ''}{formatDate(d.created_at)}{d.size ? ' · ' + fmtSize(d.size) : ''}</div>
                 </div>
                 <div style={{ display: 'flex', gap: '6px', marginTop: 'auto' }}>
                   {(isImg(d) || isPdf(d)) && <button onClick={() => setPreview(d)} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 10px' }}>👁 Preview</button>}

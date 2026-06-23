@@ -67,6 +67,8 @@ export default function PropertyDetailPage({ params }) {
     const { data: urlData } = supabase.storage.from('lease-documents').getPublicUrl(path)
     const existingDocs = property.photo_urls || []
     await supabase.from('properties').update({ photo_urls: [...existingDocs, urlData.publicUrl] }).eq('id', params.id)
+    // also file it into the unified Documents Vault
+    await supabase.from('documents').insert({ property_id: params.id, name: file.name, tag: 'Misc', file_url: urlData.publicUrl, file_path: path, mime: file.type, size: file.size })
     setProperty(p => ({ ...p, photo_urls: [...(p.photo_urls || []), urlData.publicUrl] }))
     setUploading(false)
   }

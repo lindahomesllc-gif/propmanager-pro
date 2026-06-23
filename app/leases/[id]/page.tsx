@@ -35,6 +35,8 @@ export default function LeaseDetailPage({ params }) {
       status: 'executed',
     }).eq('id', params.id)
     if (updateErr) { setUploadError('Error saving: ' + updateErr.message); setUploading(false); return }
+    // file the signed lease into the unified Documents Vault
+    await supabase.from('documents').insert({ property_id: lease?.property_id || null, name: 'Signed Lease.pdf', tag: 'Leases', file_url: urlData.publicUrl, file_path: path, mime: 'application/pdf', size: file.size })
     setLease(l => ({ ...l, pdf_url: urlData.publicUrl, status: 'executed' }))
     setUploading(false)
   }
