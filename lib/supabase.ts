@@ -6,6 +6,29 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export const USER_ID = 'cacb3a74-75d7-4e07-af71-6db4fdde9a92'
 
+// ---- Private file access: resolve a stored file (public URL or bare storage path)
+// to a short-lived signed URL the logged-in user can open. Works whether the bucket
+// is public or private, so it can be rolled out before the bucket is locked down.
+export const DOC_BUCKET = 'lease-documents'
+export function storagePath(urlOrPath: string): string {
+  if (!urlOrPath) return ''
+  const marker = '/' + DOC_BUCKET + '/'
+  const i = urlOrPath.indexOf(marker)
+  if (i !== -1) return decodeURIComponent(urlOrPath.slice(i + marker.length).split('?')[0])
+  return urlOrPath.replace(/^\/+/, '')   // already a bare path
+}
+export async function signedUrl(urlOrPath: string, expiresIn = 3600): Promise<string> {
+  const path = storagePath(urlOrPath)
+  if (!path) return urlOrPath
+  const { data } = await supabase.storage.from(DOC_BUCKET).createSignedUrl(path, expiresIn)
+  return data?.signedUrl || urlOrPath
+}
+// Sign then open/download in a new tab — for click handlers on links.
+export async function openSigned(urlOrPath: string) {
+  const u = await signedUrl(urlOrPath)
+  if (typeof window !== 'undefined') window.open(u, '_blank')
+}
+
 export type Property = {
   id: string; user_id: string; address: string; city: string | null
   state: string | null; zip: string | null; type: string | null

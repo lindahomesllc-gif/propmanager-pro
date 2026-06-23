@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, nextAnnualReportDue, formatDate } from '@/lib/supabase'
+import { supabase, nextAnnualReportDue, formatDate, openSigned } from '@/lib/supabase'
 
 const TYPES = [
   { v: 'llc', label: 'LLC' },
@@ -212,7 +212,7 @@ export default function EntitiesPage() {
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg3)', borderRadius: '8px', border: '0.5px solid var(--border)' }}>
                     <div style={{ fontSize: '13px', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '260px' }}>📄 {docName(url)}</div>
                     <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-                      <a href={url} target='_blank' className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 10px' }}>View</a>
+                      <button onClick={() => openSigned(url)} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 10px' }}>View</button>
                       <button onClick={() => removeDoc(url)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '5px 10px', fontSize: '11px', cursor: 'pointer' }}>Remove</button>
                     </div>
                   </div>

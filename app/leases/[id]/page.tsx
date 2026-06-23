@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, formatDate } from '@/lib/supabase'
+import { supabase, fm, formatDate, openSigned } from '@/lib/supabase'
 
 export default function LeaseDetailPage({ params }) {
   const [lease, setLease] = useState(null)
@@ -143,8 +143,8 @@ export default function LeaseDetailPage({ params }) {
                 <span style={{ fontSize: '13px', color: 'var(--green)' }}>✓ Signed lease uploaded</span>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <a href={l.pdf_url} target='_blank' className='btn btn-primary'>📄 View PDF</a>
-                <a href={l.pdf_url} download className='btn btn-ghost'>⬇ Download</a>
+                <button onClick={() => openSigned(l.pdf_url)} className='btn btn-primary'>📄 View PDF</button>
+                <button onClick={() => openSigned(l.pdf_url)} className='btn btn-ghost'>⬇ Download</button>
                 <button onClick={() => fileRef.current?.click()} className='btn btn-ghost'>↑ Replace PDF</button>
               </div>
             </div>

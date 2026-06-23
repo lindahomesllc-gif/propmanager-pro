@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, monthlyPI } from '@/lib/supabase'
+import { supabase, fm, monthlyPI, openSigned } from '@/lib/supabase'
 
 // DSCR Loan Package — a print-ready, lender-facing summary for a single property.
 // A DSCR lender qualifies on rent ÷ PITIA (P&I + taxes + insurance + HOA), so that
@@ -173,7 +173,7 @@ export default function DscrPackagePage() {
                 <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '9px 0', borderBottom: '0.5px solid var(--border)', flexWrap: 'wrap' }}>
                   <div style={{ fontSize: '13px', color: 'var(--text)' }}>{l.tenants?.full_name || 'Tenant'} · {fm(l.rent_amount)}/mo{l.end_date ? ' · thru ' + new Date(l.end_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : ''}</div>
                   {l.pdf_url
-                    ? <a href={l.pdf_url} download className='btn btn-ghost' style={{ fontSize: '12px' }}>⬇ Download lease PDF</a>
+                    ? <button onClick={() => openSigned(l.pdf_url)} className='btn btn-ghost' style={{ fontSize: '12px' }}>⬇ Download lease PDF</button>
                     : <a href={'/leases/' + l.id} className='btn btn-ghost' style={{ fontSize: '12px', color: 'var(--amber)' }}>⚠ No PDF — upload on lease →</a>}
                 </div>
               ))}

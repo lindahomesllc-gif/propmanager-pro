@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, fm, projectCost } from '@/lib/supabase'
+import { SignedBg } from '@/components/SignedFile'
 
 export default function EditPropertyPage({ params }) {
   const [saving, setSaving] = useState(false)
@@ -249,7 +250,7 @@ export default function EditPropertyPage({ params }) {
               <div style={secTtl}>Photo</div>
               <input ref={photoRef} type='file' accept='image/*' style={{ display: 'none' }} onChange={uploadPhoto} />
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-                <div onClick={() => photoRef.current?.click()} style={{ width: '120px', height: '90px', borderRadius: '10px', border: '1px dashed var(--border2)', background: form.cover_photo_url ? `center/cover no-repeat url(${form.cover_photo_url})` : 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', color: 'var(--text3)', flexShrink: 0 }}>{form.cover_photo_url ? '' : '🏠'}</div>
+                <SignedBg src={form.cover_photo_url || ''} onClick={() => photoRef.current?.click()} style={{ width: '120px', height: '90px', borderRadius: '10px', border: '1px dashed var(--border2)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', color: 'var(--text3)', flexShrink: 0 }}>{form.cover_photo_url ? '' : '🏠'}</SignedBg>
                 <div>
                   <button type='button' onClick={() => photoRef.current?.click()} className='btn btn-ghost' disabled={photoUploading} style={{ fontSize: '12px' }}>{photoUploading ? 'Uploading…' : form.cover_photo_url ? 'Replace photo' : '⬆ Upload photo'}</button>
                   {form.cover_photo_url && <button type='button' onClick={() => set('cover_photo_url', '')} style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: '12px', marginLeft: '8px' }}>Remove</button>}

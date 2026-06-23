@@ -1,7 +1,8 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, share, formatDate, loanTypeLabel, projectCost } from '@/lib/supabase'
+import { supabase, fm, share, formatDate, loanTypeLabel, projectCost, openSigned } from '@/lib/supabase'
+import { SignedBg } from '@/components/SignedFile'
 import UnitsManager from '@/components/UnitsManager'
 import AssetsManager from '@/components/AssetsManager'
 import PaintManager from '@/components/PaintManager'
@@ -123,9 +124,9 @@ export default function PropertyDetailPage({ params }) {
           <a href='/properties' style={{ color: 'var(--text3)', textDecoration: 'none' }}>All Properties</a>
         </div>
         <div style={{ padding: '14px 20px 0', display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-          <div style={{ width: '52px', height: '52px', borderRadius: '12px', background: p.cover_photo_url ? `center/cover no-repeat url(${p.cover_photo_url})` : (p.occupancy_status === 'occupied' ? 'var(--green-bg)' : 'var(--amber-bg)'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', flexShrink: 0 }}>
+          <SignedBg src={p.cover_photo_url || ''} style={{ width: '52px', height: '52px', borderRadius: '12px', background: p.occupancy_status === 'occupied' ? 'var(--green-bg)' : 'var(--amber-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', flexShrink: 0 }}>
             {p.cover_photo_url ? '' : (({'single_family':'🏠','condo':'🏢','duplex':'🏘','triplex':'🏘','quadplex':'🏘','multi_family':'🏗','commercial':'🏬','land':'🏞','primary_residence':'🏡'})[p.type] || '🏠')}
-          </div>
+          </SignedBg>
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 700, color: 'var(--text)' }}>{p.address}</div>
             <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '3px' }}>{p.city}, {p.state} {p.zip} · {(p.type || '').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</div>
@@ -531,8 +532,8 @@ export default function PropertyDetailPage({ params }) {
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg3)', borderRadius: '8px', border: '0.5px solid var(--border)' }}>
                     <div style={{ fontSize: '13px', color: 'var(--text)' }}>📄 {decodeURIComponent(url.split('/').pop().split('_').slice(1).join('_')) || 'Document ' + (i + 1)}</div>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <a href={url} target='_blank' className='btn btn-ghost'>View</a>
-                      <a href={url} download className='btn btn-ghost'>Download</a>
+                      <button onClick={() => openSigned(url)} className='btn btn-ghost'>View</button>
+                      <button onClick={() => openSigned(url)} className='btn btn-ghost'>Download</button>
                       <button onClick={() => removeDoc(url)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '5px 12px', fontSize: '12px', cursor: 'pointer' }}>Delete</button>
                     </div>
                   </div>

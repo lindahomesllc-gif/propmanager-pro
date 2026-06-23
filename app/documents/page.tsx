@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, formatDate } from '@/lib/supabase'
+import { supabase, formatDate, signedUrl, openSigned } from '@/lib/supabase'
 
 // Documents Vault — one library for every file, tagged into folders and searchable,
 // with drag-&-drop upload and inline preview. Files live in the existing
@@ -22,7 +22,9 @@ export default function DocumentsVaultPage() {
   const [propFilter, setPropFilter] = useState('all')
   const [q, setQ] = useState('')
   const [preview, setPreview] = useState<any>(null)
+  const [previewUrl, setPreviewUrl] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+  useEffect(() => { setPreviewUrl(''); if (preview) signedUrl(preview.file_path || preview.file_url).then(setPreviewUrl) }, [preview])
 
   async function load() {
     const [d, p] = await Promise.all([
@@ -131,7 +133,7 @@ export default function DocumentsVaultPage() {
                 </div>
                 <div style={{ display: 'flex', gap: '6px', marginTop: 'auto' }}>
                   {(isImg(d) || isPdf(d)) && <button onClick={() => setPreview(d)} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 10px' }}>👁 Preview</button>}
-                  <a href={d.file_url} download className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 10px' }}>⬇</a>
+                  <button onClick={() => openSigned(d.file_path || d.file_url)} className='btn btn-ghost' style={{ fontSize: '11px', padding: '5px 10px' }}>⬇</button>
                   <button onClick={() => del(d)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '5px 10px', fontSize: '11px', cursor: 'pointer', marginLeft: 'auto' }}>Delete</button>
                 </div>
               </div>
@@ -147,14 +149,15 @@ export default function DocumentsVaultPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '0.5px solid var(--border)' }}>
               <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{preview.name}</div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <a href={preview.file_url} target='_blank' className='btn btn-ghost' style={{ fontSize: '12px' }}>Open in new tab</a>
+                <button onClick={() => openSigned(preview.file_path || preview.file_url)} className='btn btn-ghost' style={{ fontSize: '12px' }}>Open in new tab</button>
                 <button onClick={() => setPreview(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: '20px', cursor: 'pointer' }}>×</button>
               </div>
             </div>
             <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg3)' }}>
-              {isImg(preview)
-                ? <img src={preview.file_url} alt={preview.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                : <iframe src={preview.file_url} style={{ width: '100%', height: '100%', border: 'none' }} title={preview.name} />}
+              {!previewUrl ? <div style={{ color: 'var(--text3)', fontSize: '13px' }}>Loading…</div>
+                : isImg(preview)
+                ? <img src={previewUrl} alt={preview.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                : <iframe src={previewUrl} style={{ width: '100%', height: '100%', border: 'none' }} title={preview.name} />}
             </div>
           </div>
         </div>

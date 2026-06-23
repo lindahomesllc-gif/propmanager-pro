@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import { getProperties, fm, share, supabase, type Property } from '@/lib/supabase'
+import { SignedBg } from '@/components/SignedFile'
 
 const typeIcon = (t) => ({ single_family: '🏠', condo: '🏢', duplex: '🏘', triplex: '🏘', quadplex: '🏘', multi_family: '🏗', commercial: '🏬', land: '🏞', primary_residence: '🏡' }[t] || '🏠')
 const typeLabel = (t) => (t || 'property').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
@@ -124,7 +125,7 @@ export default function PropertiesPage() {
               const isOccupied = p.occupancy_status === 'occupied'
               return (
                 <div key={p.id} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
-                  {(p as any).cover_photo_url && <div style={{ height: '130px', background: `center/cover no-repeat url(${(p as any).cover_photo_url})`, borderBottom: '0.5px solid var(--border)' }} />}
+                  {(p as any).cover_photo_url && <SignedBg src={(p as any).cover_photo_url} style={{ height: '130px', background: 'var(--bg3)', borderBottom: '0.5px solid var(--border)' }} />}
                   <div style={{ padding: '16px 18px', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                     <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: isOccupied ? 'var(--green-bg)' : 'var(--amber-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 }}>
                       {typeIcon(p.type)}
