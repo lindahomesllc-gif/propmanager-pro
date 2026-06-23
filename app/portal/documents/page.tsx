@@ -29,6 +29,13 @@ export default function DocumentsPage() {
     load()
   }, [])
 
+  async function openDoc(u: string) {
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/portal/file?u=' + encodeURIComponent(u), { headers: { Authorization: 'Bearer ' + (session?.access_token || '') } })
+    const j = await res.json().catch(() => ({}))
+    if (j.url) window.open(j.url, '_blank'); else alert('Could not open this file.')
+  }
+
   const linkBtn = { background: '#2D6A4F', color: '#fff', border: 'none', borderRadius: '8px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' as const }
   const sectionTtl = { fontSize: '12px', fontWeight: 700, color: '#888', textTransform: 'uppercase' as const, letterSpacing: '0.05em', margin: '4px 0 10px' }
   const row = { background: '#fff', borderRadius: '12px', padding: '16px 18px', boxShadow: '0 1px 8px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }
@@ -58,7 +65,7 @@ export default function DocumentsPage() {
                       <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', textTransform: 'capitalize' }}>{fmtDate(l.start_date)} → {fmtDate(l.end_date)} · {l.status?.replace('_', ' ')}</div>
                     </div>
                     {l.pdf_url
-                      ? <a href={l.pdf_url} target='_blank' style={linkBtn}>View PDF</a>
+                      ? <button onClick={() => openDoc(l.pdf_url)} style={{ ...linkBtn, cursor: 'pointer' }}>View PDF</button>
                       : <span style={{ fontSize: '11px', color: '#AAA' }}>No file</span>}
                   </div>
                 ))}
@@ -77,7 +84,7 @@ export default function DocumentsPage() {
                       <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>{fmtDate(r.inspection_date)}</div>
                     </div>
                     {r.pdf_url
-                      ? <a href={r.pdf_url} target='_blank' style={linkBtn}>View PDF</a>
+                      ? <button onClick={() => openDoc(r.pdf_url)} style={{ ...linkBtn, cursor: 'pointer' }}>View PDF</button>
                       : <span style={{ fontSize: '11px', color: '#AAA' }}>No file</span>}
                   </div>
                 ))}
