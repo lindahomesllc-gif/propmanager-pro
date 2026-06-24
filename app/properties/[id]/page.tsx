@@ -17,6 +17,7 @@ export default function PropertyDetailPage({ params }) {
   const [mortgages, setMortgages] = useState([])
   const [leases, setLeases] = useState([])
   const [maintenance, setMaintenance] = useState([])
+  const [documents, setDocuments] = useState([])
   const [scheduleFor, setScheduleFor] = useState<any>(null)
   const [showMortgageForm, setShowMortgageForm] = useState(false)
   const [editingMortgage, setEditingMortgage] = useState<any>(null)
@@ -44,7 +45,8 @@ export default function PropertyDetailPage({ params }) {
       supabase.from('mortgages').select('*, properties(address, city, state)').eq('property_id', id),
       supabase.from('leases').select('*, tenants(full_name)').eq('property_id', id).order('created_at', { ascending: false }),
       supabase.from('maintenance').select('*').eq('property_id', id).order('created_at', { ascending: false }),
-    ]).then(([p, t, pay, exp, mtg, ls, mt]) => {
+      supabase.from('documents').select('*').eq('property_id', id).order('created_at', { ascending: false }),
+    ]).then(([p, t, pay, exp, mtg, ls, mt, docs]) => {
       setProperty(p.data)
       setTenants(t.data || [])
       setPayments(pay.data || [])
@@ -52,37 +54,33 @@ export default function PropertyDetailPage({ params }) {
       setMortgages(mtg.data || [])
       setLeases(ls.data || [])
       setMaintenance(mt.data || [])
+      setDocuments(docs.data || [])
       setLoading(false)
     })
   }, [params.id])
 
   async function uploadDoc(e) {
-    const file = e.target.files[0]
-    if (!file) return
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
     setUploading(true)
     const { data: { user: _u } } = await supabase.auth.getUser()
-    const path = (_u?.id || 'unknown') + '/properties/' + params.id + '/' + Date.now() + '_' + file.name
-    const { error: upErr } = await supabase.storage.from('lease-documents').upload(path, file, { upsert: true })
-    if (upErr) { alert('Upload failed: ' + upErr.message); setUploading(false); return }
-    const { data: urlData } = supabase.storage.from('lease-documents').getPublicUrl(path)
-    const existingDocs = property.photo_urls || []
-    await supabase.from('properties').update({ photo_urls: [...existingDocs, urlData.publicUrl] }).eq('id', params.id)
-    // also file it into the unified Documents Vault
-    await supabase.from('documents').insert({ property_id: params.id, name: file.name, tag: 'Misc', file_url: urlData.publicUrl, file_path: path, mime: file.type, size: file.size })
-    setProperty(p => ({ ...p, photo_urls: [...(p.photo_urls || []), urlData.publicUrl] }))
+    for (const file of files as File[]) {
+      const path = (_u?.id || 'unknown') + '/properties/' + params.id + '/' + Date.now() + '_' + file.name
+      const { error: upErr } = await supabase.storage.from('lease-documents').upload(path, file, { upsert: true })
+      if (upErr) { alert('Upload failed: ' + upErr.message); continue }
+      const { data: urlData } = supabase.storage.from('lease-documents').getPublicUrl(path)
+      const { data: row } = await supabase.from('documents').insert({ property_id: params.id, name: file.name, tag: 'Misc', file_url: urlData.publicUrl, file_path: path, mime: file.type, size: file.size }).select('*').single()
+      if (row) setDocuments(prev => [row, ...prev])
+    }
     setUploading(false)
   }
 
-  async function removeDoc(url) {
-    if (!confirm('Delete this document? This cannot be undone.')) return
-    const next = (property.photo_urls || []).filter(u => u !== url)
-    const { error } = await supabase.from('properties').update({ photo_urls: next }).eq('id', params.id)
+  async function removeDoc(doc) {
+    if (!confirm('Delete "' + (doc.name || 'this document') + '"? This cannot be undone.')) return
+    const { error } = await supabase.from('documents').delete().eq('id', doc.id)
     if (error) { alert('Error: ' + error.message); return }
-    setProperty(p => ({ ...p, photo_urls: next }))
-    // best-effort: also remove the underlying file from storage
-    const marker = '/lease-documents/'
-    const idx = url.indexOf(marker)
-    if (idx !== -1) { try { await supabase.storage.from('lease-documents').remove([decodeURIComponent(url.slice(idx + marker.length))]) } catch {} }
+    setDocuments(prev => prev.filter(d => d.id !== doc.id))
+    if (doc.file_path) { try { await supabase.storage.from('lease-documents').remove([doc.file_path]) } catch {} }
   }
 
   if (loading) return <AppShell><div style={{ padding: '40px', color: 'var(--text3)', textAlign: 'center' }}>Loading...</div></AppShell>
@@ -518,25 +516,30 @@ export default function PropertyDetailPage({ params }) {
         {tab === 'documents' && (
           <div style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <div style={secTtl}>📄 Property Documents</div>
-              <button className='btn btn-primary' onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? 'Uploading...' : '⬆ Upload Document'}</button>
+              <div style={secTtl}>📄 Documents <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--text3)' }}>· this property, from your Vault</span></div>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <a href={'/documents?property=' + p.id} className='btn btn-ghost' style={{ fontSize: '12px' }}>Open Vault →</a>
+                <button className='btn btn-primary' onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? 'Uploading…' : '⬆ Upload'}</button>
+              </div>
             </div>
-            <input ref={fileRef} type='file' accept='.pdf,.jpg,.jpeg,.png,.doc,.docx' style={{ display: 'none' }} onChange={uploadDoc} />
-            {(!p.photo_urls || p.photo_urls.length === 0) ? (
+            <input ref={fileRef} type='file' multiple accept='.pdf,.jpg,.jpeg,.png,.doc,.docx' style={{ display: 'none' }} onChange={uploadDoc} />
+            {documents.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>
                 <div style={{ fontSize: '32px', marginBottom: '12px' }}>📄</div>
-                <div style={{ fontSize: '13px' }}>No documents uploaded yet.</div>
-                <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '6px' }}>Upload property appraiser pages, insurance docs, deeds, etc.</div>
+                <div style={{ fontSize: '13px' }}>No documents for this property yet.</div>
+                <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '6px' }}>Upload appraiser pages, insurance docs, deeds, inspections — they file into your Documents Vault.</div>
               </div>
             ) : (
               <div style={{ display: 'grid', gap: '8px' }}>
-                {p.photo_urls.map((url, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg3)', borderRadius: '8px', border: '0.5px solid var(--border)' }}>
-                    <div style={{ fontSize: '13px', color: 'var(--text)' }}>📄 {decodeURIComponent(url.split('/').pop().split('_').slice(1).join('_')) || 'Document ' + (i + 1)}</div>
+                {documents.map((d: any) => (
+                  <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg3)', borderRadius: '8px', border: '0.5px solid var(--border)', gap: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '13px', color: 'var(--text)', wordBreak: 'break-word' }}>📄 {d.name}</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{d.tag || 'Misc'}{d.created_at ? ' · ' + formatDate(d.created_at) : ''}</div>
+                    </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <button onClick={() => openSigned(url)} className='btn btn-ghost'>View</button>
-                      <button onClick={() => openSigned(url)} className='btn btn-ghost'>Download</button>
-                      <button onClick={() => removeDoc(url)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '5px 12px', fontSize: '12px', cursor: 'pointer' }}>Delete</button>
+                      <button onClick={() => openSigned(d.file_path || d.file_url)} className='btn btn-ghost'>View</button>
+                      <button onClick={() => removeDoc(d)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '5px 12px', fontSize: '12px', cursor: 'pointer' }}>Delete</button>
                     </div>
                   </div>
                 ))}
