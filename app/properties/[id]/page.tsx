@@ -9,6 +9,9 @@ import PaintManager from '@/components/PaintManager'
 import AmortizationModal from '@/components/AmortizationModal'
 import MortgageFormModal from '@/components/MortgageFormModal'
 
+const DOC_TAGS = ['Leases', 'Deed', 'Survey', 'Taxes', 'Insurance', 'Mortgage', 'Entity', 'Inspections', 'Repairs', 'Permits', 'Warranty', 'Misc']
+const docTagColor = (t: string) => ({ Insurance: 'var(--amber)', Taxes: 'var(--red)', Leases: 'var(--green)', Deed: '#0ea5e9', Survey: '#14b8a6', Mortgage: '#6366f1', Entity: '#ec4899', Inspections: 'var(--blue)', Repairs: '#A78BFA', Permits: '#f97316', Warranty: '#84cc16', Misc: 'var(--text2)' }[t] || 'var(--text2)')
+
 export default function PropertyDetailPage({ params }) {
   const [property, setProperty] = useState(null)
   const [tenants, setTenants] = useState([])
@@ -18,6 +21,7 @@ export default function PropertyDetailPage({ params }) {
   const [leases, setLeases] = useState([])
   const [maintenance, setMaintenance] = useState([])
   const [documents, setDocuments] = useState([])
+  const [docTag, setDocTag] = useState('Misc')
   const [scheduleFor, setScheduleFor] = useState<any>(null)
   const [showMortgageForm, setShowMortgageForm] = useState(false)
   const [editingMortgage, setEditingMortgage] = useState<any>(null)
@@ -69,10 +73,15 @@ export default function PropertyDetailPage({ params }) {
       const { error: upErr } = await supabase.storage.from('lease-documents').upload(path, file, { upsert: true })
       if (upErr) { alert('Upload failed: ' + upErr.message); continue }
       const { data: urlData } = supabase.storage.from('lease-documents').getPublicUrl(path)
-      const { data: row } = await supabase.from('documents').insert({ property_id: params.id, name: file.name, tag: 'Misc', file_url: urlData.publicUrl, file_path: path, mime: file.type, size: file.size }).select('*').single()
+      const { data: row } = await supabase.from('documents').insert({ property_id: params.id, name: file.name, tag: docTag, file_url: urlData.publicUrl, file_path: path, mime: file.type, size: file.size }).select('*').single()
       if (row) setDocuments(prev => [row, ...prev])
     }
     setUploading(false)
+  }
+
+  async function retagDoc(doc, tag) {
+    await supabase.from('documents').update({ tag }).eq('id', doc.id)
+    setDocuments(prev => prev.map(d => d.id === doc.id ? { ...d, tag } : d))
   }
 
   async function removeDoc(doc) {
@@ -517,8 +526,11 @@ export default function PropertyDetailPage({ params }) {
           <div style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={secTtl}>📄 Documents <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--text3)' }}>· this property, from your Vault</span></div>
-              <div style={{ display: 'flex', gap: '6px' }}>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <a href={'/documents?property=' + p.id} className='btn btn-ghost' style={{ fontSize: '12px' }}>Open Vault →</a>
+                <select value={docTag} onChange={e => setDocTag(e.target.value)} title='Label for uploads' style={{ fontSize: '12px', padding: '6px 9px', borderRadius: '7px', background: 'var(--bg3)', color: docTagColor(docTag), fontWeight: 600, border: '0.5px solid ' + docTagColor(docTag), outline: 'none', cursor: 'pointer' }}>
+                  {DOC_TAGS.map(t => <option key={t} value={t} style={{ color: 'var(--text)', background: 'var(--bg2)' }}>{t}</option>)}
+                </select>
                 <button className='btn btn-primary' onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? 'Uploading…' : '⬆ Upload'}</button>
               </div>
             </div>
@@ -535,9 +547,12 @@ export default function PropertyDetailPage({ params }) {
                   <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg3)', borderRadius: '8px', border: '0.5px solid var(--border)', gap: '10px', flexWrap: 'wrap' }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: '13px', color: 'var(--text)', wordBreak: 'break-word' }}>📄 {d.name}</div>
-                      <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{d.tag || 'Misc'}{d.created_at ? ' · ' + formatDate(d.created_at) : ''}</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{d.created_at ? formatDate(d.created_at) : ''}</div>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <select value={d.tag || 'Misc'} onChange={e => retagDoc(d, e.target.value)} title='Change label' style={{ fontSize: '10px', padding: '3px 7px', borderRadius: '20px', background: docTagColor(d.tag) + '22', color: docTagColor(d.tag), fontWeight: 700, border: '0.5px solid ' + docTagColor(d.tag), cursor: 'pointer', outline: 'none' }}>
+                        {DOC_TAGS.map(t => <option key={t} value={t} style={{ color: 'var(--text)', background: 'var(--bg2)' }}>{t}</option>)}
+                      </select>
                       <button onClick={() => openSigned(d.file_path || d.file_url)} className='btn btn-ghost'>View</button>
                       <button onClick={() => removeDoc(d)} style={{ background: 'var(--red-bg)', color: 'var(--red)', border: '0.5px solid var(--red)', borderRadius: '7px', padding: '5px 12px', fontSize: '12px', cursor: 'pointer' }}>Delete</button>
                     </div>
