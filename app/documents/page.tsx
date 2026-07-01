@@ -6,8 +6,8 @@ import { supabase, formatDate, signedUrl, openSigned } from '@/lib/supabase'
 // Documents Vault — one library for every file, tagged into folders and searchable,
 // with drag-&-drop upload and inline preview. Files live in the existing
 // `lease-documents` storage bucket; metadata (tag, property, etc.) in `documents`.
-const TAGS = ['Insurance', 'Taxes', 'Leases', 'Inspections', 'Repairs', 'Misc']
-const tagColor = (t: string) => ({ Insurance: 'var(--amber)', Taxes: 'var(--red)', Leases: 'var(--green)', Inspections: 'var(--blue)', Repairs: '#A78BFA', Misc: 'var(--text2)' }[t] || 'var(--text2)')
+const TAGS = ['Leases', 'Taxes', 'Insurance', 'Deed', 'Mortgage', 'Inspections', 'Repairs', 'Permits', 'Warranty', 'Misc']
+const tagColor = (t: string) => ({ Insurance: 'var(--amber)', Taxes: 'var(--red)', Leases: 'var(--green)', Deed: '#0ea5e9', Mortgage: '#6366f1', Inspections: 'var(--blue)', Repairs: '#A78BFA', Permits: '#f97316', Warranty: '#84cc16', Misc: 'var(--text2)' }[t] || 'var(--text2)')
 const fmtSize = (n: number) => !n ? '' : n > 1e6 ? (n / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'
 
 export default function DocumentsVaultPage() {
@@ -53,6 +53,10 @@ export default function DocumentsVaultPage() {
     }
     setUploading(false)
     load()
+  }
+  async function retag(doc: any, tag: string) {
+    await supabase.from('documents').update({ tag }).eq('id', doc.id)
+    setDocs(prev => prev.map(d => d.id === doc.id ? { ...d, tag } : d))
   }
   async function del(doc: any) {
     if (!confirm('Delete "' + doc.name + '"? This cannot be undone.')) return
@@ -125,7 +129,9 @@ export default function DocumentsVaultPage() {
               <div key={d.id} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
                   <div style={{ fontSize: '24px' }}>{isImg(d) ? '🖼' : isPdf(d) ? '📕' : '📄'}</div>
-                  <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '20px', background: tagColor(d.tag) + '22', color: tagColor(d.tag), fontWeight: 700, whiteSpace: 'nowrap' }}>{d.tag || 'Misc'}</span>
+                  <select value={d.tag || 'Misc'} onChange={e => retag(d, e.target.value)} title='Change label' style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '20px', background: tagColor(d.tag) + '22', color: tagColor(d.tag), fontWeight: 700, border: '0.5px solid ' + tagColor(d.tag), cursor: 'pointer', outline: 'none' }}>
+                    {TAGS.map(t => <option key={t} value={t} style={{ color: 'var(--text)', background: 'var(--bg2)' }}>{t}</option>)}
+                  </select>
                 </div>
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', wordBreak: 'break-word' }}>{d.name}</div>
