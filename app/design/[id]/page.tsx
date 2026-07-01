@@ -189,9 +189,11 @@ export default function DesignProjectPage({ params }: { params: { id: string } }
   async function uploadImage(file: File): Promise<string | null> {
     const { data: { user } } = await supabase.auth.getUser()
     const path = (user?.id || 'unknown') + '/design/' + pid + '/' + Date.now() + '_' + file.name.replace(/[^\w.\-]/g, '_')
-    const { error: upErr } = await supabase.storage.from('lease-documents').upload(path, file, { upsert: true })
+    // Design images live in a dedicated PUBLIC bucket — they're low-sensitivity and
+    // meant to be shared with clients via the /share link (sensitive docs stay private).
+    const { error: upErr } = await supabase.storage.from('design-assets').upload(path, file, { upsert: true })
     if (upErr) { alert('Upload failed: ' + upErr.message); return null }
-    return supabase.storage.from('lease-documents').getPublicUrl(path).data.publicUrl
+    return supabase.storage.from('design-assets').getPublicUrl(path).data.publicUrl
   }
 
   // ---------- rooms ----------
