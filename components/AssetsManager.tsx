@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { supabase, fm, formatDate } from '@/lib/supabase'
+import { supabase, fm, formatDate, openSigned } from '@/lib/supabase'
 
 // Per-property registry of appliances, A/C units, water heaters, roofs and major systems —
 // brand/model/serial, when bought or replaced, cost, and warranty expiration + receipts.
@@ -156,7 +156,7 @@ export default function AssetsManager({ propertyId }: { propertyId: string }) {
                 {Array.isArray(a.doc_urls) && a.doc_urls.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
                     {a.doc_urls.map((url: string, i: number) => (
-                      <a key={i} href={url} target='_blank' style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none', border: '0.5px solid var(--border)', borderRadius: '6px', padding: '3px 8px' }}>📄 {docName(url)}</a>
+                      <button key={i} onClick={() => openSigned(url)} style={{ fontSize: '11px', color: 'var(--green)', background: 'transparent', border: '0.5px solid var(--border)', borderRadius: '6px', padding: '3px 8px', cursor: 'pointer' }}>📄 {docName(url)}</button>
                     ))}
                   </div>
                 )}

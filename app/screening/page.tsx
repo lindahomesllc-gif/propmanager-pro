@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, formatDate } from '@/lib/supabase'
+import { supabase, formatDate, openSigned } from '@/lib/supabase'
 
 export default function ScreeningPage() {
   const [applications, setApplications] = useState([])
@@ -133,7 +133,7 @@ export default function ScreeningPage() {
             {a.screening_report_url && (
               <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', alignItems: 'center' }}>
                 <span style={{ fontSize: '12px', color: 'var(--green)' }}>✓ Screening report uploaded</span>
-                <a href={a.screening_report_url} target='_blank' style={{ fontSize: '11px', color: 'var(--blue)', textDecoration: 'none' }}>View PDF →</a>
+                <button onClick={() => openSigned(a.screening_report_url)} style={{ fontSize: '11px', color: 'var(--blue)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>View PDF →</button>
               </div>
             )}
 

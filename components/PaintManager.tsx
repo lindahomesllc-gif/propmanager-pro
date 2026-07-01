@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, openSigned } from '@/lib/supabase'
 
 // Per-property paint & materials log: never guess a touch-up color again.
 // Records where each color/material is used, brand, name, code, sheen, an optional
@@ -123,7 +123,7 @@ export default function PaintManager({ propertyId }: { propertyId: string }) {
               {Array.isArray(it.photo_urls) && it.photo_urls.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
                   {it.photo_urls.map((url: string, i: number) => (
-                    <a key={i} href={url} target='_blank' style={{ fontSize: '11px', color: 'var(--green)', textDecoration: 'none', border: '0.5px solid var(--border)', borderRadius: '6px', padding: '3px 8px' }}>📷 Photo {i + 1}</a>
+                    <button key={i} onClick={() => openSigned(url)} style={{ fontSize: '11px', color: 'var(--green)', background: 'transparent', border: '0.5px solid var(--border)', borderRadius: '6px', padding: '3px 8px', cursor: 'pointer' }}>📷 Photo {i + 1}</button>
                   ))}
                 </div>
               )}

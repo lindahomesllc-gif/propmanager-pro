@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, formatDate } from '@/lib/supabase'
+import { supabase, fm, formatDate, openSigned } from '@/lib/supabase'
 
 export default function TenantDetailPage({ params }) {
   const [tenant, setTenant] = useState(null)
@@ -245,8 +245,8 @@ export default function TenantDetailPage({ params }) {
                   <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{formatDate(l.start_date)} → {formatDate(l.end_date)}</div>
                 </div>
                 <div style={{ display: 'flex', gap: '6px' }}>
-                  <a href={l.pdf_url} target='_blank' className='btn btn-ghost'>View</a>
-                  <a href={l.pdf_url} download className='btn btn-ghost'>Download</a>
+                  <button onClick={() => openSigned(l.pdf_url)} className='btn btn-ghost'>View</button>
+                  <button onClick={() => openSigned(l.pdf_url)} className='btn btn-ghost'>Download</button>
                 </div>
               </div>
             ))}
@@ -260,8 +260,8 @@ export default function TenantDetailPage({ params }) {
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg3)', borderRadius: '8px', border: '0.5px solid var(--border)', marginBottom: '8px' }}>
                 <div style={{ fontSize: '13px', color: 'var(--text)', fontWeight: 500 }}>📄 {decodeURIComponent(url.split('/').pop().split('_').slice(1).join('_')) || 'Document ' + (i + 1)}</div>
                 <div style={{ display: 'flex', gap: '6px' }}>
-                  <a href={url} target='_blank' className='btn btn-ghost'>View</a>
-                  <a href={url} download className='btn btn-ghost'>Download</a>
+                  <button onClick={() => openSigned(url)} className='btn btn-ghost'>View</button>
+                  <button onClick={() => openSigned(url)} className='btn btn-ghost'>Download</button>
                 </div>
               </div>
             ))}
