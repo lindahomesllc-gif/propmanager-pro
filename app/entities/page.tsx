@@ -75,7 +75,7 @@ export default function EntitiesPage() {
     const { error: updErr } = await supabase.from('entities').update({ doc_urls: next }).eq('id', docEntity.id)
     if (updErr) { alert('Error: ' + updErr.message); setDocUploading(false); return }
     // file it into the unified Documents Vault
-    await supabase.from('documents').insert({ entity_id: docEntity.id, name: file.name, tag: 'Misc', file_url: urlData.publicUrl, file_path: path, mime: file.type, size: file.size })
+    await supabase.from('documents').insert({ entity_id: docEntity.id, name: file.name, tag: 'Entity', file_url: urlData.publicUrl, file_path: path, mime: file.type, size: file.size })
     setDocEntity(d => ({ ...d, doc_urls: next }))
     setEntities(list => list.map(x => x.id === docEntity.id ? { ...x, doc_urls: next } : x))
     setDocUploading(false)

@@ -6,8 +6,8 @@ import { supabase, formatDate, signedUrl, openSigned } from '@/lib/supabase'
 // Documents Vault — one library for every file, tagged into folders and searchable,
 // with drag-&-drop upload and inline preview. Files live in the existing
 // `lease-documents` storage bucket; metadata (tag, property, etc.) in `documents`.
-const TAGS = ['Leases', 'Taxes', 'Insurance', 'Deed', 'Mortgage', 'Inspections', 'Repairs', 'Permits', 'Warranty', 'Misc']
-const tagColor = (t: string) => ({ Insurance: 'var(--amber)', Taxes: 'var(--red)', Leases: 'var(--green)', Deed: '#0ea5e9', Mortgage: '#6366f1', Inspections: 'var(--blue)', Repairs: '#A78BFA', Permits: '#f97316', Warranty: '#84cc16', Misc: 'var(--text2)' }[t] || 'var(--text2)')
+const TAGS = ['Leases', 'Deed', 'Survey', 'Taxes', 'Insurance', 'Mortgage', 'Entity', 'Inspections', 'Repairs', 'Permits', 'Warranty', 'Misc']
+const tagColor = (t: string) => ({ Insurance: 'var(--amber)', Taxes: 'var(--red)', Leases: 'var(--green)', Deed: '#0ea5e9', Survey: '#14b8a6', Mortgage: '#6366f1', Entity: '#ec4899', Inspections: 'var(--blue)', Repairs: '#A78BFA', Permits: '#f97316', Warranty: '#84cc16', Misc: 'var(--text2)' }[t] || 'var(--text2)')
 const fmtSize = (n: number) => !n ? '' : n > 1e6 ? (n / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'
 
 export default function DocumentsVaultPage() {
