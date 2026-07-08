@@ -7,14 +7,20 @@ import { supabase, fm, monthlyPI, openSigned } from '@/lib/supabase'
 // A DSCR lender qualifies on rent ÷ PITIA (P&I + taxes + insurance + HOA), so that
 // calculation is the headline; the rest is the supporting property + income detail.
 
-// Pure DSCR math for one scenario (used by the compare grid).
-function scenarioCalc(s: any) {
+// Full-picture math for one loan scenario over a chosen hold horizon.
+function scenarioCalc(s: any, holdMonths = 24) {
   const n = (v: any) => parseFloat(v) || 0
   const loan = n(s.loan), rate = n(s.rate), term = n(s.term), value = n(s.value)
   const taxMo = n(s.tax) / 12, insMo = n(s.ins) / 12, hoaMo = n(s.hoa)
-  const pi = s.io ? loan * (rate / 100 / 12) : monthlyPI({ original_amount: loan, interest_rate: rate, term_years: term })
+  const r = rate / 100 / 12
+  const pi = s.io ? loan * r : monthlyPI({ original_amount: loan, interest_rate: rate, term_years: term })
   const pitia = pi + taxMo + insMo + hoaMo
-  return { pi, pitia, dscr: pitia > 0 ? n(s.rent) / pitia : null, ltv: value > 0 ? loan / value * 100 : null, fee: loan * n(s.orig) / 100 }
+  const upfront = loan * n(s.orig) / 100 + n(s.other)   // origination points + other upfront (closing, appraisal…)
+  // interest actually paid until you refi/sell (principal isn't a cost — it's your equity)
+  let interestHold = 0
+  if (s.io) { interestHold = loan * r * holdMonths }
+  else { let bal = loan; for (let m = 0; m < holdMonths && bal > 0.01; m++) { const int = bal * r; interestHold += int; bal -= (pi - int) } }
+  return { pi, pitia, dscr: pitia > 0 ? n(s.rent) / pitia : null, ltv: value > 0 ? loan / value * 100 : null, fee: loan * n(s.orig) / 100, upfront, interestHold, totalCostHold: upfront + interestHold }
 }
 const dscrTone = (d: number | null) => d == null ? '#888' : d >= 1.25 ? '#16a34a' : d >= 1 ? '#d97706' : '#dc2626'
 
@@ -47,10 +53,11 @@ export default function DscrPackagePage() {
   const [mHoa, setMHoa] = useState('')
   // side-by-side scenario comparison
   const [showCompare, setShowCompare] = useState(false)
+  const [holdYears, setHoldYears] = useState('2')   // how long until you expect to refi/sell
   const [scenarios, setScenarios] = useState<any[]>([
-    { label: 'Option A', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '7.5', term: '30', io: false, orig: '1' },
-    { label: 'Option B', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '8', term: '30', io: false, orig: '1' },
-    { label: 'Option C', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '7.5', term: '30', io: true, orig: '2' },
+    { label: 'Higher rate, no points', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '8', term: '30', io: false, orig: '0', other: '' },
+    { label: 'Lower rate, 2 points', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '7', term: '30', io: false, orig: '2', other: '' },
+    { label: 'Interest-only', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '7.5', term: '30', io: true, orig: '1', other: '' },
   ])
   const setSc = (i: number, k: string, v: any) => setScenarios(prev => prev.map((s, j) => j === i ? { ...s, [k]: v } : s))
 
@@ -101,7 +108,7 @@ export default function DscrPackagePage() {
   const origFee = loan * N(orig) / 100
   // fill all compare columns from the current scenario as a starting point
   function seedFromCurrent() {
-    const cur = { value: value ? String(value) : '', rent: rentMo ? String(rentMo) : '', tax: taxMo ? String(Math.round(taxMo * 12)) : '', ins: insMo ? String(Math.round(insMo * 12)) : '', hoa: hoaMo ? String(hoaMo) : '', loan: loanAmt, rate, term, io, orig }
+    const cur = { value: value ? String(value) : '', rent: rentMo ? String(rentMo) : '', tax: taxMo ? String(Math.round(taxMo * 12)) : '', ins: insMo ? String(Math.round(insMo * 12)) : '', hoa: hoaMo ? String(hoaMo) : '', loan: loanAmt, rate, term, io, orig, other: '' }
     setScenarios(prev => prev.map(s => ({ ...cur, label: s.label })))
   }
   const dscrColor = dscr == null ? '#888' : dscr >= 1.25 ? '#16a34a' : dscr >= 1 ? '#d97706' : '#dc2626'
@@ -157,8 +164,11 @@ export default function DscrPackagePage() {
           <>
             {/* side-by-side scenario comparison (not printed) */}
             {showCompare && (() => {
-              const calcs = scenarios.map(scenarioCalc)
-              const fields: [string, string][] = [['value', 'Property value'], ['rent', 'Monthly rent'], ['tax', 'Annual taxes'], ['ins', 'Annual insurance'], ['hoa', 'HOA /mo'], ['loan', 'Loan amount'], ['rate', 'Rate %'], ['term', 'Term (yrs)'], ['orig', 'Origination %']]
+              const holdMonths = (parseFloat(holdYears) || 0) * 12
+              const calcs = scenarios.map(s => scenarioCalc(s, holdMonths))
+              const totals = calcs.map(c => c.totalCostHold).filter(t => t > 0)
+              const minTotal = totals.length ? Math.min(...totals) : -1
+              const fields: [string, string][] = [['value', 'Property value'], ['rent', 'Monthly rent'], ['tax', 'Annual taxes'], ['ins', 'Annual insurance'], ['hoa', 'HOA /mo'], ['loan', 'Loan amount'], ['rate', 'Rate %'], ['term', 'Term (yrs)'], ['orig', 'Origination %'], ['other', 'Other upfront $']]
               const rl: any = { padding: '6px 8px', fontSize: '11px', color: 'var(--text2)', whiteSpace: 'nowrap', textAlign: 'left' }
               const rlb: any = { ...rl, fontWeight: 700, color: 'var(--text)' }
               const cel: any = { padding: '3px 5px' }
@@ -167,8 +177,11 @@ export default function DscrPackagePage() {
               return (
                 <div className='no-print' style={{ ...card, borderColor: 'var(--blue)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={sec}>⚖ Compare Scenarios <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: 'var(--text3)' }}>· tweak each column — DSCR updates live</span></div>
-                    <button onClick={seedFromCurrent} className='btn btn-ghost' style={{ fontSize: '11px' }}>↩ Seed all from current scenario</button>
+                    <div style={sec}>⚖ Compare Scenarios <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: 'var(--text3)' }}>· the whole picture, not just the rate</span></div>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <label style={{ fontSize: '11px', color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: '6px' }}>Hold until refi/sell: <input value={holdYears} onChange={e => setHoldYears(e.target.value)} style={{ width: '46px', padding: '5px 7px', fontSize: '12px', border: '0.5px solid var(--border2)', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', textAlign: 'center' }} /> yrs</label>
+                      <button onClick={seedFromCurrent} className='btn btn-ghost' style={{ fontSize: '11px' }}>↩ Seed from current</button>
+                    </div>
                   </div>
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '480px' }}>
@@ -192,10 +205,14 @@ export default function DscrPackagePage() {
                         <tr><td style={rl}>Origination fee</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: 'var(--text2)' }}>{fm(c.fee)}</td>)}</tr>
                         <tr style={{ borderTop: '0.5px solid var(--border)' }}><td style={rlb}>DSCR</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 800, color: dscrTone(c.dscr) }}>{c.dscr != null ? c.dscr.toFixed(2) + '×' : '—'}</td>)}</tr>
                         <tr><td style={rl}></td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontSize: '10px', fontWeight: 700, color: dscrTone(c.dscr) }}>{c.dscr == null ? '' : c.dscr >= 1.25 ? '✓ Strong' : c.dscr >= 1 ? 'Qualifies' : 'Short'}</td>)}</tr>
+                        {/* the cost picture over your actual hold */}
+                        <tr style={{ borderTop: '0.5px solid var(--border)' }}><td style={rl}>Upfront cost</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: 'var(--text2)' }}>{fm(c.upfront)}</td>)}</tr>
+                        <tr><td style={rl}>Interest paid in {holdYears || 0} yr</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: 'var(--text2)' }}>{fm(c.interestHold)}</td>)}</tr>
+                        <tr><td style={rlb}>Total cost over {holdYears || 0} yr</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: c.totalCostHold === minTotal ? 800 : 600, color: c.totalCostHold === minTotal ? 'var(--green)' : 'var(--text)' }}>{fm(c.totalCostHold)}{c.totalCostHold === minTotal && minTotal > 0 ? ' ✓' : ''}</td>)}</tr>
                       </tbody>
                     </table>
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '8px', lineHeight: 1.5 }}>DSCR = rent ÷ PITIA. Green ≥1.25× (best pricing) · amber ≥1.0× (qualifies) · red &lt;1.0×. Origination fee is upfront (doesn&apos;t change DSCR).</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '8px', lineHeight: 1.5 }}><strong style={{ color: 'var(--text2)' }}>Total cost over your hold</strong> = upfront fees + interest paid until you refi/sell (principal isn&apos;t counted — it&apos;s your equity). The ✓ column is cheapest for that horizon. Shorten the hold and watch a lower rate with points lose to a higher rate with none — that&apos;s the buydown you&apos;d never recover. DSCR: green ≥1.25× · amber ≥1.0× · red &lt;1.0×.</div>
                 </div>
               )
             })()}
