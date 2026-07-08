@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import AppShell from '@/components/AppShell'
 import { supabase, fm, monthlyPI, openSigned, loanBalance } from '@/lib/supabase'
 
@@ -65,6 +65,29 @@ export default function DscrPackagePage() {
     { label: 'Interest-only', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '7.5', term: '30', io: true, orig: '1', other: '', payoff: '' },
   ])
   const setSc = (i: number, k: string, v: any) => setScenarios(prev => prev.map((s, j) => j === i ? { ...s, [k]: v } : s))
+  const restoredRef = useRef<any>(null)
+  const [restored, setRestored] = useState(false)
+
+  // Restore prior work from this browser (so nothing has to be re-typed). Runs before data.
+  useEffect(() => {
+    try { restoredRef.current = JSON.parse(localStorage.getItem('dscrWork') || 'null') } catch {}
+    const s = restoredRef.current
+    if (s) {
+      const setIf = (v: any, fn: (x: any) => void) => { if (v != null) fn(v) }
+      setIf(s.purpose, setPurpose); setIf(s.loanAmt, setLoanAmt); setIf(s.rate, setRate); setIf(s.term, setTerm); setIo(!!s.io)
+      setIf(s.orig, setOrig); setIf(s.closing, setClosing); setIf(s.closingMode, setClosingMode); setIf(s.payoff, setPayoff)
+      setIf(s.mLabel, setMLabel); setIf(s.mValue, setMValue); setIf(s.mRent, setMRent); setIf(s.mTax, setMTax); setIf(s.mIns, setMIns); setIf(s.mHoa, setMHoa)
+      setIf(s.holdYears, setHoldYears)
+      if (Array.isArray(s.scenarios) && s.scenarios.length === 3) setScenarios(s.scenarios)
+    }
+    setRestored(true)
+  }, [])
+
+  // Auto-save all working inputs to this browser (private, never leaves your device).
+  useEffect(() => {
+    if (!restored) return
+    try { localStorage.setItem('dscrWork', JSON.stringify({ selId, purpose, loanAmt, rate, term, io, orig, closing, closingMode, payoff, mLabel, mValue, mRent, mTax, mIns, mHoa, holdYears, scenarios })) } catch {}
+  }, [restored, selId, purpose, loanAmt, rate, term, io, orig, closing, closingMode, payoff, mLabel, mValue, mRent, mTax, mIns, mHoa, holdYears, scenarios])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -78,7 +101,11 @@ export default function DscrPackagePage() {
     ]).then(([p, m, l, u, e]) => {
       const props = p.data || []
       setProperties(props); setMortgages(m.data || []); setLeases(l.data || []); setUnits(u.data || []); setEntities(e.data || [])
-      if (props.length) setSelId(qp && props.some((x: any) => x.id === qp) ? qp : props[0].id)
+      const saved = restoredRef.current?.selId
+      if (qp && props.some((x: any) => x.id === qp)) setSelId(qp)
+      else if (saved === 'manual') setSelId('manual')
+      else if (saved && props.some((x: any) => x.id === saved)) setSelId(saved)
+      else if (props.length) setSelId(props[0].id)
       setLoading(false)
     })
   }, [])
@@ -90,6 +117,8 @@ export default function DscrPackagePage() {
   // when the property changes: default the requested loan to ~75% LTV; prefill rate/term from any existing loan
   useEffect(() => {
     if (!sel) return
+    // keep restored loan values for the property we restored; auto-fill only on later user switches
+    if (restoredRef.current && restoredRef.current.selId === selId) { restoredRef.current = null; return }
     const value = sel.market_value || sel.purchase_price || 0
     setLoanAmt(String(Math.round(value * 0.75)))
     if (mtg) { setRate(String(mtg.interest_rate || 7.5)); setTerm(String(mtg.term_years || 30)); setIo(!!mtg.interest_only); setPurpose('refi'); setPayoff(String(Math.round(loanBalance(mtg)))) }
@@ -166,6 +195,8 @@ export default function DscrPackagePage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>📄 DSCR Loan Package</div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <span className='no-print' style={{ fontSize: '11px', color: 'var(--text3)', alignSelf: 'center' }} title='Everything you enter is saved on this device automatically'>✓ Auto-saved</span>
+          <button onClick={() => { if (confirm('Clear the DSCR inputs saved in this browser and start fresh?')) { try { localStorage.removeItem('dscrWork') } catch {} window.location.reload() } }} className='btn btn-ghost no-print' style={{ fontSize: '12px' }} title='Clear saved inputs'>↺ Reset</button>
           <button onClick={() => setShowCompare(v => !v)} className='btn btn-ghost no-print'>{showCompare ? '✓ Comparing' : '⚖ Compare'}</button>
           <button onClick={() => window.print()} className='btn btn-primary no-print'>🖨 Save as PDF</button>
           <select value={selId} onChange={e => setSelId(e.target.value)} className='no-print' style={{ ...inp, width: 'auto', minWidth: '220px' }}>
