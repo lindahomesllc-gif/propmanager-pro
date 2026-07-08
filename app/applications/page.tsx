@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, formatDate } from '@/lib/supabase'
+import { supabase, fm, formatDate, openSigned } from '@/lib/supabase'
 
 export default function ApplicationsPage() {
   const [applications, setApplications] = useState([])
@@ -155,7 +155,7 @@ export default function ApplicationsPage() {
                 <a href={'/tenants/' + a.tenant_id} style={{ background: 'var(--green-bg)', color: 'var(--green)', border: '0.5px solid var(--green)', borderRadius: '6px', padding: '5px 12px', fontSize: '11px', fontWeight: 700, textDecoration: 'none' }}>View Tenant →</a>
               )}
               {a.screening_report_url && (
-                <a href={a.screening_report_url} target='_blank' style={{ background: 'var(--bg3)', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '6px', padding: '5px 12px', fontSize: '11px', textDecoration: 'none' }}>📄 Report</a>
+                <button onClick={() => openSigned(a.screening_report_url)} style={{ background: 'var(--bg3)', color: 'var(--text2)', border: '0.5px solid var(--border2)', borderRadius: '6px', padding: '5px 12px', fontSize: '11px', cursor: 'pointer' }}>📄 Report</button>
               )}
             </div>
             {showCoTenant === a.id && (
