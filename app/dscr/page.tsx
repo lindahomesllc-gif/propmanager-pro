@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { supabase, fm, monthlyPI, openSigned } from '@/lib/supabase'
+import { supabase, fm, monthlyPI, openSigned, loanBalance } from '@/lib/supabase'
 
 // DSCR Loan Package — a print-ready, lender-facing summary for a single property.
 // A DSCR lender qualifies on rent ÷ PITIA (P&I + taxes + insurance + HOA), so that
@@ -22,7 +22,7 @@ function scenarioCalc(s: any, holdMonths = 24) {
   if (s.io) { interestHold = loan * r * holdMonths }
   else { let bal = loan; for (let m = 0; m < holdMonths && bal > 0.01; m++) { const int = bal * r; const prin = Math.min(pi - int, bal); interestHold += int; principalHold += prin; bal -= prin } }
   const endBalance = s.io ? loan : Math.max(0, loan - principalHold)
-  return { pi, pitia, dscr: pitia > 0 ? n(s.rent) / pitia : null, ltv: value > 0 ? loan / value * 100 : null, fee: loan * n(s.orig) / 100, upfront, interestHold, totalCostHold: upfront + interestHold, principalHold, endBalance }
+  return { pi, pitia, dscr: pitia > 0 ? n(s.rent) / pitia : null, ltv: value > 0 ? loan / value * 100 : null, fee: loan * n(s.orig) / 100, upfront, interestHold, totalCostHold: upfront + interestHold, principalHold, endBalance, netCash: loan - n(s.payoff) - upfront }
 }
 const dscrTone = (d: number | null) => d == null ? '#888' : d >= 1.25 ? '#16a34a' : d >= 1 ? '#d97706' : '#dc2626'
 
@@ -43,6 +43,7 @@ export default function DscrPackagePage() {
   const [io, setIo] = useState(false)
   const [orig, setOrig] = useState('1')                  // origination fee, % of loan (points)
   const [closing, setClosing] = useState('')             // other closing costs $ (appraisal, title, legal, recording, lender admin)
+  const [payoff, setPayoff] = useState('')               // existing loan balance being paid off (refi/cash-out)
   const [rentBasis, setRentBasis] = useState('inplace') // inplace | market
   const [rentOverride, setRentOverride] = useState('')   // manual market/appraised rent for un-leased deals
   const [includeTerms, setIncludeTerms] = useState(true) // true = full DSCR w/ my terms; false = facts-only for the lender to quote
@@ -58,9 +59,9 @@ export default function DscrPackagePage() {
   const [showCompare, setShowCompare] = useState(false)
   const [holdYears, setHoldYears] = useState('2')   // how long until you expect to refi/sell
   const [scenarios, setScenarios] = useState<any[]>([
-    { label: 'Higher rate, no points', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '8', term: '30', io: false, orig: '0', other: '' },
-    { label: 'Lower rate, 2 points', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '7', term: '30', io: false, orig: '2', other: '' },
-    { label: 'Interest-only', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '7.5', term: '30', io: true, orig: '1', other: '' },
+    { label: 'Higher rate, no points', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '8', term: '30', io: false, orig: '0', other: '', payoff: '' },
+    { label: 'Lower rate, 2 points', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '7', term: '30', io: false, orig: '2', other: '', payoff: '' },
+    { label: 'Interest-only', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '7.5', term: '30', io: true, orig: '1', other: '', payoff: '' },
   ])
   const setSc = (i: number, k: string, v: any) => setScenarios(prev => prev.map((s, j) => j === i ? { ...s, [k]: v } : s))
 
@@ -90,8 +91,8 @@ export default function DscrPackagePage() {
     if (!sel) return
     const value = sel.market_value || sel.purchase_price || 0
     setLoanAmt(String(Math.round(value * 0.75)))
-    if (mtg) { setRate(String(mtg.interest_rate || 7.5)); setTerm(String(mtg.term_years || 30)); setIo(!!mtg.interest_only); setPurpose('refi') }
-    else setPurpose('purchase')
+    if (mtg) { setRate(String(mtg.interest_rate || 7.5)); setTerm(String(mtg.term_years || 30)); setIo(!!mtg.interest_only); setPurpose('refi'); setPayoff(String(Math.round(loanBalance(mtg)))) }
+    else { setPurpose('purchase'); setPayoff('') }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selId, properties.length])
 
@@ -109,10 +110,13 @@ export default function DscrPackagePage() {
   const dscr = pitia > 0 ? rentMo / pitia : null
   const ltv = value > 0 ? loan / value * 100 : null
   const origFee = loan * N(orig) / 100
-  const totalUpfront = origFee + N(closing)   // cash the loan itself costs you at close (excl. any down payment)
+  const totalUpfront = origFee + N(closing)   // origination + closing costs
+  // Net cash to you at closing (refi/cash-out): new loan − existing payoff − upfront costs.
+  // Positive = cash in your pocket; negative = cash you bring to close.
+  const netCash = loan - N(payoff) - totalUpfront
   // fill all compare columns from the current scenario as a starting point
   function seedFromCurrent() {
-    const cur = { value: value ? String(value) : '', rent: rentMo ? String(rentMo) : '', tax: taxMo ? String(Math.round(taxMo * 12)) : '', ins: insMo ? String(Math.round(insMo * 12)) : '', hoa: hoaMo ? String(hoaMo) : '', loan: loanAmt, rate, term, io, orig, other: closing || '' }
+    const cur = { value: value ? String(value) : '', rent: rentMo ? String(rentMo) : '', tax: taxMo ? String(Math.round(taxMo * 12)) : '', ins: insMo ? String(Math.round(insMo * 12)) : '', hoa: hoaMo ? String(hoaMo) : '', loan: loanAmt, rate, term, io, orig, other: closing || '', payoff: payoff || '' }
     setScenarios(prev => prev.map(s => ({ ...cur, label: s.label })))
   }
   const dscrColor = dscr == null ? '#888' : dscr >= 1.25 ? '#16a34a' : dscr >= 1 ? '#d97706' : '#dc2626'
@@ -181,7 +185,7 @@ export default function DscrPackagePage() {
                 if (save <= 0) return 'never'
                 return '~' + (extra / save / 12).toFixed(1) + ' yr'
               }
-              const fields: [string, string][] = [['value', 'Property value'], ['rent', 'Monthly rent'], ['tax', 'Annual taxes'], ['ins', 'Annual insurance'], ['hoa', 'HOA /mo'], ['loan', 'Loan amount'], ['rate', 'Rate %'], ['term', 'Term (yrs)'], ['orig', 'Origination %'], ['other', 'Closing costs $']]
+              const fields: [string, string][] = [['value', 'Property value'], ['rent', 'Monthly rent'], ['tax', 'Annual taxes'], ['ins', 'Annual insurance'], ['hoa', 'HOA /mo'], ['loan', 'Loan amount'], ['rate', 'Rate %'], ['term', 'Term (yrs)'], ['orig', 'Origination %'], ['other', 'Closing costs $'], ['payoff', 'Existing payoff $']]
               const rl: any = { padding: '6px 8px', fontSize: '11px', color: 'var(--text2)', whiteSpace: 'nowrap', textAlign: 'left' }
               const rlb: any = { ...rl, fontWeight: 700, color: 'var(--text)' }
               const cel: any = { padding: '3px 5px' }
@@ -215,7 +219,8 @@ export default function DscrPackagePage() {
                         </tr>
                         <tr style={{ borderTop: '0.5px solid var(--border)' }}><td style={rlb}>P&amp;I /mo</td>{calcs.map((c, i) => <td key={i} style={rc}>{fm(c.pi)}</td>)}</tr>
                         <tr><td style={rlb}>Total PITIA /mo</td>{calcs.map((c, i) => <td key={i} style={rc}>{fm(c.pitia)}</td>)}</tr>
-                        <tr><td style={rlb}>Take-home cash /mo</td>{calcs.map((c, i) => { const cf = (parseFloat(scenarios[i].rent) || 0) - c.pitia; return <td key={i} style={{ ...rc, fontWeight: 700, color: cf >= 0 ? 'var(--green)' : 'var(--red)' }}>{fm(cf)}</td> })}</tr>
+                        <tr><td style={rlb}>Cash flow /mo</td>{calcs.map((c, i) => { const cf = (parseFloat(scenarios[i].rent) || 0) - c.pitia; return <td key={i} style={{ ...rc, fontWeight: 700, color: cf >= 0 ? 'var(--green)' : 'var(--red)' }}>{fm(cf)}</td> })}</tr>
+                        <tr><td style={rlb}>Net cash at close</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 700, color: c.netCash >= 0 ? 'var(--green)' : 'var(--red)' }}>{fm(c.netCash)}</td>)}</tr>
                         <tr><td style={rl}>LTV</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: 'var(--text2)' }}>{c.ltv != null ? c.ltv.toFixed(0) + '%' : '—'}</td>)}</tr>
                         <tr><td style={rl}>Origination fee</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: 'var(--text2)' }}>{fm(c.fee)}</td>)}</tr>
                         <tr style={{ borderTop: '0.5px solid var(--border)' }}><td style={rlb}>DSCR</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 800, color: dscrTone(c.dscr) }}>{c.dscr != null ? c.dscr.toFixed(2) + '×' : '—'}</td>)}</tr>
@@ -275,6 +280,7 @@ export default function DscrPackagePage() {
                 {includeTerms && <div><label style={lbl}>Term (yrs)</label><input style={inp} value={term} onChange={e => setTerm(e.target.value)} /></div>}
                 {includeTerms && <div><label style={lbl}>Origination %</label><input style={inp} value={orig} onChange={e => setOrig(e.target.value)} /></div>}
                 {includeTerms && <div><label style={lbl}>Closing costs $</label><input style={inp} placeholder='appraisal, title, legal…' value={closing} onChange={e => setClosing(e.target.value)} /></div>}
+                {includeTerms && purpose !== 'purchase' && <div><label style={lbl}>Existing loan payoff $</label><input style={inp} placeholder='balance being paid off' value={payoff} onChange={e => setPayoff(e.target.value)} /></div>}
                 {!isManual && <div><label style={lbl}>Rent basis</label>
                   <select value={rentBasis} onChange={e => setRentBasis(e.target.value)} style={inp} disabled={N(rentOverride) > 0}>
                     <option value='inplace'>In-place lease</option>
@@ -342,7 +348,7 @@ export default function DscrPackagePage() {
                       {row('Insurance ÷ 12', fm(insMo))}
                       {row('HOA dues', fm(hoaMo))}
                       {row('Total PITIA', fm(pitia), true)}
-                      {row('Take-home cash /mo', fm(rentMo - pitia), true, rentMo - pitia >= 0 ? '#16a34a' : '#dc2626')}
+                      {row('Cash flow /mo', fm(rentMo - pitia) + ' (before reserves)', true, rentMo - pitia >= 0 ? '#16a34a' : '#dc2626')}
                     </div>
                     <div className='dscr-box' style={{ flex: '1 1 200px', minWidth: '180px', background: 'var(--bg3)', borderRadius: '12px', border: '0.5px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '18px' }}>
                       <div className='lbl-muted' style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>DSCR (rent ÷ PITIA)</div>
@@ -376,7 +382,14 @@ export default function DscrPackagePage() {
                   {includeTerms && N(orig) > 0 ? fact('Origination fee', fm(origFee) + ' (' + N(orig) + '%)') : <></>}
                   {includeTerms && N(closing) > 0 ? fact('Closing costs', fm(N(closing))) : <></>}
                   {includeTerms && totalUpfront > 0 ? fact('Total upfront', fm(totalUpfront)) : <></>}
+                  {includeTerms && purpose !== 'purchase' && N(payoff) > 0 ? fact('Existing payoff', fm(N(payoff))) : <></>}
                 </div>
+                {includeTerms && purpose !== 'purchase' && (
+                  <div className='dscr-box' style={{ marginTop: '12px', padding: '13px 15px', borderRadius: '10px', background: 'var(--bg3)', border: '0.5px solid ' + (netCash >= 0 ? 'var(--green)' : 'var(--red)') }}>
+                    <div className='keep-color' style={{ fontSize: '15px', fontWeight: 800, color: netCash >= 0 ? '#16a34a' : '#dc2626' }}>{netCash >= 0 ? '💵 Net cash to you at closing: ' + fm(netCash) : '⚠ Cash you bring to close: ' + fm(Math.abs(netCash))}</div>
+                    <div className='lbl-muted' style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '3px' }}>New loan {fm(loan)} − existing payoff {fm(N(payoff))} − upfront costs {fm(totalUpfront)}</div>
+                  </div>
+                )}
               </div>
 
               {/* property details */}
