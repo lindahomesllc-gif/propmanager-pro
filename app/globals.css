@@ -198,6 +198,16 @@ body {
   .nw-balance > div { min-width: 380px; }
 }
 
+/* ---- DSCR compare grid: hidden in a normal print; its own clean light print via 🖨 ---- */
+@media print {
+  .compare-doc { display: none; }                              /* Save-as-PDF prints the package, not the grid */
+  body.cmp-print .compare-doc { display: block !important; background: #fff !important; border: none !important; box-shadow: none !important; }
+  body.cmp-print .dscr-doc, body.cmp-print .no-print { display: none !important; }
+  body.cmp-print .compare-doc, body.cmp-print .compare-doc * { color: #1a1a1a !important; }
+  body.cmp-print .compare-doc input { border: none !important; background: transparent !important; color: #1a1a1a !important; box-shadow: none !important; text-align: right; padding: 2px !important; font-weight: 600; }
+  body.cmp-print .compare-doc table td, body.cmp-print .compare-doc table th { border-bottom: 0.5px solid #ddd !important; }
+}
+
 /* ---- DSCR package + REO schedule: render light & document-like when printed ---- */
 @media print {
   .dscr-doc, .reo-doc { background: #fff !important; padding: 0 !important; }

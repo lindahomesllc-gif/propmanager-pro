@@ -188,12 +188,13 @@ export default function DscrPackagePage() {
               const ci: any = { width: '100%', padding: '5px 7px', fontSize: '12px', border: '0.5px solid var(--border2)', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box', textAlign: 'right' }
               const rc: any = { padding: '5px 8px', fontSize: '13px', textAlign: 'right', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }
               return (
-                <div className='no-print' style={{ ...card, borderColor: 'var(--blue)' }}>
+                <div className='compare-doc' style={{ ...card, borderColor: 'var(--blue)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={sec}>⚖ Compare Scenarios <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: 'var(--text3)' }}>· the whole picture, not just the rate</span></div>
+                    <div style={sec}>⚖ Compare Scenarios <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: 'var(--text3)' }}>· hold {holdYears || 0} yr</span></div>
                     <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                      <label style={{ fontSize: '11px', color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: '6px' }}>Hold until refi/sell: <input value={holdYears} onChange={e => setHoldYears(e.target.value)} style={{ width: '46px', padding: '5px 7px', fontSize: '12px', border: '0.5px solid var(--border2)', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', textAlign: 'center' }} /> yrs</label>
-                      <button onClick={seedFromCurrent} className='btn btn-ghost' style={{ fontSize: '11px' }}>↩ Seed from current</button>
+                      <label style={{ fontSize: '11px', color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: '6px' }} className='no-print'>Hold until refi/sell: <input value={holdYears} onChange={e => setHoldYears(e.target.value)} style={{ width: '46px', padding: '5px 7px', fontSize: '12px', border: '0.5px solid var(--border2)', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', textAlign: 'center' }} /> yrs</label>
+                      <button onClick={seedFromCurrent} className='btn btn-ghost no-print' style={{ fontSize: '11px' }}>↩ Seed from current</button>
+                      <button onClick={() => { document.body.classList.add('cmp-print'); window.print(); setTimeout(() => document.body.classList.remove('cmp-print'), 600) }} className='btn btn-ghost no-print' style={{ fontSize: '11px' }}>🖨 Print</button>
                     </div>
                   </div>
                   <div style={{ overflowX: 'auto' }}>
@@ -214,6 +215,7 @@ export default function DscrPackagePage() {
                         </tr>
                         <tr style={{ borderTop: '0.5px solid var(--border)' }}><td style={rlb}>P&amp;I /mo</td>{calcs.map((c, i) => <td key={i} style={rc}>{fm(c.pi)}</td>)}</tr>
                         <tr><td style={rlb}>Total PITIA /mo</td>{calcs.map((c, i) => <td key={i} style={rc}>{fm(c.pitia)}</td>)}</tr>
+                        <tr><td style={rlb}>Take-home cash /mo</td>{calcs.map((c, i) => { const cf = (parseFloat(scenarios[i].rent) || 0) - c.pitia; return <td key={i} style={{ ...rc, fontWeight: 700, color: cf >= 0 ? 'var(--green)' : 'var(--red)' }}>{fm(cf)}</td> })}</tr>
                         <tr><td style={rl}>LTV</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: 'var(--text2)' }}>{c.ltv != null ? c.ltv.toFixed(0) + '%' : '—'}</td>)}</tr>
                         <tr><td style={rl}>Origination fee</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: 'var(--text2)' }}>{fm(c.fee)}</td>)}</tr>
                         <tr style={{ borderTop: '0.5px solid var(--border)' }}><td style={rlb}>DSCR</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 800, color: dscrTone(c.dscr) }}>{c.dscr != null ? c.dscr.toFixed(2) + '×' : '—'}</td>)}</tr>
@@ -340,6 +342,7 @@ export default function DscrPackagePage() {
                       {row('Insurance ÷ 12', fm(insMo))}
                       {row('HOA dues', fm(hoaMo))}
                       {row('Total PITIA', fm(pitia), true)}
+                      {row('Take-home cash /mo', fm(rentMo - pitia), true, rentMo - pitia >= 0 ? '#16a34a' : '#dc2626')}
                     </div>
                     <div className='dscr-box' style={{ flex: '1 1 200px', minWidth: '180px', background: 'var(--bg3)', borderRadius: '12px', border: '0.5px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '18px' }}>
                       <div className='lbl-muted' style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>DSCR (rent ÷ PITIA)</div>
