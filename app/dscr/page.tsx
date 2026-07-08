@@ -6,6 +6,18 @@ import { supabase, fm, monthlyPI, openSigned } from '@/lib/supabase'
 // DSCR Loan Package — a print-ready, lender-facing summary for a single property.
 // A DSCR lender qualifies on rent ÷ PITIA (P&I + taxes + insurance + HOA), so that
 // calculation is the headline; the rest is the supporting property + income detail.
+
+// Pure DSCR math for one scenario (used by the compare grid).
+function scenarioCalc(s: any) {
+  const n = (v: any) => parseFloat(v) || 0
+  const loan = n(s.loan), rate = n(s.rate), term = n(s.term), value = n(s.value)
+  const taxMo = n(s.tax) / 12, insMo = n(s.ins) / 12, hoaMo = n(s.hoa)
+  const pi = s.io ? loan * (rate / 100 / 12) : monthlyPI({ original_amount: loan, interest_rate: rate, term_years: term })
+  const pitia = pi + taxMo + insMo + hoaMo
+  return { pi, pitia, dscr: pitia > 0 ? n(s.rent) / pitia : null, ltv: value > 0 ? loan / value * 100 : null, fee: loan * n(s.orig) / 100 }
+}
+const dscrTone = (d: number | null) => d == null ? '#888' : d >= 1.25 ? '#16a34a' : d >= 1 ? '#d97706' : '#dc2626'
+
 export default function DscrPackagePage() {
   const [properties, setProperties] = useState<any[]>([])
   const [mortgages, setMortgages] = useState<any[]>([])
@@ -21,6 +33,7 @@ export default function DscrPackagePage() {
   const [rate, setRate] = useState('7.5')
   const [term, setTerm] = useState('30')
   const [io, setIo] = useState(false)
+  const [orig, setOrig] = useState('1')                  // origination fee, % of loan (points)
   const [rentBasis, setRentBasis] = useState('inplace') // inplace | market
   const [rentOverride, setRentOverride] = useState('')   // manual market/appraised rent for un-leased deals
   const [includeTerms, setIncludeTerms] = useState(true) // true = full DSCR w/ my terms; false = facts-only for the lender to quote
@@ -32,6 +45,14 @@ export default function DscrPackagePage() {
   const [mTax, setMTax] = useState('')
   const [mIns, setMIns] = useState('')
   const [mHoa, setMHoa] = useState('')
+  // side-by-side scenario comparison
+  const [showCompare, setShowCompare] = useState(false)
+  const [scenarios, setScenarios] = useState<any[]>([
+    { label: 'Option A', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '7.5', term: '30', io: false, orig: '1' },
+    { label: 'Option B', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '8', term: '30', io: false, orig: '1' },
+    { label: 'Option C', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '7.5', term: '30', io: true, orig: '2' },
+  ])
+  const setSc = (i: number, k: string, v: any) => setScenarios(prev => prev.map((s, j) => j === i ? { ...s, [k]: v } : s))
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -77,6 +98,12 @@ export default function DscrPackagePage() {
   const pitia = pi + taxMo + insMo + hoaMo
   const dscr = pitia > 0 ? rentMo / pitia : null
   const ltv = value > 0 ? loan / value * 100 : null
+  const origFee = loan * N(orig) / 100
+  // fill all compare columns from the current scenario as a starting point
+  function seedFromCurrent() {
+    const cur = { value: value ? String(value) : '', rent: rentMo ? String(rentMo) : '', tax: taxMo ? String(Math.round(taxMo * 12)) : '', ins: insMo ? String(Math.round(insMo * 12)) : '', hoa: hoaMo ? String(hoaMo) : '', loan: loanAmt, rate, term, io, orig }
+    setScenarios(prev => prev.map(s => ({ ...cur, label: s.label })))
+  }
   const dscrColor = dscr == null ? '#888' : dscr >= 1.25 ? '#16a34a' : dscr >= 1 ? '#d97706' : '#dc2626'
   const dscrVerdict = dscr == null ? '—'
     : dscr >= 1.25 ? 'Strong — clears the 1.25× ratio most DSCR lenders prefer for best pricing.'
@@ -113,6 +140,7 @@ export default function DscrPackagePage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>📄 DSCR Loan Package</div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button onClick={() => setShowCompare(v => !v)} className='btn btn-ghost no-print'>{showCompare ? '✓ Comparing' : '⚖ Compare'}</button>
           <button onClick={() => window.print()} className='btn btn-primary no-print'>🖨 Save as PDF</button>
           <select value={selId} onChange={e => setSelId(e.target.value)} className='no-print' style={{ ...inp, width: 'auto', minWidth: '220px' }}>
             <option value='manual'>🧮 New scenario (no property)</option>
@@ -127,6 +155,51 @@ export default function DscrPackagePage() {
           <div style={{ textAlign: 'center', padding: '50px', color: 'var(--text3)' }}>Pick a property, or choose <strong>🧮 New scenario</strong> to run numbers manually.</div>
         ) : (
           <>
+            {/* side-by-side scenario comparison (not printed) */}
+            {showCompare && (() => {
+              const calcs = scenarios.map(scenarioCalc)
+              const fields: [string, string][] = [['value', 'Property value'], ['rent', 'Monthly rent'], ['tax', 'Annual taxes'], ['ins', 'Annual insurance'], ['hoa', 'HOA /mo'], ['loan', 'Loan amount'], ['rate', 'Rate %'], ['term', 'Term (yrs)'], ['orig', 'Origination %']]
+              const rl: any = { padding: '6px 8px', fontSize: '11px', color: 'var(--text2)', whiteSpace: 'nowrap', textAlign: 'left' }
+              const rlb: any = { ...rl, fontWeight: 700, color: 'var(--text)' }
+              const cel: any = { padding: '3px 5px' }
+              const ci: any = { width: '100%', padding: '5px 7px', fontSize: '12px', border: '0.5px solid var(--border2)', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', boxSizing: 'border-box', textAlign: 'right' }
+              const rc: any = { padding: '5px 8px', fontSize: '13px', textAlign: 'right', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }
+              return (
+                <div className='no-print' style={{ ...card, borderColor: 'var(--blue)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={sec}>⚖ Compare Scenarios <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: 'var(--text3)' }}>· tweak each column — DSCR updates live</span></div>
+                    <button onClick={seedFromCurrent} className='btn btn-ghost' style={{ fontSize: '11px' }}>↩ Seed all from current scenario</button>
+                  </div>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '480px' }}>
+                      <thead><tr><th style={rl}></th>{scenarios.map((s, i) => (
+                        <th key={i} style={{ padding: '4px 5px', width: '28%' }}><input value={s.label} onChange={e => setSc(i, 'label', e.target.value)} style={{ ...ci, textAlign: 'center', fontWeight: 700 }} /></th>
+                      ))}</tr></thead>
+                      <tbody>
+                        {fields.map(([k, label]) => (
+                          <tr key={k}>
+                            <td style={rl}>{label}</td>
+                            {scenarios.map((s, i) => <td key={i} style={cel}><input value={s[k]} onChange={e => setSc(i, k, e.target.value)} style={ci} /></td>)}
+                          </tr>
+                        ))}
+                        <tr>
+                          <td style={rl}>Interest-only</td>
+                          {scenarios.map((s, i) => <td key={i} style={{ ...cel, textAlign: 'center' }}><input type='checkbox' checked={s.io} onChange={e => setSc(i, 'io', e.target.checked)} style={{ width: '15px', height: '15px', accentColor: 'var(--green)' }} /></td>)}
+                        </tr>
+                        <tr style={{ borderTop: '0.5px solid var(--border)' }}><td style={rlb}>P&amp;I /mo</td>{calcs.map((c, i) => <td key={i} style={rc}>{fm(c.pi)}</td>)}</tr>
+                        <tr><td style={rlb}>Total PITIA /mo</td>{calcs.map((c, i) => <td key={i} style={rc}>{fm(c.pitia)}</td>)}</tr>
+                        <tr><td style={rl}>LTV</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: 'var(--text2)' }}>{c.ltv != null ? c.ltv.toFixed(0) + '%' : '—'}</td>)}</tr>
+                        <tr><td style={rl}>Origination fee</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: 'var(--text2)' }}>{fm(c.fee)}</td>)}</tr>
+                        <tr style={{ borderTop: '0.5px solid var(--border)' }}><td style={rlb}>DSCR</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 800, color: dscrTone(c.dscr) }}>{c.dscr != null ? c.dscr.toFixed(2) + '×' : '—'}</td>)}</tr>
+                        <tr><td style={rl}></td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontSize: '10px', fontWeight: 700, color: dscrTone(c.dscr) }}>{c.dscr == null ? '' : c.dscr >= 1.25 ? '✓ Strong' : c.dscr >= 1 ? 'Qualifies' : 'Short'}</td>)}</tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '8px', lineHeight: 1.5 }}>DSCR = rent ÷ PITIA. Green ≥1.25× (best pricing) · amber ≥1.0× (qualifies) · red &lt;1.0×. Origination fee is upfront (doesn&apos;t change DSCR).</div>
+                </div>
+              )
+            })()}
+
             {/* manual property inputs — only when running a blank scenario (not printed) */}
             {isManual && (
               <div className='no-print' style={{ ...card, borderColor: 'var(--blue)' }}>
@@ -163,6 +236,7 @@ export default function DscrPackagePage() {
                 <div><label style={lbl}>Requested loan</label><input style={inp} value={loanAmt} onChange={e => setLoanAmt(e.target.value)} /></div>
                 {includeTerms && <div><label style={lbl}>Rate %</label><input style={inp} value={rate} onChange={e => setRate(e.target.value)} /></div>}
                 {includeTerms && <div><label style={lbl}>Term (yrs)</label><input style={inp} value={term} onChange={e => setTerm(e.target.value)} /></div>}
+                {includeTerms && <div><label style={lbl}>Origination %</label><input style={inp} value={orig} onChange={e => setOrig(e.target.value)} /></div>}
                 {!isManual && <div><label style={lbl}>Rent basis</label>
                   <select value={rentBasis} onChange={e => setRentBasis(e.target.value)} style={inp} disabled={N(rentOverride) > 0}>
                     <option value='inplace'>In-place lease</option>
@@ -260,6 +334,7 @@ export default function DscrPackagePage() {
                   {fact('LTV', ltv != null ? ltv.toFixed(0) + '%' : '—')}
                   {includeTerms ? fact('Rate', (N(rate)).toFixed(3).replace(/0+$/, '').replace(/\.$/, '') + '%') : <></>}
                   {includeTerms ? fact('Amortization', io ? 'Interest-only' : N(term) + ' yr') : <></>}
+                  {includeTerms && N(orig) > 0 ? fact('Origination fee', fm(origFee) + ' (' + N(orig) + '%)') : <></>}
                 </div>
               </div>
 
