@@ -25,6 +25,13 @@ export default function DscrPackagePage() {
   const [rentOverride, setRentOverride] = useState('')   // manual market/appraised rent for un-leased deals
   const [includeTerms, setIncludeTerms] = useState(true) // true = full DSCR w/ my terms; false = facts-only for the lender to quote
   const [includeEin, setIncludeEin] = useState(true)     // show borrowing entity's EIN/Tax ID on the sheet
+  // manual "no property" scenario inputs
+  const [mLabel, setMLabel] = useState('')
+  const [mValue, setMValue] = useState('')
+  const [mRent, setMRent] = useState('')
+  const [mTax, setMTax] = useState('')
+  const [mIns, setMIns] = useState('')
+  const [mHoa, setMHoa] = useState('')
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -57,15 +64,16 @@ export default function DscrPackagePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selId, properties.length])
 
-  const value = sel?.market_value || sel?.purchase_price || 0
+  const isManual = selId === 'manual'
+  const value = isManual ? N(mValue) : (sel?.market_value || sel?.purchase_price || 0)
   const inPlaceRent = leases.filter(l => l.property_id === selId).reduce((s, l) => s + (l.rent_amount || 0), 0)
   const marketRent = units.filter(u => u.property_id === selId).reduce((s, u) => s + (u.market_rent || 0), 0)
-  const rentMo = N(rentOverride) > 0 ? N(rentOverride) : (rentBasis === 'market' ? (marketRent || inPlaceRent) : (inPlaceRent || marketRent))
+  const rentMo = isManual ? N(mRent) : (N(rentOverride) > 0 ? N(rentOverride) : (rentBasis === 'market' ? (marketRent || inPlaceRent) : (inPlaceRent || marketRent)))
   const loan = N(loanAmt)
   const pi = io ? loan * (N(rate) / 100 / 12) : monthlyPI({ original_amount: loan, interest_rate: N(rate), term_years: N(term) })
-  const taxMo = (sel?.annual_tax || 0) / 12
-  const insMo = (sel?.insurance_premium || 0) / 12
-  const hoaMo = sel?.hoa ? (sel?.hoa_fee || 0) : 0
+  const taxMo = isManual ? N(mTax) / 12 : (sel?.annual_tax || 0) / 12
+  const insMo = isManual ? N(mIns) / 12 : (sel?.insurance_premium || 0) / 12
+  const hoaMo = isManual ? N(mHoa) : (sel?.hoa ? (sel?.hoa_fee || 0) : 0)
   const pitia = pi + taxMo + insMo + hoaMo
   const dscr = pitia > 0 ? rentMo / pitia : null
   const ltv = value > 0 ? loan / value * 100 : null
@@ -106,19 +114,34 @@ export default function DscrPackagePage() {
         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>📄 DSCR Loan Package</div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <button onClick={() => window.print()} className='btn btn-primary no-print'>🖨 Save as PDF</button>
-          {properties.length > 0 && (
-            <select value={selId} onChange={e => setSelId(e.target.value)} className='no-print' style={{ ...inp, width: 'auto', minWidth: '220px' }}>
-              {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
-            </select>
-          )}
+          <select value={selId} onChange={e => setSelId(e.target.value)} className='no-print' style={{ ...inp, width: 'auto', minWidth: '220px' }}>
+            <option value='manual'>🧮 New scenario (no property)</option>
+            {properties.length > 0 && <option disabled>──────────</option>}
+            {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
+          </select>
         </div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-        {loading ? <div className='skeleton' style={{ height: '300px' }} /> : !sel ? (
-          <div style={{ textAlign: 'center', padding: '50px', color: 'var(--text3)' }}>Add a property to build a package.</div>
+        {loading ? <div className='skeleton' style={{ height: '300px' }} /> : (!sel && !isManual) ? (
+          <div style={{ textAlign: 'center', padding: '50px', color: 'var(--text3)' }}>Pick a property, or choose <strong>🧮 New scenario</strong> to run numbers manually.</div>
         ) : (
           <>
+            {/* manual property inputs — only when running a blank scenario (not printed) */}
+            {isManual && (
+              <div className='no-print' style={{ ...card, borderColor: 'var(--blue)' }}>
+                <div style={sec}>🧮 Scenario Inputs <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: 'var(--text3)' }}>· type the numbers to test any deal</span></div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px,1fr))', gap: '10px' }}>
+                  <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>Label / address (optional)</label><input style={inp} placeholder='e.g. 123 Oak St — offer scenario' value={mLabel} onChange={e => setMLabel(e.target.value)} /></div>
+                  <div><label style={lbl}>Property value / price</label><input style={inp} value={mValue} onChange={e => setMValue(e.target.value)} /></div>
+                  <div><label style={lbl}>Monthly rent</label><input style={inp} value={mRent} onChange={e => setMRent(e.target.value)} /></div>
+                  <div><label style={lbl}>Annual property taxes</label><input style={inp} value={mTax} onChange={e => setMTax(e.target.value)} /></div>
+                  <div><label style={lbl}>Annual insurance</label><input style={inp} value={mIns} onChange={e => setMIns(e.target.value)} /></div>
+                  <div><label style={lbl}>HOA /mo</label><input style={inp} value={mHoa} onChange={e => setMHoa(e.target.value)} /></div>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '8px' }}>Then set your loan terms below. The DSCR updates live. Nothing is saved to a property.</div>
+              </div>
+            )}
             {/* loan scenario controls (not printed) */}
             <div className='no-print' style={{ ...card, borderColor: 'var(--green)' }}>
               <div style={sec}>Package Type <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: 'var(--text3)' }}>· tune, then Save as PDF</span></div>
@@ -140,13 +163,13 @@ export default function DscrPackagePage() {
                 <div><label style={lbl}>Requested loan</label><input style={inp} value={loanAmt} onChange={e => setLoanAmt(e.target.value)} /></div>
                 {includeTerms && <div><label style={lbl}>Rate %</label><input style={inp} value={rate} onChange={e => setRate(e.target.value)} /></div>}
                 {includeTerms && <div><label style={lbl}>Term (yrs)</label><input style={inp} value={term} onChange={e => setTerm(e.target.value)} /></div>}
-                <div><label style={lbl}>Rent basis</label>
+                {!isManual && <div><label style={lbl}>Rent basis</label>
                   <select value={rentBasis} onChange={e => setRentBasis(e.target.value)} style={inp} disabled={N(rentOverride) > 0}>
                     <option value='inplace'>In-place lease</option>
                     <option value='market'>Market rent</option>
                   </select>
-                </div>
-                <div><label style={lbl}>Rent override /mo</label><input style={inp} placeholder='if not leased' value={rentOverride} onChange={e => setRentOverride(e.target.value)} /></div>
+                </div>}
+                {!isManual && <div><label style={lbl}>Rent override /mo</label><input style={inp} placeholder='if not leased' value={rentOverride} onChange={e => setRentOverride(e.target.value)} /></div>}
                 {entityEin && (
                   <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '7px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer', fontSize: '12px', color: 'var(--text)' }}>
@@ -165,7 +188,7 @@ export default function DscrPackagePage() {
             </div>
 
             {/* Rental agreements — download to attach to the lender's portal (not printed) */}
-            <div className='no-print' style={{ ...card }}>
+            {!isManual && <div className='no-print' style={{ ...card }}>
               <div style={sec}>📎 Rental Agreements <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: 'var(--text3)' }}>· download to attach to your lender</span></div>
               {propLeases.length === 0 ? (
                 <div style={{ fontSize: '13px', color: 'var(--text3)' }}>No executed leases on this property.</div>
@@ -178,7 +201,7 @@ export default function DscrPackagePage() {
                 </div>
               ))}
               <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '10px', lineHeight: 1.5 }}>Tip: download each lease here, then attach the files in your lender&apos;s upload box. (Browsers don&apos;t allow dragging straight from one site into another.)</div>
-            </div>
+            </div>}
 
             {/* ===== The printable package ===== */}
             <div className='dscr-doc'>
@@ -187,7 +210,7 @@ export default function DscrPackagePage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
                   <div>
                     <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 800, color: 'var(--text)' }}>{includeTerms ? 'DSCR Loan Qualification Summary' : 'Property & Rent Summary'}</div>
-                    <div style={{ fontSize: '14px', color: 'var(--text)', marginTop: '6px', fontWeight: 600 }}>{sel.address}{sel.city ? ', ' + sel.city : ''} {sel.state} {sel.zip}</div>
+                    <div style={{ fontSize: '14px', color: 'var(--text)', marginTop: '6px', fontWeight: 600 }}>{isManual ? (mLabel || 'DSCR Scenario') : `${sel.address}${sel.city ? ', ' + sel.city : ''} ${sel.state || ''} ${sel.zip || ''}`}</div>
                     {entityName && <div className='lbl-muted' style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '2px' }}>Borrowing entity: {entityName}{entity?.type ? ' (' + entity.type.toUpperCase() + ')' : ''}{entityState ? ' · ' + entityState : ''}{includeEin && entityEin ? ' · Tax ID (EIN): ' + entityEin : ''}</div>}
                   </div>
                   <div className='lbl-muted' style={{ fontSize: '11px', color: 'var(--text3)', textAlign: 'right' }}>Prepared {today}<br />{purposeLabel}</div>
@@ -241,6 +264,7 @@ export default function DscrPackagePage() {
               </div>
 
               {/* property details */}
+              {!isManual && (
               <div className='dscr-card' style={card}>
                 <div style={sec}>Property</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))', gap: '10px' }}>
@@ -252,8 +276,10 @@ export default function DscrPackagePage() {
                   {fact('Occupancy', sel.occupancy_status === 'occupied' ? 'Occupied' : 'Vacant')}
                 </div>
               </div>
+              )}
 
               {/* income detail */}
+              {!isManual && (
               <div className='dscr-card' style={card}>
                 <div style={sec}>Income</div>
                 {propLeases.length > 0 ? (
@@ -269,6 +295,7 @@ export default function DscrPackagePage() {
                 )}
                 {rentBasis === 'market' && marketRent > 0 && <div className='lbl-muted' style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '8px' }}>DSCR above uses estimated market rent ({fm(marketRent)}/mo). Lenders may underwrite to the lower of market or in-place rent.</div>}
               </div>
+              )}
 
               {/* existing financing */}
               {mtg && (
