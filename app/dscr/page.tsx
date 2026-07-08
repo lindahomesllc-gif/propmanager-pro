@@ -42,6 +42,7 @@ export default function DscrPackagePage() {
   const [term, setTerm] = useState('30')
   const [io, setIo] = useState(false)
   const [orig, setOrig] = useState('1')                  // origination fee, % of loan (points)
+  const [closing, setClosing] = useState('')             // other closing costs $ (appraisal, title, legal, recording, lender admin)
   const [rentBasis, setRentBasis] = useState('inplace') // inplace | market
   const [rentOverride, setRentOverride] = useState('')   // manual market/appraised rent for un-leased deals
   const [includeTerms, setIncludeTerms] = useState(true) // true = full DSCR w/ my terms; false = facts-only for the lender to quote
@@ -108,9 +109,10 @@ export default function DscrPackagePage() {
   const dscr = pitia > 0 ? rentMo / pitia : null
   const ltv = value > 0 ? loan / value * 100 : null
   const origFee = loan * N(orig) / 100
+  const totalUpfront = origFee + N(closing)   // cash the loan itself costs you at close (excl. any down payment)
   // fill all compare columns from the current scenario as a starting point
   function seedFromCurrent() {
-    const cur = { value: value ? String(value) : '', rent: rentMo ? String(rentMo) : '', tax: taxMo ? String(Math.round(taxMo * 12)) : '', ins: insMo ? String(Math.round(insMo * 12)) : '', hoa: hoaMo ? String(hoaMo) : '', loan: loanAmt, rate, term, io, orig, other: '' }
+    const cur = { value: value ? String(value) : '', rent: rentMo ? String(rentMo) : '', tax: taxMo ? String(Math.round(taxMo * 12)) : '', ins: insMo ? String(Math.round(insMo * 12)) : '', hoa: hoaMo ? String(hoaMo) : '', loan: loanAmt, rate, term, io, orig, other: closing || '' }
     setScenarios(prev => prev.map(s => ({ ...cur, label: s.label })))
   }
   const dscrColor = dscr == null ? '#888' : dscr >= 1.25 ? '#16a34a' : dscr >= 1 ? '#d97706' : '#dc2626'
@@ -179,7 +181,7 @@ export default function DscrPackagePage() {
                 if (save <= 0) return 'never'
                 return '~' + (extra / save / 12).toFixed(1) + ' yr'
               }
-              const fields: [string, string][] = [['value', 'Property value'], ['rent', 'Monthly rent'], ['tax', 'Annual taxes'], ['ins', 'Annual insurance'], ['hoa', 'HOA /mo'], ['loan', 'Loan amount'], ['rate', 'Rate %'], ['term', 'Term (yrs)'], ['orig', 'Origination %'], ['other', 'Other upfront $']]
+              const fields: [string, string][] = [['value', 'Property value'], ['rent', 'Monthly rent'], ['tax', 'Annual taxes'], ['ins', 'Annual insurance'], ['hoa', 'HOA /mo'], ['loan', 'Loan amount'], ['rate', 'Rate %'], ['term', 'Term (yrs)'], ['orig', 'Origination %'], ['other', 'Closing costs $']]
               const rl: any = { padding: '6px 8px', fontSize: '11px', color: 'var(--text2)', whiteSpace: 'nowrap', textAlign: 'left' }
               const rlb: any = { ...rl, fontWeight: 700, color: 'var(--text)' }
               const cel: any = { padding: '3px 5px' }
@@ -270,6 +272,7 @@ export default function DscrPackagePage() {
                 {includeTerms && <div><label style={lbl}>Rate %</label><input style={inp} value={rate} onChange={e => setRate(e.target.value)} /></div>}
                 {includeTerms && <div><label style={lbl}>Term (yrs)</label><input style={inp} value={term} onChange={e => setTerm(e.target.value)} /></div>}
                 {includeTerms && <div><label style={lbl}>Origination %</label><input style={inp} value={orig} onChange={e => setOrig(e.target.value)} /></div>}
+                {includeTerms && <div><label style={lbl}>Closing costs $</label><input style={inp} placeholder='appraisal, title, legal…' value={closing} onChange={e => setClosing(e.target.value)} /></div>}
                 {!isManual && <div><label style={lbl}>Rent basis</label>
                   <select value={rentBasis} onChange={e => setRentBasis(e.target.value)} style={inp} disabled={N(rentOverride) > 0}>
                     <option value='inplace'>In-place lease</option>
@@ -368,6 +371,8 @@ export default function DscrPackagePage() {
                   {includeTerms ? fact('Rate', (N(rate)).toFixed(3).replace(/0+$/, '').replace(/\.$/, '') + '%') : <></>}
                   {includeTerms ? fact('Amortization', io ? 'Interest-only' : N(term) + ' yr') : <></>}
                   {includeTerms && N(orig) > 0 ? fact('Origination fee', fm(origFee) + ' (' + N(orig) + '%)') : <></>}
+                  {includeTerms && N(closing) > 0 ? fact('Closing costs', fm(N(closing))) : <></>}
+                  {includeTerms && totalUpfront > 0 ? fact('Total upfront', fm(totalUpfront)) : <></>}
                 </div>
               </div>
 
