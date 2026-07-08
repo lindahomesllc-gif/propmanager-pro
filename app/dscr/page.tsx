@@ -121,6 +121,15 @@ export default function DscrPackagePage() {
     const cur = { value: value ? String(value) : '', rent: rentMo ? String(rentMo) : '', tax: taxMo ? String(Math.round(taxMo * 12)) : '', ins: insMo ? String(Math.round(insMo * 12)) : '', hoa: hoaMo ? String(hoaMo) : '', loan: loanAmt, rate, term, io, orig, other: closingAmt ? String(Math.round(closingAmt)) : '', payoff: payoff || '' }
     setScenarios(prev => prev.map(s => ({ ...cur, label: s.label })))
   }
+  // promote a compare column to be the printable summary (as a manual scenario titled by its label)
+  function useAsSummary(i: number) {
+    const s = scenarios[i]
+    setSelId('manual'); setMLabel(s.label || '')
+    setMValue(s.value || ''); setMRent(s.rent || ''); setMTax(s.tax || ''); setMIns(s.ins || ''); setMHoa(s.hoa || '')
+    setLoanAmt(s.loan || ''); setRate(s.rate || '7.5'); setTerm(s.term || '30'); setIo(!!s.io)
+    setOrig(s.orig || '0'); setClosing(s.other || ''); setClosingMode('$'); setPayoff(s.payoff || '')
+    setShowCompare(false)
+  }
   const dscrColor = dscr == null ? '#888' : dscr >= 1.25 ? '#16a34a' : dscr >= 1 ? '#d97706' : '#dc2626'
   const dscrVerdict = dscr == null ? '—'
     : dscr >= 1.25 ? 'Strong — clears the 1.25× ratio most DSCR lenders prefer for best pricing.'
@@ -236,6 +245,7 @@ export default function DscrPackagePage() {
                         <tr style={{ borderTop: '0.5px solid var(--border)' }}><td style={rl}>Principal paid in {holdYears || 0} yr</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: c.principalHold > 0 ? 'var(--green)' : 'var(--text3)' }}>{c.principalHold > 0 ? fm(c.principalHold) : '$0 (IO)'}</td>)}</tr>
                         <tr><td style={rl}>Balance owed after {holdYears || 0} yr</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: 'var(--text2)' }}>{fm(c.endBalance)}</td>)}</tr>
                         <tr><td style={rlb}>Equity at exit <span style={{ fontWeight: 400, color: 'var(--text3)' }}>(flat value)</span></td>{calcs.map((c, i) => { const eq = (parseFloat(scenarios[i].value) || 0) - c.endBalance; return <td key={i} style={{ ...rc, fontWeight: 700, color: eq >= 0 ? 'var(--green)' : 'var(--red)' }}>{(parseFloat(scenarios[i].value) || 0) > 0 ? fm(eq) : '—'}</td> })}</tr>
+                        <tr className='no-print'><td style={rl}></td>{scenarios.map((s, i) => <td key={i} style={{ padding: '8px 5px', textAlign: 'center' }}><button onClick={() => useAsSummary(i)} className='btn btn-ghost' style={{ fontSize: '11px', width: '100%' }}>↑ Use as summary</button></td>)}</tr>
                       </tbody>
                     </table>
                   </div>
