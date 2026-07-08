@@ -42,7 +42,8 @@ export default function DscrPackagePage() {
   const [term, setTerm] = useState('30')
   const [io, setIo] = useState(false)
   const [orig, setOrig] = useState('1')                  // origination fee, % of loan (points)
-  const [closing, setClosing] = useState('')             // other closing costs $ (appraisal, title, legal, recording, lender admin)
+  const [closing, setClosing] = useState('')             // closing costs (appraisal, title, legal, recording, lender admin)
+  const [closingMode, setClosingMode] = useState('$')    // '$' flat, or '%' of loan
   const [payoff, setPayoff] = useState('')               // existing loan balance being paid off (refi/cash-out)
   const [rentBasis, setRentBasis] = useState('inplace') // inplace | market
   const [rentOverride, setRentOverride] = useState('')   // manual market/appraised rent for un-leased deals
@@ -110,13 +111,14 @@ export default function DscrPackagePage() {
   const dscr = pitia > 0 ? rentMo / pitia : null
   const ltv = value > 0 ? loan / value * 100 : null
   const origFee = loan * N(orig) / 100
-  const totalUpfront = origFee + N(closing)   // origination + closing costs
+  const closingAmt = closingMode === '%' ? loan * N(closing) / 100 : N(closing)
+  const totalUpfront = origFee + closingAmt   // origination + closing costs
   // Net cash to you at closing (refi/cash-out): new loan − existing payoff − upfront costs.
   // Positive = cash in your pocket; negative = cash you bring to close.
   const netCash = loan - N(payoff) - totalUpfront
   // fill all compare columns from the current scenario as a starting point
   function seedFromCurrent() {
-    const cur = { value: value ? String(value) : '', rent: rentMo ? String(rentMo) : '', tax: taxMo ? String(Math.round(taxMo * 12)) : '', ins: insMo ? String(Math.round(insMo * 12)) : '', hoa: hoaMo ? String(hoaMo) : '', loan: loanAmt, rate, term, io, orig, other: closing || '', payoff: payoff || '' }
+    const cur = { value: value ? String(value) : '', rent: rentMo ? String(rentMo) : '', tax: taxMo ? String(Math.round(taxMo * 12)) : '', ins: insMo ? String(Math.round(insMo * 12)) : '', hoa: hoaMo ? String(hoaMo) : '', loan: loanAmt, rate, term, io, orig, other: closingAmt ? String(Math.round(closingAmt)) : '', payoff: payoff || '' }
     setScenarios(prev => prev.map(s => ({ ...cur, label: s.label })))
   }
   const dscrColor = dscr == null ? '#888' : dscr >= 1.25 ? '#16a34a' : dscr >= 1 ? '#d97706' : '#dc2626'
@@ -279,7 +281,13 @@ export default function DscrPackagePage() {
                 {includeTerms && <div><label style={lbl}>Rate %</label><input style={inp} value={rate} onChange={e => setRate(e.target.value)} /></div>}
                 {includeTerms && <div><label style={lbl}>Term (yrs)</label><input style={inp} value={term} onChange={e => setTerm(e.target.value)} /></div>}
                 {includeTerms && <div><label style={lbl}>Origination %</label><input style={inp} value={orig} onChange={e => setOrig(e.target.value)} /></div>}
-                {includeTerms && <div><label style={lbl}>Closing costs $</label><input style={inp} placeholder='appraisal, title, legal…' value={closing} onChange={e => setClosing(e.target.value)} /></div>}
+                {includeTerms && <div><label style={lbl}>Closing costs</label>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <input style={{ ...inp, flex: 1 }} placeholder={closingMode === '%' ? '% of loan' : 'appraisal, title…'} value={closing} onChange={e => setClosing(e.target.value)} />
+                    <button type='button' onClick={() => setClosingMode(m => m === '$' ? '%' : '$')} style={{ padding: '0 10px', fontSize: '13px', fontWeight: 700, border: '0.5px solid var(--border2)', borderRadius: '7px', background: 'var(--bg3)', color: 'var(--green)', cursor: 'pointer' }}>{closingMode}</button>
+                  </div>
+                  {closingMode === '%' && N(closing) > 0 && <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '3px' }}>= {fm(closingAmt)}</div>}
+                </div>}
                 {includeTerms && purpose !== 'purchase' && <div><label style={lbl}>Existing loan payoff $</label><input style={inp} placeholder='balance being paid off' value={payoff} onChange={e => setPayoff(e.target.value)} /></div>}
                 {!isManual && <div><label style={lbl}>Rent basis</label>
                   <select value={rentBasis} onChange={e => setRentBasis(e.target.value)} style={inp} disabled={N(rentOverride) > 0}>
@@ -380,7 +388,7 @@ export default function DscrPackagePage() {
                   {includeTerms ? fact('Rate', (N(rate)).toFixed(3).replace(/0+$/, '').replace(/\.$/, '') + '%') : <></>}
                   {includeTerms ? fact('Amortization', io ? 'Interest-only' : N(term) + ' yr') : <></>}
                   {includeTerms && N(orig) > 0 ? fact('Origination fee', fm(origFee) + ' (' + N(orig) + '%)') : <></>}
-                  {includeTerms && N(closing) > 0 ? fact('Closing costs', fm(N(closing))) : <></>}
+                  {includeTerms && closingAmt > 0 ? fact('Closing costs', fm(closingAmt) + (closingMode === '%' ? ' (' + N(closing) + '%)' : '')) : <></>}
                   {includeTerms && totalUpfront > 0 ? fact('Total upfront', fm(totalUpfront)) : <></>}
                   {includeTerms && purpose !== 'purchase' && N(payoff) > 0 ? fact('Existing payoff', fm(N(payoff))) : <></>}
                 </div>
