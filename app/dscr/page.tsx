@@ -16,11 +16,13 @@ function scenarioCalc(s: any, holdMonths = 24) {
   const pi = s.io ? loan * r : monthlyPI({ original_amount: loan, interest_rate: rate, term_years: term })
   const pitia = pi + taxMo + insMo + hoaMo
   const upfront = loan * n(s.orig) / 100 + n(s.other)   // origination points + other upfront (closing, appraisal…)
-  // interest actually paid until you refi/sell (principal isn't a cost — it's your equity)
-  let interestHold = 0
+  // interest actually paid until you refi/sell (principal isn't a cost — it's your equity),
+  // plus how much principal you paid down (equity built) and the balance still owed at exit.
+  let interestHold = 0, principalHold = 0
   if (s.io) { interestHold = loan * r * holdMonths }
-  else { let bal = loan; for (let m = 0; m < holdMonths && bal > 0.01; m++) { const int = bal * r; interestHold += int; bal -= (pi - int) } }
-  return { pi, pitia, dscr: pitia > 0 ? n(s.rent) / pitia : null, ltv: value > 0 ? loan / value * 100 : null, fee: loan * n(s.orig) / 100, upfront, interestHold, totalCostHold: upfront + interestHold }
+  else { let bal = loan; for (let m = 0; m < holdMonths && bal > 0.01; m++) { const int = bal * r; const prin = Math.min(pi - int, bal); interestHold += int; principalHold += prin; bal -= prin } }
+  const endBalance = s.io ? loan : Math.max(0, loan - principalHold)
+  return { pi, pitia, dscr: pitia > 0 ? n(s.rent) / pitia : null, ltv: value > 0 ? loan / value * 100 : null, fee: loan * n(s.orig) / 100, upfront, interestHold, totalCostHold: upfront + interestHold, principalHold, endBalance }
 }
 const dscrTone = (d: number | null) => d == null ? '#888' : d >= 1.25 ? '#16a34a' : d >= 1 ? '#d97706' : '#dc2626'
 
@@ -209,10 +211,13 @@ export default function DscrPackagePage() {
                         <tr style={{ borderTop: '0.5px solid var(--border)' }}><td style={rl}>Upfront cost</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: 'var(--text2)' }}>{fm(c.upfront)}</td>)}</tr>
                         <tr><td style={rl}>Interest paid in {holdYears || 0} yr</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: 'var(--text2)' }}>{fm(c.interestHold)}</td>)}</tr>
                         <tr><td style={rlb}>Total cost over {holdYears || 0} yr</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: c.totalCostHold === minTotal ? 800 : 600, color: c.totalCostHold === minTotal ? 'var(--green)' : 'var(--text)' }}>{fm(c.totalCostHold)}{c.totalCostHold === minTotal && minTotal > 0 ? ' ✓' : ''}</td>)}</tr>
+                        {/* equity side — what IO gives up */}
+                        <tr style={{ borderTop: '0.5px solid var(--border)' }}><td style={rl}>Principal paid in {holdYears || 0} yr</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: c.principalHold > 0 ? 'var(--green)' : 'var(--text3)' }}>{c.principalHold > 0 ? fm(c.principalHold) : '$0 (IO)'}</td>)}</tr>
+                        <tr><td style={rl}>Balance owed after {holdYears || 0} yr</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: 'var(--text2)' }}>{fm(c.endBalance)}</td>)}</tr>
                       </tbody>
                     </table>
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '8px', lineHeight: 1.5 }}><strong style={{ color: 'var(--text2)' }}>Total cost over your hold</strong> = upfront fees + interest paid until you refi/sell (principal isn&apos;t counted — it&apos;s your equity). The ✓ column is cheapest for that horizon. Shorten the hold and watch a lower rate with points lose to a higher rate with none — that&apos;s the buydown you&apos;d never recover. DSCR: green ≥1.25× · amber ≥1.0× · red &lt;1.0×.</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '8px', lineHeight: 1.5 }}><strong style={{ color: 'var(--text2)' }}>Total cost</strong> = upfront fees + interest over your hold. <strong style={{ color: 'var(--text2)' }}>Interest-only</strong> has the lowest payment + often the lowest cost, but pays <strong>$0 principal</strong> — you owe the full balance at exit and build equity only from appreciation. Amortizing costs a bit more but the &quot;principal paid&quot; row is equity you keep. Shorten the hold and a rate-buydown&apos;s points stop paying off. DSCR: green ≥1.25× · amber ≥1.0× · red &lt;1.0×.</div>
                 </div>
               )
             })()}
