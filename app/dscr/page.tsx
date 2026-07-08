@@ -170,6 +170,15 @@ export default function DscrPackagePage() {
               const calcs = scenarios.map(s => scenarioCalc(s, holdMonths))
               const totals = calcs.map(c => c.totalCostHold).filter(t => t > 0)
               const minTotal = totals.length ? Math.min(...totals) : -1
+              // break-even for upfront cost: months for a lower payment to recover extra points vs the lowest-upfront column
+              const baseIdx = calcs.reduce((mi, c, i) => c.upfront < calcs[mi].upfront ? i : mi, 0)
+              const breakeven = (i: number) => {
+                const extra = calcs[i].upfront - calcs[baseIdx].upfront
+                const save = calcs[baseIdx].pi - calcs[i].pi
+                if (extra <= 0) return '—'
+                if (save <= 0) return 'never'
+                return '~' + (extra / save / 12).toFixed(1) + ' yr'
+              }
               const fields: [string, string][] = [['value', 'Property value'], ['rent', 'Monthly rent'], ['tax', 'Annual taxes'], ['ins', 'Annual insurance'], ['hoa', 'HOA /mo'], ['loan', 'Loan amount'], ['rate', 'Rate %'], ['term', 'Term (yrs)'], ['orig', 'Origination %'], ['other', 'Other upfront $']]
               const rl: any = { padding: '6px 8px', fontSize: '11px', color: 'var(--text2)', whiteSpace: 'nowrap', textAlign: 'left' }
               const rlb: any = { ...rl, fontWeight: 700, color: 'var(--text)' }
@@ -211,13 +220,15 @@ export default function DscrPackagePage() {
                         <tr style={{ borderTop: '0.5px solid var(--border)' }}><td style={rl}>Upfront cost</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: 'var(--text2)' }}>{fm(c.upfront)}</td>)}</tr>
                         <tr><td style={rl}>Interest paid in {holdYears || 0} yr</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: 'var(--text2)' }}>{fm(c.interestHold)}</td>)}</tr>
                         <tr><td style={rlb}>Total cost over {holdYears || 0} yr</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: c.totalCostHold === minTotal ? 800 : 600, color: c.totalCostHold === minTotal ? 'var(--green)' : 'var(--text)' }}>{fm(c.totalCostHold)}{c.totalCostHold === minTotal && minTotal > 0 ? ' ✓' : ''}</td>)}</tr>
+                        <tr><td style={rl}>Points pay off after</td>{calcs.map((c, i) => { const b = breakeven(i); return <td key={i} style={{ ...rc, fontWeight: 400, fontSize: '12px', color: b === 'never' ? 'var(--red)' : b === '—' ? 'var(--text3)' : (parseFloat(b.replace(/[^\d.]/g, '')) <= (parseFloat(holdYears) || 0) ? 'var(--green)' : 'var(--amber)') }}>{b}</td> })}</tr>
                         {/* equity side — what IO gives up */}
                         <tr style={{ borderTop: '0.5px solid var(--border)' }}><td style={rl}>Principal paid in {holdYears || 0} yr</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: c.principalHold > 0 ? 'var(--green)' : 'var(--text3)' }}>{c.principalHold > 0 ? fm(c.principalHold) : '$0 (IO)'}</td>)}</tr>
                         <tr><td style={rl}>Balance owed after {holdYears || 0} yr</td>{calcs.map((c, i) => <td key={i} style={{ ...rc, fontWeight: 400, color: 'var(--text2)' }}>{fm(c.endBalance)}</td>)}</tr>
+                        <tr><td style={rlb}>Equity at exit <span style={{ fontWeight: 400, color: 'var(--text3)' }}>(flat value)</span></td>{calcs.map((c, i) => { const eq = (parseFloat(scenarios[i].value) || 0) - c.endBalance; return <td key={i} style={{ ...rc, fontWeight: 700, color: eq >= 0 ? 'var(--green)' : 'var(--red)' }}>{(parseFloat(scenarios[i].value) || 0) > 0 ? fm(eq) : '—'}</td> })}</tr>
                       </tbody>
                     </table>
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '8px', lineHeight: 1.5 }}><strong style={{ color: 'var(--text2)' }}>Total cost</strong> = upfront fees + interest over your hold. <strong style={{ color: 'var(--text2)' }}>Interest-only</strong> has the lowest payment + often the lowest cost, but pays <strong>$0 principal</strong> — you owe the full balance at exit and build equity only from appreciation. Amortizing costs a bit more but the &quot;principal paid&quot; row is equity you keep. Shorten the hold and a rate-buydown&apos;s points stop paying off. DSCR: green ≥1.25× · amber ≥1.0× · red &lt;1.0×.</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '8px', lineHeight: 1.5 }}><strong style={{ color: 'var(--text2)' }}>Total cost</strong> = upfront fees + interest over your hold. <strong style={{ color: 'var(--text2)' }}>Interest-only</strong> has the lowest payment + often the lowest cost, but pays <strong>$0 principal</strong> — you owe the full balance at exit and build equity only from appreciation. Amortizing costs a bit more but the &quot;principal paid&quot; row is equity you keep. <strong style={{ color: 'var(--text2)' }}>Points pay off after</strong> = years for the lower payment to recover its extra upfront vs the cheapest-upfront column (green = recovered within your hold; red = never). <strong style={{ color: 'var(--text2)' }}>Equity at exit</strong> = value − balance owed (flat value; appreciation would add on top). DSCR: green ≥1.25× · amber ≥1.0× · red &lt;1.0×.</div>
                 </div>
               )
             })()}
