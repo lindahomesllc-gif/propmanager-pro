@@ -8,14 +8,15 @@ import { supabase, fm, monthlyPI, openSigned, loanBalance } from '@/lib/supabase
 // calculation is the headline; the rest is the supporting property + income detail.
 
 // Full-picture math for one loan scenario over a chosen hold horizon.
-function scenarioCalc(s: any, holdMonths = 24) {
+function scenarioCalc(s: any, holdMonths = 24, closingMode = '$') {
   const n = (v: any) => parseFloat(v) || 0
   const loan = n(s.loan), rate = n(s.rate), term = n(s.term), value = n(s.value)
   const taxMo = n(s.tax) / 12, insMo = n(s.ins) / 12, hoaMo = n(s.hoa)
   const r = rate / 100 / 12
   const pi = s.io ? loan * r : monthlyPI({ original_amount: loan, interest_rate: rate, term_years: term })
   const pitia = pi + taxMo + insMo + hoaMo
-  const upfront = loan * n(s.orig) / 100 + n(s.other)   // origination points + other upfront (closing, appraisal…)
+  const closingAmt = closingMode === '%' ? loan * n(s.other) / 100 : n(s.other)
+  const upfront = loan * n(s.orig) / 100 + closingAmt   // origination points + closing costs ($ or % of loan)
   // interest actually paid until you refi/sell (principal isn't a cost — it's your equity),
   // plus how much principal you paid down (equity built) and the balance still owed at exit.
   let interestHold = 0, principalHold = 0
@@ -59,6 +60,7 @@ export default function DscrPackagePage() {
   // side-by-side scenario comparison
   const [showCompare, setShowCompare] = useState(false)
   const [holdYears, setHoldYears] = useState('2')   // how long until you expect to refi/sell
+  const [cmpClosingMode, setCmpClosingMode] = useState('$')   // grid closing costs: '$' flat or '%' of loan
   const [scenarios, setScenarios] = useState<any[]>([
     { label: 'Higher rate, no points', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '8', term: '30', io: false, orig: '0', other: '', payoff: '' },
     { label: 'Lower rate, 2 points', value: '', rent: '', tax: '', ins: '', hoa: '', loan: '', rate: '7', term: '30', io: false, orig: '2', other: '', payoff: '' },
@@ -77,7 +79,7 @@ export default function DscrPackagePage() {
       setIf(s.purpose, setPurpose); setIf(s.loanAmt, setLoanAmt); setIf(s.rate, setRate); setIf(s.term, setTerm); setIo(!!s.io)
       setIf(s.orig, setOrig); setIf(s.closing, setClosing); setIf(s.closingMode, setClosingMode); setIf(s.payoff, setPayoff)
       setIf(s.mLabel, setMLabel); setIf(s.mValue, setMValue); setIf(s.mRent, setMRent); setIf(s.mTax, setMTax); setIf(s.mIns, setMIns); setIf(s.mHoa, setMHoa)
-      setIf(s.holdYears, setHoldYears)
+      setIf(s.holdYears, setHoldYears); setIf(s.cmpClosingMode, setCmpClosingMode)
       if (Array.isArray(s.scenarios) && s.scenarios.length === 3) setScenarios(s.scenarios)
     }
     setRestored(true)
@@ -86,8 +88,8 @@ export default function DscrPackagePage() {
   // Auto-save all working inputs to this browser (private, never leaves your device).
   useEffect(() => {
     if (!restored) return
-    try { localStorage.setItem('dscrWork', JSON.stringify({ selId, purpose, loanAmt, rate, term, io, orig, closing, closingMode, payoff, mLabel, mValue, mRent, mTax, mIns, mHoa, holdYears, scenarios })) } catch {}
-  }, [restored, selId, purpose, loanAmt, rate, term, io, orig, closing, closingMode, payoff, mLabel, mValue, mRent, mTax, mIns, mHoa, holdYears, scenarios])
+    try { localStorage.setItem('dscrWork', JSON.stringify({ selId, purpose, loanAmt, rate, term, io, orig, closing, closingMode, payoff, mLabel, mValue, mRent, mTax, mIns, mHoa, holdYears, cmpClosingMode, scenarios })) } catch {}
+  }, [restored, selId, purpose, loanAmt, rate, term, io, orig, closing, closingMode, payoff, mLabel, mValue, mRent, mTax, mIns, mHoa, holdYears, cmpClosingMode, scenarios])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -147,7 +149,8 @@ export default function DscrPackagePage() {
   const netCash = loan - N(payoff) - totalUpfront
   // fill all compare columns from the current scenario as a starting point
   function seedFromCurrent() {
-    const cur = { value: value ? String(value) : '', rent: rentMo ? String(rentMo) : '', tax: taxMo ? String(Math.round(taxMo * 12)) : '', ins: insMo ? String(Math.round(insMo * 12)) : '', hoa: hoaMo ? String(hoaMo) : '', loan: loanAmt, rate, term, io, orig, other: closingAmt ? String(Math.round(closingAmt)) : '', payoff: payoff || '' }
+    const cur = { value: value ? String(value) : '', rent: rentMo ? String(rentMo) : '', tax: taxMo ? String(Math.round(taxMo * 12)) : '', ins: insMo ? String(Math.round(insMo * 12)) : '', hoa: hoaMo ? String(hoaMo) : '', loan: loanAmt, rate, term, io, orig, other: closingMode === '%' ? (closing || '') : (closingAmt ? String(Math.round(closingAmt)) : ''), payoff: payoff || '' }
+    setCmpClosingMode(closingMode)
     setScenarios(prev => prev.map(s => ({ ...cur, label: s.label })))
   }
   // promote a compare column to be the printable summary (as a manual scenario titled by its label)
@@ -215,7 +218,7 @@ export default function DscrPackagePage() {
             {/* side-by-side scenario comparison (not printed) */}
             {showCompare && (() => {
               const holdMonths = (parseFloat(holdYears) || 0) * 12
-              const calcs = scenarios.map(s => scenarioCalc(s, holdMonths))
+              const calcs = scenarios.map(s => scenarioCalc(s, holdMonths, cmpClosingMode))
               const totals = calcs.map(c => c.totalCostHold).filter(t => t > 0)
               const minTotal = totals.length ? Math.min(...totals) : -1
               // break-even for upfront cost: months for a lower payment to recover extra points vs the lowest-upfront column
@@ -227,7 +230,7 @@ export default function DscrPackagePage() {
                 if (save <= 0) return 'never'
                 return '~' + (extra / save / 12).toFixed(1) + ' yr'
               }
-              const fields: [string, string][] = [['value', 'Property value'], ['rent', 'Monthly rent'], ['tax', 'Annual taxes'], ['ins', 'Annual insurance'], ['hoa', 'HOA /mo'], ['loan', 'Loan amount'], ['rate', 'Rate %'], ['term', 'Term (yrs)'], ['orig', 'Origination %'], ['other', 'Closing costs $'], ['payoff', 'Existing payoff $']]
+              const fields: [string, string][] = [['value', 'Property value'], ['rent', 'Monthly rent'], ['tax', 'Annual taxes'], ['ins', 'Annual insurance'], ['hoa', 'HOA /mo'], ['loan', 'Loan amount'], ['rate', 'Rate %'], ['term', 'Term (yrs)'], ['orig', 'Origination %'], ['other', 'Closing costs (' + cmpClosingMode + ')'], ['payoff', 'Existing payoff $']]
               const rl: any = { padding: '6px 8px', fontSize: '11px', color: 'var(--text2)', whiteSpace: 'nowrap', textAlign: 'left' }
               const rlb: any = { ...rl, fontWeight: 700, color: 'var(--text)' }
               const cel: any = { padding: '3px 5px' }
@@ -239,6 +242,7 @@ export default function DscrPackagePage() {
                     <div style={sec}>⚖ Compare Scenarios <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: 'var(--text3)' }}>· hold {holdYears || 0} yr</span></div>
                     <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                       <label style={{ fontSize: '11px', color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: '6px' }} className='no-print'>Hold until refi/sell: <input value={holdYears} onChange={e => setHoldYears(e.target.value)} style={{ width: '46px', padding: '5px 7px', fontSize: '12px', border: '0.5px solid var(--border2)', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--text)', outline: 'none', textAlign: 'center' }} /> yrs</label>
+                      <label style={{ fontSize: '11px', color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: '6px' }} className='no-print'>Closing as <button type='button' onClick={() => setCmpClosingMode(m => m === '$' ? '%' : '$')} style={{ padding: '4px 10px', fontSize: '12px', fontWeight: 700, border: '0.5px solid var(--border2)', borderRadius: '6px', background: 'var(--bg3)', color: 'var(--green)', cursor: 'pointer' }}>{cmpClosingMode === '%' ? '% of loan' : 'flat $'}</button></label>
                       <button onClick={seedFromCurrent} className='btn btn-ghost no-print' style={{ fontSize: '11px' }}>↩ Seed from current</button>
                       <button onClick={() => { document.body.classList.add('cmp-print'); window.print(); setTimeout(() => document.body.classList.remove('cmp-print'), 600) }} className='btn btn-ghost no-print' style={{ fontSize: '11px' }}>🖨 Print</button>
                     </div>
